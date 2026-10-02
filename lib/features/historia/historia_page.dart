@@ -21,6 +21,7 @@ import 'estado/historia_controller.dart';
 import 'estado/validacion.dart';
 import 'secciones/formulario_diagnosticos.dart';
 import 'secciones/formulario_paciente.dart';
+import 'secciones/formulario_revision.dart';
 import 'secciones/formularios_clinicos.dart';
 import 'secciones/seccion_evoluciones.dart';
 import 'widgets/avisos.dart';
@@ -514,8 +515,10 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
         SeccionHistoria.paciente => const FormularioPaciente(),
         SeccionHistoria.motivo => const FormularioMotivo(),
         SeccionHistoria.antecedentes => const FormularioAntecedentes(),
+        SeccionHistoria.revision => const FormularioRevisionSistemas(),
         SeccionHistoria.signos => const FormularioSignos(),
         SeccionHistoria.examen => const FormularioExamen(),
+        SeccionHistoria.analisis => const FormularioAnalisis(),
         SeccionHistoria.diagnosticos => const FormularioDiagnosticos(),
         SeccionHistoria.plan => const FormularioPlan(),
         SeccionHistoria.firma => const FormularioFirma(),

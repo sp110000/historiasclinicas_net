@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/app.dart';
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
+import 'package:historiasclinicas_net/core/models/historia.dart';
 import 'package:historiasclinicas_net/core/storage/preferencias.dart';
 import 'package:historiasclinicas_net/features/historia/estado/historia_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,22 +35,31 @@ Future<ProviderContainer> montar(WidgetTester tester) async {
 /// Deja correr el autoguardado del borrador (temporizador de 700 ms).
 Future<void> terminar(WidgetTester t) => t.pump(const Duration(seconds: 1));
 
+/// Desplaza hasta el widget y lo pulsa (la página es larga).
+Future<void> pulsar(WidgetTester t, Finder f) async {
+  await t.ensureVisible(f);
+  await t.pumpAndSettle();
+  await t.tap(f);
+}
+
 Finder campo(String etiqueta) =>
     find.ancestor(of: find.text(etiqueta), matching: find.byType(TextField));
 
 void main() {
-  testWidgets('muestra las 9 secciones y las acciones principales', (t) async {
+  testWidgets('muestra las 11 secciones y las acciones principales', (t) async {
     await montar(t);
     for (final titulo in [
       '1 · Datos del paciente',
       '2 · Motivo de consulta y enfermedad actual',
       '3 · Antecedentes',
-      '4 · Signos vitales',
-      '5 · Examen físico',
-      '6 · Diagnósticos',
-      '7 · Plan de tratamiento e indicaciones',
-      '8 · Firma y sello',
-      '9 · Evoluciones',
+      '4 · Revisión de síntomas por sistemas',
+      '5 · Signos vitales',
+      '6 · Examen físico',
+      '7 · Análisis',
+      '8 · Diagnósticos',
+      '9 · Plan de tratamiento e indicaciones',
+      '10 · Firma y sello',
+      '11 · Evoluciones',
     ]) {
       expect(find.text(titulo), findsOneWidget, reason: titulo);
     }
@@ -135,11 +145,11 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Integridad verificada'), findsOneWidget);
-    expect(find.text('Solo lectura'), findsNWidgets(8));
+    expect(find.text('Solo lectura'), findsNWidgets(10));
     expect(campo('Primer apellido *'), findsNothing);
     expect(find.text('Descargar historia actualizada'), findsOneWidget);
 
-    await t.tap(find.text('Agregar evolución'));
+    await pulsar(t, find.text('Agregar evolución'));
     await t.pumpAndSettle();
     expect(campo('Nueva evolución *'), findsOneWidget);
     expect(c.read(historiaProvider).evolucionesNuevas, hasLength(1));
@@ -153,7 +163,7 @@ void main() {
         .abrir(sellarBase(historiaCompleta().aMapa()), revision: 1);
     await t.pumpAndSettle();
     expect(find.text('Hipotiroidismo'), findsNothing);
-    await t.tap(find.text('3 · Antecedentes'));
+    await pulsar(t, find.text('3 · Antecedentes'));
     await t.pumpAndSettle();
     expect(find.text('Hipotiroidismo'), findsOneWidget);
   });
@@ -172,6 +182,36 @@ void main() {
     await t.tap(find.text('Volver a la historia'));
     await t.pumpAndSettle();
     expect(c.read(historiaProvider).historia.paciente.nombres, 'José Ángel');
+    await terminar(t);
+  });
+
+  testWidgets(
+    'revisión por sistemas: refiere con detalle y marcar pendientes',
+    (t) async {
+      final c = await montar(t);
+      final refiere = find.widgetWithText(ChoiceChip, 'Refiere').first;
+      await t.ensureVisible(refiere);
+      await t.pumpAndSettle();
+      await t.tap(refiere);
+      await t.pump();
+      await t.enterText(campo('Qué refiere · Generales'), 'Fiebre y astenia');
+      await pulsar(t, find.text('Marcar los pendientes como «Niega»'));
+      await t.pump();
+      final r = c.read(historiaProvider).historia.revisionSistemas;
+      expect(r.de('generales').estado, EstadoSistema.refiere);
+      expect(r.de('generales').detalle, 'Fiebre y astenia');
+      expect(r.completa, isTrue);
+      expect(r.conEstado(EstadoSistema.niega), hasLength(11));
+      expect(find.text('12 de 12 sistemas registrados'), findsOneWidget);
+      await terminar(t);
+    },
+  );
+
+  testWidgets('tipo de consulta incluye "Interconsulta"', (t) async {
+    final c = await montar(t);
+    await t.tap(find.widgetWithText(ChoiceChip, 'Interconsulta'));
+    await t.pump();
+    expect(c.read(historiaProvider).historia.tipoConsulta, 'interconsulta');
     await terminar(t);
   });
 }

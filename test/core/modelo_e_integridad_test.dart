@@ -51,6 +51,30 @@ void main() {
       expect(sinFecha.edadAnios, 60);
     });
 
+    test('revisión por sistemas y análisis viajan en el mapa', () {
+      final h = HistoriaClinica.desdeMapa(historiaCompleta().aMapa());
+      final r = h.revisionSistemas;
+      expect(r.de('generales').detalle, 'Fiebre no cuantificada y astenia');
+      expect(r.conEstado(EstadoSistema.niega).map((s) => s.codigo), [
+        'respiratorio',
+        'cardiovascular',
+      ]);
+      expect(r.registrados, 3);
+      expect(r.completa, isFalse);
+      expect(r.negarPendientes().completa, isTrue);
+      expect(r.negarPendientes().de('generales').estado, EstadoSistema.refiere);
+      expect(h.analisis, startsWith('Cuadro compatible'));
+      expect(h.aMapa()['analisis'], {'texto': h.analisis});
+    });
+
+    test('una revisión vacía no ocupa espacio en el JSON', () {
+      expect(const RevisionSistemas().aMapa(), isEmpty);
+      expect(
+        const RevisionSistemas(sistemas: {'piel': HallazgoSistema()}).aMapa(),
+        isEmpty,
+      );
+    });
+
     test('rechaza mapas que no son historias clínicas', () {
       expect(
         () => HistoriaClinica.desdeMapa({'tipo': 'poc'}),

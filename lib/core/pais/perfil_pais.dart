@@ -79,6 +79,7 @@ const opcionesTipoConsulta = [
   Opcion('primera_vez', 'Primera vez'),
   Opcion('control', 'Control'),
   Opcion('urgencia', 'Urgencia'),
+  Opcion('interconsulta', 'Interconsulta'),
 ];
 
 const opcionesTipoDiagnostico = [

@@ -164,6 +164,26 @@ List<DatoMostrado> datosDeSeccion(SeccionHistoria s, HistoriaClinica h) {
         );
       }
       dato('Otros', a.otros, ancho: AnchoDato.completo);
+    case SeccionHistoria.revision:
+      final r = h.revisionSistemas;
+      for (final sistema in r.conEstado(EstadoSistema.refiere)) {
+        dato(
+          'Refiere · ${sistema.nombre}',
+          r.de(sistema.codigo).detalle.trim().isEmpty
+              ? 'Refiere síntomas'
+              : r.de(sistema.codigo).detalle,
+          ancho: AnchoDato.completo,
+        );
+      }
+      final niega = r.conEstado(EstadoSistema.niega);
+      dato(
+        'Niega síntomas en',
+        niega.length == sistemasRevision.length
+            ? 'Todos los sistemas'
+            : niega.map((s) => s.nombre).join(', '),
+        ancho: AnchoDato.completo,
+      );
+      dato('Observaciones', r.observaciones, ancho: AnchoDato.completo);
     case SeccionHistoria.signos:
       final v = h.signos;
       if (v.paSistolica != null || v.paDiastolica != null) {
@@ -182,6 +202,8 @@ List<DatoMostrado> datosDeSeccion(SeccionHistoria s, HistoriaClinica h) {
     case SeccionHistoria.examen:
       dato('Estado general', h.examen.estadoGeneral, ancho: AnchoDato.completo);
       dato('Hallazgos', h.examen.hallazgos, ancho: AnchoDato.completo);
+    case SeccionHistoria.analisis:
+      dato('Análisis', h.analisis, ancho: AnchoDato.completo);
     case SeccionHistoria.diagnosticos:
       for (final (i, d) in h.diagnosticos.indexed) {
         dato(
@@ -237,12 +259,14 @@ String resumenSeccion(SeccionHistoria s, HistoriaClinica h) {
     SeccionHistoria.motivo => corta(h.motivoConsulta),
     SeccionHistoria.antecedentes =>
       'Alergias: ${textoAlergias(h.antecedentes)}',
+    SeccionHistoria.revision => _resumenRevision(h.revisionSistemas),
     SeccionHistoria.signos => resumenSignos(h.signos),
     SeccionHistoria.examen => corta(
       h.examen.estadoGeneral.isNotEmpty
           ? h.examen.estadoGeneral
           : h.examen.hallazgos,
     ),
+    SeccionHistoria.analisis => corta(h.analisis),
     SeccionHistoria.diagnosticos => corta(
       h.diagnosticos.map((d) => d.textoCorto).join('; '),
     ),
@@ -255,4 +279,16 @@ String resumenSeccion(SeccionHistoria s, HistoriaClinica h) {
       'Firma ${h.firma.incluirFirma ? 'sí' : 'no'} · Sello ${h.firma.incluirSello ? 'sí' : 'no'}',
     SeccionHistoria.evoluciones => '',
   };
+}
+
+/// "Refiere: Respiratorio, Generales · Niega: 10 sistemas"
+String _resumenRevision(RevisionSistemas r) {
+  final refiere = r.conEstado(EstadoSistema.refiere);
+  final niega = r.conEstado(EstadoSistema.niega);
+  return [
+    if (refiere.isNotEmpty)
+      'Refiere: ${refiere.map((s) => s.nombre).join(', ')}',
+    if (niega.isNotEmpty)
+      'Niega: ${niega.length == sistemasRevision.length ? 'todos los sistemas' : '${niega.length} ${niega.length == 1 ? 'sistema' : 'sistemas'}'}',
+  ].join(' · ');
 }

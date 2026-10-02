@@ -39,6 +39,17 @@ HistoriaClinica historiaCompleta() => HistoriaClinica(
       anticoncepcion: 'DIU',
     ),
   ),
+  revisionSistemas: const RevisionSistemas(
+    sistemas: {
+      'generales': HallazgoSistema(
+        estado: EstadoSistema.refiere,
+        detalle: 'Fiebre no cuantificada y astenia',
+      ),
+      'respiratorio': HallazgoSistema(estado: EstadoSistema.niega),
+      'cardiovascular': HallazgoSistema(estado: EstadoSistema.niega),
+    },
+    observaciones: 'Sin otros síntomas.',
+  ),
   signos: const SignosVitales(
     paSistolica: 118,
     paDiastolica: 76,
@@ -53,6 +64,8 @@ HistoriaClinica historiaCompleta() => HistoriaClinica(
     estadoGeneral: 'Alerta, hidratada',
     hallazgos: 'Faringe eritematosa con exudado.',
   ),
+  analisis:
+      'Cuadro compatible con faringitis aguda; descartar origen bacteriano.',
   diagnosticos: const [
     Diagnostico(id: 'd1', descripcion: 'Faringitis aguda', codigo: 'J02.9'),
     Diagnostico(

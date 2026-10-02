@@ -93,8 +93,10 @@ Avance avanceSeccion(SeccionHistoria s, HistoriaClinica h) {
     SeccionHistoria.motivo =>
       !_vacio(h.motivoConsulta) || !_vacio(h.enfermedadActual),
     SeccionHistoria.antecedentes => h.antecedentes.aMapa().isNotEmpty,
+    SeccionHistoria.revision => !h.revisionSistemas.vacia,
     SeccionHistoria.signos => !h.signos.vacio,
     SeccionHistoria.examen => h.examen.aMapa().isNotEmpty,
+    SeccionHistoria.analisis => h.analisis.trim().isNotEmpty,
     SeccionHistoria.diagnosticos => h.diagnosticos.isNotEmpty,
     SeccionHistoria.plan => h.plan.aMapa().isNotEmpty,
     // Se completa con los datos del médico (Fase 2).
@@ -102,5 +104,9 @@ Avance avanceSeccion(SeccionHistoria s, HistoriaClinica h) {
     SeccionHistoria.evoluciones => false,
   };
   if (!datos) return Avance.vacia;
+  // La revisión por sistemas está completa cuando todos tienen respuesta.
+  if (s == SeccionHistoria.revision && !h.revisionSistemas.completa) {
+    return Avance.parcial;
+  }
   return pendientes.isEmpty ? Avance.completa : Avance.parcial;
 }

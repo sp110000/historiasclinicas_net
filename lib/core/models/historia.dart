@@ -6,12 +6,14 @@ import 'antecedentes.dart';
 import 'diagnostico.dart';
 import 'mapa.dart';
 import 'paciente.dart';
+import 'revision_sistemas.dart';
 import 'signos_vitales.dart';
 
 export 'antecedentes.dart';
 export 'diagnostico.dart';
 export 'evolucion.dart';
 export 'paciente.dart';
+export 'revision_sistemas.dart';
 export 'signos_vitales.dart';
 
 /// Valor de `datos.tipo` en el `historia.json` incrustado.
@@ -121,8 +123,10 @@ class HistoriaClinica {
     this.motivoConsulta = '',
     this.enfermedadActual = '',
     this.antecedentes = const Antecedentes(),
+    this.revisionSistemas = const RevisionSistemas(),
     this.signos = const SignosVitales(),
     this.examen = const ExamenFisico(),
+    this.analisis = '',
     this.diagnosticos = const [],
     this.plan = const PlanTratamiento(),
     this.firma = const OpcionesFirma(),
@@ -154,8 +158,10 @@ class HistoriaClinica {
       motivoConsulta: motivo.texto('motivoConsulta'),
       enfermedadActual: motivo.texto('enfermedadActual'),
       antecedentes: Antecedentes.desdeMapa(m.mapa('antecedentes')),
+      revisionSistemas: RevisionSistemas.desdeMapa(m.mapa('revisionSistemas')),
       signos: SignosVitales.desdeMapa(m.mapa('signosVitales')),
       examen: ExamenFisico.desdeMapa(m.mapa('examenFisico')),
+      analisis: m.mapa('analisis').texto('texto'),
       diagnosticos: [
         for (final d in m.listaMapas('diagnosticos')) Diagnostico.desdeMapa(d),
       ],
@@ -174,8 +180,12 @@ class HistoriaClinica {
   final String motivoConsulta;
   final String enfermedadActual;
   final Antecedentes antecedentes;
+  final RevisionSistemas revisionSistemas;
   final SignosVitales signos;
   final ExamenFisico examen;
+
+  /// Análisis clínico: interpretación y razonamiento diagnóstico.
+  final String analisis;
   final List<Diagnostico> diagnosticos;
   final PlanTratamiento plan;
   final OpcionesFirma firma;
@@ -209,8 +219,10 @@ class HistoriaClinica {
     String? motivoConsulta,
     String? enfermedadActual,
     Antecedentes? antecedentes,
+    RevisionSistemas? revisionSistemas,
     SignosVitales? signos,
     ExamenFisico? examen,
+    String? analisis,
     List<Diagnostico>? diagnosticos,
     PlanTratamiento? plan,
     OpcionesFirma? firma,
@@ -223,8 +235,10 @@ class HistoriaClinica {
     motivoConsulta: motivoConsulta ?? this.motivoConsulta,
     enfermedadActual: enfermedadActual ?? this.enfermedadActual,
     antecedentes: antecedentes ?? this.antecedentes,
+    revisionSistemas: revisionSistemas ?? this.revisionSistemas,
     signos: signos ?? this.signos,
     examen: examen ?? this.examen,
+    analisis: analisis ?? this.analisis,
     diagnosticos: diagnosticos ?? this.diagnosticos,
     plan: plan ?? this.plan,
     firma: firma ?? this.firma,
@@ -244,8 +258,10 @@ class HistoriaClinica {
       'enfermedadActual': enfermedadActual,
     }),
     'antecedentes': antecedentes.aMapa(),
+    'revisionSistemas': revisionSistemas.aMapa(),
     'signosVitales': signos.aMapa(),
     'examenFisico': examen.aMapa(),
+    'analisis': compacto({'texto': analisis}),
     'diagnosticos': [for (final d in diagnosticos) d.aMapa()],
     'plan': plan.aMapa(),
     'firma': firma.aMapa(),

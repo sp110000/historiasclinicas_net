@@ -9,7 +9,7 @@ import '../../../core/widgets/campos.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
 
-// ─────────────────────────── 2. Motivo ───────────────────────────
+// ─────────────────────────── Motivo ───────────────────────────
 
 class FormularioMotivo extends ConsumerWidget {
   const FormularioMotivo({super.key});
@@ -43,7 +43,7 @@ class FormularioMotivo extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────── 3. Antecedentes ───────────────────────────
+// ─────────────────────────── Antecedentes ───────────────────────────
 
 class FormularioAntecedentes extends ConsumerWidget {
   const FormularioAntecedentes({super.key});
@@ -319,7 +319,7 @@ class _BloqueGineco extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────── 4. Signos vitales ───────────────────────────
+// ─────────────────────────── Signos vitales ───────────────────────────
 
 class FormularioSignos extends ConsumerWidget {
   const FormularioSignos({super.key});
@@ -456,7 +456,7 @@ class FormularioSignos extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────── 5. Examen físico ───────────────────────────
+// ─────────────────────────── Examen físico ───────────────────────────
 
 const plantillaExamenPorSistemas = '''Cabeza y cuello:
 Tórax:
@@ -527,7 +527,27 @@ class _FormularioExamenState extends ConsumerState<FormularioExamen> {
   }
 }
 
-// ─────────────────────────── 7. Plan ───────────────────────────
+// ─────────────────────────── Análisis ───────────────────────────
+
+class FormularioAnalisis extends ConsumerWidget {
+  const FormularioAnalisis({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final analisis = ref.read(historiaProvider).historia.analisis;
+    return CampoTexto(
+      etiqueta: 'Análisis',
+      pista:
+          'Interpretación clínica de los hallazgos, razonamiento diagnóstico, '
+          'diagnósticos diferenciales…',
+      lineas: 5,
+      valorInicial: analisis,
+      alCambiar: (v) => ref.editar((h) => h.copyWith(analisis: v)),
+    );
+  }
+}
+
+// ─────────────────────────── Plan ───────────────────────────
 
 class FormularioPlan extends ConsumerWidget {
   const FormularioPlan({super.key});
@@ -590,7 +610,7 @@ class FormularioPlan extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────── 8. Firma ───────────────────────────
+// ─────────────────────────── Firma ───────────────────────────
 
 class FormularioFirma extends ConsumerWidget {
   const FormularioFirma({super.key});
