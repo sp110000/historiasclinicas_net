@@ -23,9 +23,11 @@ extension type _ConPermisos(JSObject _) implements JSObject {
   external JSPromise<JSString> requestPermission(JSAny descriptor);
 }
 
-final _tiposPdf = [
+List<Map<String, Object>> _tiposPdf([
+  String descripcion = 'Historia clínica (PDF)',
+]) => [
   {
-    'description': 'Historia clínica (PDF)',
+    'description': descripcion,
     'accept': {
       'application/pdf': ['.pdf'],
     },
@@ -47,7 +49,7 @@ Future<ArchivoAbierto?> elegirPdf() async {
   if (puedeSobrescribirArchivos) {
     try {
       final manejadores = await _showOpenFilePicker(
-        {'types': _tiposPdf, 'multiple': false}.jsify()!,
+        {'types': _tiposPdf(), 'multiple': false}.jsify()!,
       ).toDart;
       final manejador = manejadores.toDart.first;
       final archivo = await manejador.getFile().toDart;
@@ -67,6 +69,15 @@ Future<ArchivoAbierto?> elegirPdf() async {
 /// Pide una imagen (PNG o JPG) con el selector clásico.
 Future<ArchivoAbierto?> elegirImagen() =>
     _elegirConInput('image/png,image/jpeg,.png,.jpg,.jpeg');
+
+/// Pide un archivo JSON (por ejemplo, "Mis medicamentos").
+Future<ArchivoAbierto?> elegirJson() =>
+    _elegirConInput('application/json,.json');
+
+/// Pide un catálogo de texto (CSV, TXT o JSON).
+Future<ArchivoAbierto?> elegirCatalogo() => _elegirConInput(
+  '.csv,.txt,.tsv,.json,text/csv,text/plain,application/json',
+);
 
 Future<ArchivoAbierto?> _elegirConInput(String acepta) {
   final completer = Completer<ArchivoAbierto?>();
@@ -115,6 +126,7 @@ Future<ArchivoAbierto?> _elegirConInput(String acepta) {
 Future<DestinoGuardado?> prepararGuardado({
   required String nombreSugerido,
   ArchivoAbierto? sobrescribir,
+  String descripcion = 'Historia clínica (PDF)',
 }) async {
   final existente = sobrescribir?.manejador;
   if (existente != null) {
@@ -128,7 +140,10 @@ Future<DestinoGuardado?> prepararGuardado({
   if (puedeSobrescribirArchivos) {
     try {
       final manejador = await _showSaveFilePicker(
-        {'suggestedName': nombreSugerido, 'types': _tiposPdf}.jsify()!,
+        {
+          'suggestedName': nombreSugerido,
+          'types': _tiposPdf(descripcion),
+        }.jsify()!,
       ).toDart;
       return DestinoGuardado(nombre: manejador.name, manejador: manejador);
     } catch (e) {
@@ -149,14 +164,16 @@ Future<void> escribirArchivo(DestinoGuardado destino, Uint8List bytes) async {
     await escritor.close().toDart;
     return;
   }
-  final blob = web.Blob(
-    [bytes.toJS].toJS,
-    web.BlobPropertyBag(type: 'application/pdf'),
-  );
+  descargar(destino.nombre, bytes, tipo: 'application/pdf');
+}
+
+/// Descarga [bytes] con el nombre [nombre] (descarga normal del navegador).
+void descargar(String nombre, Uint8List bytes, {required String tipo}) {
+  final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: tipo));
   final url = web.URL.createObjectURL(blob);
   final enlace = web.HTMLAnchorElement()
     ..href = url
-    ..download = destino.nombre
+    ..download = nombre
     ..style.display = 'none';
   web.document.body!.append(enlace);
   enlace.click();

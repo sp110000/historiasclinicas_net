@@ -162,6 +162,34 @@ class HistoriaController extends Notifier<EstadoHistoria> {
     );
   }
 
+  /// Registra lo formulado en una receta ([texto]): al final del plan
+  /// terapéutico de una historia nueva, o de la evolución en curso de una
+  /// historia abierta (si no hay ninguna, la crea). Devuelve dónde quedó.
+  String registrarReceta(String texto) {
+    String unir(String actual) =>
+        actual.trim().isEmpty ? texto : '${actual.trimRight()}\n\n$texto';
+    final version = state.versionFormulario + 1;
+    if (!state.abierta) {
+      final h = state.historia;
+      state = state.copyWith(
+        historia: h.copyWith(
+          plan: h.plan.copyWith(planTerapeutico: unir(h.plan.planTerapeutico)),
+        ),
+        versionFormulario: version,
+      );
+      return 'el plan de tratamiento';
+    }
+    if (state.evolucionesNuevas.isEmpty) agregarEvolucion();
+    final lista = [...state.evolucionesNuevas];
+    final ultima = lista.last;
+    lista[lista.length - 1] = ultima.copyWith(texto: unir(ultima.texto));
+    state = state.copyWith(
+      evolucionesNuevas: lista,
+      versionFormulario: version,
+    );
+    return 'la evolución en curso';
+  }
+
   // ── Evoluciones (solo en historias abiertas) ──
 
   void agregarEvolucion({DateTime? ahora}) {

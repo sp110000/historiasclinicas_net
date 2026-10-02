@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:historiasclinicas_net/core/models/historia.dart';
 import 'package:historiasclinicas_net/core/models/medico.dart';
@@ -110,3 +111,7 @@ Medico medicoEjemplo() => Medico(
   sello: pngSello,
   logo: pngLogo,
 );
+
+/// Sustituye a pdf.js en los tests: una "página" por PDF.
+Stream<Uint8List> rasterizadorDePrueba(Uint8List pdf, double dpi) =>
+    Stream.value(pngLogo);

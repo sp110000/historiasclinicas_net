@@ -52,5 +52,9 @@ class BorradorStore {
     return ahora;
   }
 
-  Future<void> borrar() => _prefs.remove(Claves.borrador);
+  /// Borra todo lo que está en curso: la historia y la receta.
+  Future<void> borrar() async {
+    await _prefs.remove(Claves.borrador);
+    await _prefs.remove(Claves.receta);
+  }
 }

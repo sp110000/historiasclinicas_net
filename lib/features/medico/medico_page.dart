@@ -10,8 +10,12 @@ import '../../core/imagenes/procesar_imagen.dart';
 import '../../core/models/medico.dart';
 import '../../core/pais/pais_provider.dart';
 import '../../core/pais/perfil_pais.dart';
+import '../../core/utils/fechas.dart';
+import '../../core/utils/numeros.dart';
 import '../../core/widgets/campos.dart';
 import '../../core/widgets/lienzo_firma.dart';
+import '../cie10/cie10_provider.dart';
+import '../cie10/dialogo_cie10.dart';
 import '../historia/estado/historia_controller.dart';
 import '../historia/widgets/dialogos.dart';
 import 'medico_provider.dart';
@@ -275,6 +279,12 @@ class MedicoPage extends ConsumerWidget {
                       await ctrl.guardarAhora();
                     },
                   ),
+                ),
+                const SizedBox(height: 16),
+                const _Tarjeta(
+                  icono: Icons.menu_book_outlined,
+                  titulo: 'Catálogo CIE-10 (opcional)',
+                  child: _CatalogoCie10(),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -765,6 +775,35 @@ class VistaPreviaMedico extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CatalogoCie10 extends ConsumerWidget {
+  const _CatalogoCie10();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(infoCie10Provider);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            info == null
+                ? 'Importa una vez el catálogo oficial de tu país para buscar '
+                      'diagnósticos por texto o código, sin conexión.'
+                : '${formatoMiles(info.cantidad)} códigos · ${info.archivo} · '
+                      'importado el ${formatoFecha(info.importado)}',
+            style: const TextStyle(color: ColoresMarca.textoSuave),
+          ),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: () => mostrarCatalogoCie10(context),
+          icon: const Icon(Icons.upload_file_outlined),
+          label: Text(info == null ? 'Importar' : 'Gestionar'),
+        ),
+      ],
     );
   }
 }

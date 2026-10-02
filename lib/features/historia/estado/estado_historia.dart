@@ -131,6 +131,7 @@ class EstadoHistoria {
     HistoriaClinica? historia,
     List<Evolucion>? evolucionesNuevas,
     Object? borradorRestauradoEn = sin,
+    int? versionFormulario,
   }) => EstadoHistoria(
     modo: modo,
     historia: historia ?? this.historia,
@@ -140,7 +141,7 @@ class EstadoHistoria {
     revision: revision,
     nombreArchivo: nombreArchivo,
     integridad: integridad,
-    versionFormulario: versionFormulario,
+    versionFormulario: versionFormulario ?? this.versionFormulario,
     borradorRestauradoEn: cambio(
       borradorRestauradoEn,
       this.borradorRestauradoEn,

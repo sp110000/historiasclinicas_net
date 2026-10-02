@@ -1,6 +1,6 @@
 # Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **Fase 2 completada** (ver [FASE2.md](FASE2.md) y [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 3** (receta de media hoja).
+> Estado: **Fase 3 completada** (ver [FASE3.md](FASE3.md), [FASE2.md](FASE2.md) y [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 4** (PDF final, PWA sin conexión y despliegue).
 > Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
 
 ---
@@ -469,13 +469,15 @@ Cada fase termina con `flutter analyze` sin advertencias, `flutter test` en verd
 - Interruptores de firma y sello por documento, más el aviso "imagen ≠ firma digital certificada".
 - **Tests:** guardar y recuperar el perfil, y que el PNG de la firma sea transparente.
 
-### Fase 3: receta de media hoja
+### Fase 3: receta de media hoja ✅ (ver [FASE3.md](FASE3.md))
 - Ruta `/receta` con editor, vista previa real (pdf.js local) y formatos A5, media A4 y 2 copias en A4 (si lo apruebas).
 - Ítems con numeración automática, agregar, eliminar y reordenar (arrastre y ↑↓). Cantidad en letras.
 - Autocompletado desde la lista editable de medicamentos.
 - Precarga desde la historia, alertas de alergia, contador correlativo opcional.
 - "Volver a la historia" conserva todo lo escrito. CIE-10 opcional.
 - **Tests:** numeración tras agregar, eliminar y reordenar; número a letras; alertas (tildes, grupos); precarga.
+
+> **Ajustes (Fase 3):** solo el formato A5 vertical, según tu respuesta 10. La vista previa usa pdf.js servido por el propio sitio. La lista de medicamentos empieza vacía y se puede exportar e importar (respuesta 15). El catálogo CIE-10 no viene con la app: se importa una vez desde la fuente oficial de cada país, porque desde aquí no se pudo acceder a esas fuentes ni verificar sus términos de uso.
 
 > **Ajuste (Fase 1):** la reapertura con verificación de la cadena y el modo "historia abierta" se adelantaron a la Fase 1. La Fase 4 conserva el diseño final del PDF, la PWA sin conexión y el despliegue.
 

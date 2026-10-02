@@ -105,4 +105,4 @@ python3 -m http.server 8765 --directory build/web   # y abre http://localhost:87
 - `evolucion_con_autor.png`: historia reabierta, con el médico de la sección 10 y el autor de la evolución.
 - `pdf_historia_medico.png` y los PDF `Historia_PENA_1032456789.pdf` / `_v2.pdf`: encabezado con logo, firma y sello, y evolución firmada.
 
-## Siguiente: Fase 3 (receta de media hoja A5)
+## Siguiente: Fase 3 (receta de media hoja A5) → [FASE3.md](FASE3.md)

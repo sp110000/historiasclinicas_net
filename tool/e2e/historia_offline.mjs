@@ -13,8 +13,11 @@
 // calculados), ir a la receta y volver, configurar los datos del médico
 // (firma dibujada con el ratón, sello y logo subidos), finalizar y guardar
 // el PDF, agregar una evolución, descargar la v2, reabrirla, detectar un PDF
-// alterado y rechazar un PDF ajeno. Con conexión: recuperación del borrador
-// al recargar. Falla si hay peticiones fuera del sitio.
+// alterado y rechazar un PDF ajeno. Después, la receta: catálogo CIE-10
+// importado, alerta de alergia, cantidades en letras, vista previa real,
+// numeración, PDF A5 y registro en la historia, también en móvil. Con
+// conexión: recuperación del borrador al recargar. Falla si hay peticiones
+// fuera del sitio.
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -58,6 +61,9 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
     if (!u.startsWith(BASE) && !u.startsWith('blob:') && !u.startsWith('data:')) informe.externas.push(u);
   });
   context.on('requestfailed', (r) => {
+    // El iframe de impresión carga el PDF en memoria (blob:) y Chromium sin
+    // visor de PDF lo aborta: no es una petición de red.
+    if (r.url().startsWith('blob:')) return;
     // Recargar sin red falla por diseño hasta la Fase 4 (service worker).
     if (!r.url().startsWith(BASE) || !sinRed) informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
   });
@@ -116,6 +122,40 @@ async function escribir(page, etiqueta, valor) {
     if ((await page.evaluate(() => document.activeElement?.value)) === valor) return;
   }
   throw new Error(`No se pudo escribir "${valor}" en "${etiqueta}"`);
+}
+
+// Pulsa un control por su texto, sea cual sea su rol en el árbol semántico.
+async function pulsarTexto(page, t) {
+  // Los chips de Flutter se exponen como casillas y su tooltip va delante
+  // en el nombre accesible ("Dosis × tomas… Usar 21").
+  const l = page
+    .getByRole('button', { name: t })
+    .or(page.getByRole('checkbox', { name: t }))
+    .or(page.locator(`flt-semantics[flt-tappable][aria-label*="${t}"]`))
+    .or(page.locator('flt-semantics[flt-tappable]').filter({ hasText: t }))
+    .first();
+  await l.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  await l.click();
+  await page.waitForTimeout(200);
+}
+
+// Flutter copia el valor al <input> del árbol semántico al enfocarlo.
+async function valorDe(page, etiqueta) {
+  const c = campo(page, etiqueta);
+  await c.scrollIntoViewIfNeeded();
+  await c.click();
+  await page.waitForTimeout(250);
+  return page.evaluate(() => document.activeElement?.value ?? '');
+}
+
+// Interruptores (Switch) y casillas.
+async function activar(page, etiqueta) {
+  for (const rol of ['switch', 'checkbox']) {
+    const l = page.getByRole(rol, { name: etiqueta });
+    if (await l.count()) return l.first().click();
+  }
+  return page.getByText(etiqueta, { exact: false }).first().click();
 }
 
 // Para campos con máscara (fechas): se teclea como lo haría una persona.
@@ -219,6 +259,7 @@ async function irASeccion(page, nombre) {
 // ─────────────── 1. Historia nueva, sin conexión ───────────────
 let v1;
 let v2;
+let medicoGuardado;
 {
   const { context, page } = await nuevaPagina({
     initScript: () => {
@@ -279,10 +320,17 @@ let v2;
 
   // Receta: precarga y volver conserva lo escrito.
   await boton(page, 'Formular receta').click();
-  await texto(page, 'PEÑA MUÑOZ, José Ángel').waitFor();
-  await texto(page, 'J02.9 Faringitis aguda').waitFor();
+  await texto(page, 'Vista previa de la receta').waitFor({ timeout: 30000 });
+  for (const [etiqueta, esperado] of [
+    ['Paciente', 'PEÑA MUÑOZ, José Ángel'],
+    ['Diagnóstico (CIE-10)', 'J02.9 Faringitis aguda'],
+    ['Alergias', 'Penicilina'],
+  ]) {
+    const v = await valorDe(page, etiqueta);
+    if (v !== esperado) throw new Error(`Receta: ${etiqueta} = "${v}", se esperaba "${esperado}"`);
+  }
   await captura(page, '04_receta_precarga.png');
-  await page.getByRole('button', { name: 'Volver a la historia' }).last().click();
+  await page.getByRole('button', { name: 'Volver a la historia' }).first().click();
   await texto(page, '24,6 kg/m² · Normal').waitFor();
   paso('Receta: precarga paciente y diagnóstico; al volver se conserva todo');
 
@@ -422,6 +470,7 @@ let v2;
   await texto(page, 'No se pudo abrir la historia').waitFor();
   paso('PDF ajeno: mensaje claro y opción de empezar una historia nueva');
   await boton(page, 'Empezar historia nueva').click();
+  medicoGuardado = await page.evaluate(() => localStorage.getItem('flutter.hc.medico.v1'));
   await context.close();
 }
 
@@ -464,6 +513,173 @@ let v2;
   await texto(page, 'Historia abierta · ').waitFor();
   paso('Móvil: abrir una historia desde el menú');
   await captura(page, '10_movil_abierta.png');
+  await context.close();
+}
+
+// ─────────────── 4. Receta sin conexión ───────────────
+{
+  const { context, page } = await nuevaPagina({
+    initScript: `
+      delete window.showOpenFilePicker;
+      delete window.showSaveFilePicker;
+      if (!localStorage.getItem('flutter.hc.medico.v1')) {
+        localStorage.setItem('flutter.hc.medico.v1', ${JSON.stringify(medicoGuardado)});
+      }
+    `,
+  });
+  // Historia mínima con alergia a la penicilina.
+  await escribir(page, 'Primer apellido *', 'Torres');
+  await escribir(page, 'Nombres *', 'Juan Carlos');
+  await escribir(page, 'Número de documento *', '79123456');
+  await irASeccion(page, 'Antecedentes');
+  await escribir(page, 'Alergia (medicamento, alimento, otro)', 'Penicilina');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+
+  // CIE-10: se importa una vez (muestra de prueba, no oficial) y se busca.
+  await irASeccion(page, 'Diagnósticos');
+  await boton(page, 'Cargar catálogo').click();
+  const [selector] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    boton(page, 'Importar archivo…').click(),
+  ]);
+  await selector.setFiles(path.join(AQUI, 'fixtures', 'cie10_muestra.csv'));
+  await texto(page, 'Se importaron 30 códigos').waitFor();
+  await captura(page, 'r1_catalogo_cie10.png');
+  await boton(page, 'Cerrar').click();
+  await boton(page, 'Agregar diagnóstico').click();
+  await escribir(page, 'Diagnóstico *', 'faring');
+  await page.waitForTimeout(800); // el catálogo se carga al entrar al campo
+  await escribir(page, 'Diagnóstico *', 'faringitis');
+  await texto(page, 'FARINGITIS AGUDA, NO ESPECIFICADA').waitFor();
+  await captura(page, 'r1b_sugerencia_cie10.png');
+  await page.keyboard.press('Enter'); // elige la primera sugerencia
+  await page.waitForTimeout(300);
+  if ((await valorDe(page, 'CIE-10')) !== 'J029') throw new Error('CIE-10 no se completó');
+  paso('CIE-10: catálogo importado sin conexión; el diagnóstico completa el código');
+
+  // Receta.
+  await boton(page, 'Formular receta').click();
+  await texto(page, 'Vista previa de la receta').waitFor({ timeout: 30000 });
+  const llenar = async (n, valores) => {
+    for (const [etiqueta, valor] of valores) {
+      await escribir(page, etiqueta, valor);
+      await page.keyboard.press('Escape'); // cierra las sugerencias
+    }
+  };
+  await llenar(1, [
+    ['Medicamento (DCI o genérico) *', 'Amoxicilina'],
+    ['Concentración *', '500 mg'],
+    ['Forma farmacéutica *', 'cápsula'],
+    ['Dosis *', '1 cápsula'],
+    ['Vía *', 'oral'],
+    ['Frecuencia *', 'cada 8 horas'],
+    ['Duración *', '7 días'],
+  ]);
+  await texto(page, 'ALERTA DE ALERGIA').waitFor();
+  await texto(page, 'pertenece al grupo de las penicilinas').waitFor();
+  paso('Receta: alerta de alergia (penicilina → amoxicilina)');
+  await pulsarTexto(page, 'Usar 21');
+  await texto(page, '(veintiuno)').waitFor();
+  await boton(page, 'Entendido').click();
+  await boton(page, 'Guardar en "Mis medicamentos"').click();
+
+  await boton(page, 'Agregar medicamento').click();
+  const segundo = (etiqueta) => page.getByRole('textbox', { name: comienzo(etiqueta) }).nth(1);
+  for (const [etiqueta, valor] of [
+    ['Medicamento (DCI o genérico) *', 'Paracetamol'],
+    ['Concentración *', '500 mg'],
+    ['Forma farmacéutica *', 'tableta'],
+    ['Dosis *', '1 tableta'],
+    ['Vía *', 'oral'],
+    ['Frecuencia *', 'cada 8 horas'],
+    ['Duración *', '3 días'],
+  ]) {
+    const c = segundo(etiqueta);
+    await c.scrollIntoViewIfNeeded();
+    await c.click();
+    await page.waitForTimeout(200);
+    await c.fill(valor);
+    await page.waitForTimeout(100);
+    await page.keyboard.press('Escape');
+  }
+  await pulsarTexto(page, 'Usar 9');
+  await texto(page, '(nueve)').waitFor();
+  await escribir(page, 'Indicaciones para el paciente (opcional)', 'Líquidos abundantes. Control en 7 días.');
+  await activar(page, 'Numerar las recetas');
+  await texto(page, 'Recibirá el R-000001').waitFor();
+  await page.waitForTimeout(1200); // vista previa (300 ms) y pdf.js
+  await texto(page, 'Vista previa de la receta, hoja 1 de 1').waitFor();
+  paso('Receta: dos medicamentos, cantidades en letras y vista previa real (pdf.js local)');
+  await page.mouse.move(400, 500);
+  await page.mouse.wheel(0, -5000);
+  await captura(page, 'r2_receta_escritorio.png');
+
+  // Guardar PDF y registrar en la historia.
+  const receta = await descargar(page, () => boton(page, 'Guardar PDF').click());
+  await texto(page, '¿Registrar la receta en la historia?').waitFor();
+  await captura(page, 'r3_registrar_en_historia.png');
+  await boton(page, 'Registrar en la historia').click();
+  await texto(page, 'Receta registrada en el plan de tratamiento').waitFor();
+  paso(`Receta guardada sin conexión → ${path.basename(receta)}`);
+  if (!/^Receta_TORRES_\d{4}-\d{2}-\d{2}\.pdf$/.test(path.basename(receta))) {
+    throw new Error(`Nombre de la receta: ${path.basename(receta)}`);
+  }
+  try {
+    const info = execFileSync('pdfinfo', [receta]).toString();
+    if (!/Page size:\s+419\.5\d* x 595\.2\d* pts/.test(info)) throw new Error(`No es A5: ${info}`);
+    const txt = execFileSync('pdftotext', ['-layout', receta, '-']).toString();
+    for (const esperado of [
+      'N.º R-000001',
+      'TORRES, Juan Carlos',
+      'J029 FARINGITIS AGUDA, NO ESPECIFICADA',
+      'Alergias: Penicilina',
+      '1. AMOXICILINA 500 mg · cápsula',
+      'Cantidad: 21 (veintiuno) cápsulas',
+      '2. PARACETAMOL 500 mg · tableta',
+      'Cantidad: 9 (nueve) tabletas',
+      'Dra. Ana Pérez Gómez',
+    ]) {
+      if (!txt.includes(esperado)) throw new Error(`La receta no contiene "${esperado}":\n${txt}`);
+    }
+    paso('PDF de la receta: A5 vertical, número, paciente, CIE-10, ítems y firma');
+  } catch (e) {
+    if (e.code === 'ENOENT') console.log('  (sin poppler-utils: no se inspecciona el PDF de la receta)');
+    else throw e;
+  }
+
+  // Imprimir: abre el diálogo del navegador con el mismo PDF (un iframe con
+  // el PDF en memoria) y la pantalla sigue disponible.
+  await boton(page, 'Imprimir').click();
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('iframe')].some((f) => f.src.startsWith('blob:')),
+    null,
+    { timeout: 15000 },
+  );
+  await boton(page, 'Guardar PDF').waitFor();
+  if (await boton(page, 'Guardar PDF').isDisabled()) throw new Error('La receta quedó bloqueada tras imprimir');
+  paso('Imprimir: se envía el PDF al diálogo del navegador sin bloquear la pantalla');
+
+  await page.getByRole('button', { name: 'Volver a la historia' }).first().click();
+  await page.waitForTimeout(500);
+  const plan = await valorDe(page, 'Plan terapéutico');
+  if (!plan.includes('Se formuló (R-000001)') || !plan.includes('AMOXICILINA')) {
+    throw new Error(`Plan sin la receta: "${plan}"`);
+  }
+  paso('Historia: la receta quedó registrada en el plan de tratamiento');
+  await captura(page, 'r4_plan_con_receta.png');
+
+  // Móvil: pestañas Editar | Vista previa.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: /receta/i }).first().click();
+  await page.waitForTimeout(800);
+  await captura(page, 'r5_receta_movil_editar.png');
+  await page.getByRole('tab', { name: 'Vista previa' }).click();
+  await page.waitForTimeout(1200);
+  await texto(page, 'Vista previa de la receta, hoja 1 de 1').waitFor();
+  await captura(page, 'r6_receta_movil_vista_previa.png');
+  paso('Móvil: receta con pestañas Editar y Vista previa');
   await context.close();
 }
 

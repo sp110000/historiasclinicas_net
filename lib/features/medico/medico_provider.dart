@@ -20,36 +20,45 @@ class MedicoController extends Notifier<Medico> {
 
   Timer? _temporizador;
 
+  /// Cambios aún no guardados.
+  Medico? _pendiente;
+
   @override
   Medico build() {
+    // En onDispose no se puede usar `ref`: se guarda lo necesario antes.
+    final store = ref.read(medicoStoreProvider);
     ref.onDispose(() {
       // Guarda lo pendiente si el contenedor se cierra antes de tiempo.
-      if (_temporizador?.isActive ?? false) {
-        _temporizador!.cancel();
-        unawaited(ref.read(medicoStoreProvider).guardar(state));
-      }
+      final pendiente = _pendiente;
+      _temporizador?.cancel();
+      _pendiente = null;
+      if (pendiente != null) unawaited(store.guardar(pendiente));
     });
-    return ref.read(medicoStoreProvider).leer();
+    return store.leer();
   }
 
   /// Cambia los datos; se guardan 400 ms después del último cambio.
   void actualizar(Medico Function(Medico m) cambio) {
-    state = cambio(state);
+    final nuevo = cambio(state);
+    state = nuevo;
+    _pendiente = nuevo;
     _temporizador?.cancel();
-    _temporizador = Timer(
-      espera,
-      () => ref.read(medicoStoreProvider).guardar(state),
-    );
+    _temporizador = Timer(espera, () {
+      _pendiente = null;
+      ref.read(medicoStoreProvider).guardar(nuevo);
+    });
   }
 
   /// Guarda de inmediato (por ejemplo, tras cambiar una imagen).
   Future<void> guardarAhora() async {
     _temporizador?.cancel();
+    _pendiente = null;
     await ref.read(medicoStoreProvider).guardar(state);
   }
 
   Future<void> borrarTodo() async {
     _temporizador?.cancel();
+    _pendiente = null;
     state = const Medico();
     await ref.read(medicoStoreProvider).borrar();
   }

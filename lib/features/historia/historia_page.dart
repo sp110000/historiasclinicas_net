@@ -488,7 +488,13 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
                       Padding(
                         key: _claves[s],
                         padding: const EdgeInsets.only(bottom: 16),
-                        child: _tarjeta(s, estado),
+                        // La GlobalKey conserva el estado al cambiar la
+                        // versión: los campos se recrean aquí dentro para
+                        // que muestren los datos nuevos.
+                        child: KeyedSubtree(
+                          key: ValueKey(estado.versionFormulario),
+                          child: _tarjeta(s, estado),
+                        ),
                       ),
                   ],
                 ),

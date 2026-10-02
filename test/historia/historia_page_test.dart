@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/app.dart';
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
 import 'package:historiasclinicas_net/core/models/historia.dart';
+import 'package:historiasclinicas_net/core/pdf/fuentes_pdf.dart';
 import 'package:historiasclinicas_net/core/storage/preferencias.dart';
 import 'package:historiasclinicas_net/features/historia/estado/historia_controller.dart';
+import 'package:historiasclinicas_net/features/receta/estado/receta_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ejemplos.dart';
@@ -19,7 +21,10 @@ Future<ProviderContainer> montar(WidgetTester tester) async {
   SharedPreferences.setMockInitialValues({Claves.pais: 'CO'});
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
-    overrides: [preferenciasProvider.overrideWithValue(prefs)],
+    overrides: [
+      preferenciasProvider.overrideWithValue(prefs),
+      rasterizadorProvider.overrideWithValue(rasterizadorDePrueba),
+    ],
   );
   addTearDown(container.dispose);
   await tester.pumpWidget(
@@ -46,6 +51,11 @@ Finder campo(String etiqueta) =>
     find.ancestor(of: find.text(etiqueta), matching: find.byType(TextField));
 
 void main() {
+  // Las fuentes del PDF se cargan una sola vez y quedan en caché: fuera de
+  // los testWidgets, para que la caché sirva en todos.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(FuentesPdf.cargar);
+
   testWidgets('muestra las 11 secciones y las acciones principales', (t) async {
     await montar(t);
     for (final titulo in [
@@ -179,7 +189,7 @@ void main() {
     expect(find.text('PEÑA MUÑOZ, José Ángel'), findsOneWidget);
     expect(find.text('J02.9 Faringitis aguda; R50.9 Fiebre'), findsOneWidget);
     expect(find.text('Penicilina, AINEs'), findsOneWidget);
-    await t.tap(find.text('Volver a la historia'));
+    await t.tap(find.byTooltip('Volver a la historia'));
     await t.pumpAndSettle();
     expect(c.read(historiaProvider).historia.paciente.nombres, 'José Ángel');
     await terminar(t);
@@ -212,6 +222,29 @@ void main() {
     await t.tap(find.widgetWithText(ChoiceChip, 'Interconsulta'));
     await t.pump();
     expect(c.read(historiaProvider).historia.tipoConsulta, 'interconsulta');
+    await terminar(t);
+  });
+
+  testWidgets('limpiar, recuperar o registrar una receta refresca los campos', (
+    t,
+  ) async {
+    final c = await montar(t);
+    await t.enterText(campo('Primer apellido *'), 'Peña');
+    await t.pump();
+    final ctrl = c.read(historiaProvider.notifier)..limpiar();
+    await t.pumpAndSettle();
+    String texto(String etiqueta) =>
+        t.widget<TextField>(campo(etiqueta)).controller!.text;
+    expect(texto('Primer apellido *'), '');
+
+    ctrl.actualizar((_) => historiaCompleta());
+    ctrl.registrarReceta('Se formuló: 1. LORATADINA 10 mg');
+    await t.pumpAndSettle();
+    expect(
+      texto('Plan terapéutico'),
+      'Manejo sintomático.\n\nSe formuló: 1. LORATADINA 10 mg',
+    );
+    expect(texto('Primer apellido *'), 'Peña');
     await terminar(t);
   });
 }

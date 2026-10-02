@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
+import '../../../core/cie10/catalogo_cie10.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/utils/ids.dart';
+import '../../../core/utils/numeros.dart';
+import '../../../core/widgets/campo_sugerencias.dart';
 import '../../../core/widgets/campos.dart';
+import '../../cie10/cie10_provider.dart';
+import '../../cie10/dialogo_cie10.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
 
@@ -35,6 +40,7 @@ class FormularioDiagnosticos extends ConsumerWidget {
       builder: (campo) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _EstadoCatalogo(),
           if (lista.isNotEmpty)
             ReorderableListView(
               shrinkWrap: true,
@@ -102,7 +108,7 @@ class FormularioDiagnosticos extends ConsumerWidget {
   }
 }
 
-class _FilaDiagnostico extends StatelessWidget {
+class _FilaDiagnostico extends ConsumerStatefulWidget {
   const _FilaDiagnostico({
     super.key,
     required this.indice,
@@ -123,21 +129,97 @@ class _FilaDiagnostico extends StatelessWidget {
   final VoidCallback alEliminar;
 
   @override
-  Widget build(BuildContext context) {
-    final d = diagnostico;
-    final descripcion = TextFormField(
-      initialValue: d.descripcion,
-      decoration: const InputDecoration(labelText: 'Diagnóstico *'),
-      textCapitalization: TextCapitalization.sentences,
-      validator: (v) =>
-          (v == null || v.trim().isEmpty) ? 'Escribe el diagnóstico' : null,
-      onChanged: (v) => alCambiar(d.copyWith(descripcion: v)),
+  ConsumerState<_FilaDiagnostico> createState() => _FilaDiagnosticoState();
+}
+
+class _FilaDiagnosticoState extends ConsumerState<_FilaDiagnostico> {
+  late final _descripcion = TextEditingController(
+    text: widget.diagnostico.descripcion,
+  );
+  late final _codigo = TextEditingController(text: widget.diagnostico.codigo);
+  final _focoDescripcion = FocusNode();
+  final _focoCodigo = FocusNode();
+
+  /// El catálogo CIE-10 se carga la primera vez que se entra a un campo.
+  var _usarCatalogo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focoDescripcion.addListener(_activarCatalogo);
+    _focoCodigo.addListener(_activarCatalogo);
+  }
+
+  void _activarCatalogo() {
+    if (_usarCatalogo) return;
+    if (_focoDescripcion.hasFocus || _focoCodigo.hasFocus) {
+      setState(() => _usarCatalogo = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _descripcion.dispose();
+    _codigo.dispose();
+    _focoDescripcion.dispose();
+    _focoCodigo.dispose();
+    super.dispose();
+  }
+
+  void _elegir(EntradaCie10 e) {
+    for (final (c, t) in [(_descripcion, e.descripcion), (_codigo, e.codigo)]) {
+      c.value = TextEditingValue(
+        text: t,
+        selection: TextSelection.collapsed(offset: t.length),
+      );
+    }
+    widget.alCambiar(
+      widget.diagnostico.copyWith(descripcion: e.descripcion, codigo: e.codigo),
     );
-    final codigo = TextFormField(
-      initialValue: d.codigo,
-      decoration: const InputDecoration(labelText: 'CIE-10', hintText: 'J02.9'),
-      textCapitalization: TextCapitalization.characters,
-      onChanged: (v) => alCambiar(d.copyWith(codigo: v.trim())),
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.diagnostico;
+    final indice = widget.indice;
+    final total = widget.total;
+    final perfil = widget.perfil;
+    final alCambiar = widget.alCambiar;
+    final alMover = widget.alMover;
+    final alEliminar = widget.alEliminar;
+    final catalogo = _usarCatalogo
+        ? ref.watch(catalogoCie10Provider).value
+        : null;
+    final descripcion = CampoSugerencias<EntradaCie10>(
+      etiqueta: 'Diagnóstico',
+      requerido: true,
+      controller: _descripcion,
+      foco: _focoDescripcion,
+      mayusculas: TextCapitalization.sentences,
+      validador: (v) =>
+          (v == null || v.trim().isEmpty) ? 'Escribe el diagnóstico' : null,
+      sugerencias: (q) => catalogo == null || q.trim().length < 3
+          ? const []
+          : catalogo.buscar(q, maximo: 8),
+      texto: (e) => e.descripcion,
+      detalle: (e) => 'CIE-10 ${e.codigo}',
+      alElegir: _elegir,
+      alCambiar: (v) => alCambiar(d.copyWith(descripcion: v)),
+    );
+    final codigo = CampoSugerencias<EntradaCie10>(
+      etiqueta: 'CIE-10',
+      pista: 'J02.9',
+      controller: _codigo,
+      foco: _focoCodigo,
+      mayusculas: TextCapitalization.characters,
+      sugerencias: (q) =>
+          catalogo == null || !RegExp(r'^[A-Za-z]\d').hasMatch(q.trim())
+          ? const []
+          : catalogo.buscar(q, maximo: 8),
+      texto: (e) => e.codigo,
+      detalle: (e) => e.descripcion,
+      alElegir: _elegir,
+      alCambiar: (v) => alCambiar(d.copyWith(codigo: v.trim())),
     );
     final tipo = CampoDesplegable(
       etiqueta: 'Tipo',
@@ -265,6 +347,46 @@ class _FilaDiagnostico extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Estado del catálogo CIE-10 y acceso para importarlo.
+class _EstadoCatalogo extends ConsumerWidget {
+  const _EstadoCatalogo();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(infoCie10Provider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.menu_book_outlined,
+            size: 18,
+            color: ColoresMarca.textoSuave,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              info == null
+                  ? 'Búsqueda CIE-10: importa una vez el catálogo oficial de tu '
+                        'país.'
+                  : 'Catálogo CIE-10: ${formatoMiles(info.cantidad)} códigos. '
+                        'Escribe el diagnóstico o el código para buscar.',
+              style: const TextStyle(
+                fontSize: 13,
+                color: ColoresMarca.textoSuave,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => mostrarCatalogoCie10(context),
+            child: Text(info == null ? 'Cargar catálogo' : 'Gestionar'),
+          ),
+        ],
       ),
     );
   }

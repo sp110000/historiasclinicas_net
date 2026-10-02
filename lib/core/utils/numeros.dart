@@ -13,3 +13,14 @@ double? leerNumero(String texto) {
   if (t.isEmpty) return null;
   return double.tryParse(t);
 }
+
+/// Separador de miles con punto: 12345 → "12.345".
+String formatoMiles(int n) {
+  final s = n.abs().toString();
+  final b = StringBuffer(n < 0 ? '-' : '');
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
+    b.write(s[i]);
+  }
+  return b.toString();
+}

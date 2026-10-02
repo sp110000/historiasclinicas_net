@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -13,6 +12,7 @@ import '../presentacion/datos_historia.dart';
 import '../utils/fechas.dart';
 import 'adjunto_historia.dart';
 import 'fuentes_pdf.dart';
+import 'piezas_pdf.dart';
 
 /// PDF A4 de la historia clínica.
 ///
@@ -45,17 +45,10 @@ Future<Uint8List> generarPdfHistoria({
   final medico = datos['medico'] is Map
       ? Autor.desdeMapa(datos.mapa('medico'))
       : null;
-  final recursos = datos.mapa('recursos');
-  final imagenes = <String, pw.MemoryImage>{};
-  pw.MemoryImage? imagen(String? hash) {
-    final b64 = hash == null ? null : recursos[hash];
-    if (b64 is! String) return null;
-    return imagenes[hash!] ??= pw.MemoryImage(base64Decode(b64));
-  }
-
-  const gris = PdfColor.fromInt(0xFF5A6670);
-  const linea = PdfColor.fromInt(0xFFB9C3CA);
-  const fondoSuave = PdfColor.fromInt(0xFFF1F4F6);
+  final imagen = ImagenesPdf(datos.mapa('recursos'));
+  const gris = grisPdf;
+  const linea = lineaPdf;
+  const fondoSuave = fondoSuavePdf;
   final anchoUtil = PdfPageFormat.a4.width - 2 * 42;
 
   pw.TextStyle estilo({
@@ -116,70 +109,8 @@ Future<Uint8List> generarPdfHistoria({
     );
   }
 
-  /// Firma y sello (en posición fija) sobre la línea, con nombre y registro.
-  pw.Widget bloqueFirma(Autor? autor, {required double alto}) {
-    final sello = imagen(autor?.sello);
-    final firma = imagen(autor?.firma);
-    final grande = alto >= 50;
-    return pw.Container(
-      width: grande ? 220 : 170,
-      child: pw.Column(
-        children: [
-          pw.SizedBox(
-            height: alto,
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                if (sello != null)
-                  pw.Container(
-                    width: alto * 1.15,
-                    height: alto,
-                    child: pw.Image(sello, fit: pw.BoxFit.contain),
-                  ),
-                if (sello != null && firma != null) pw.SizedBox(width: 4),
-                if (firma != null)
-                  pw.Container(
-                    width: alto * 2.2,
-                    height: alto * 0.82,
-                    child: pw.Image(firma, fit: pw.BoxFit.contain),
-                  ),
-              ],
-            ),
-          ),
-          pw.Container(
-            padding: const pw.EdgeInsets.only(top: 3),
-            decoration: const pw.BoxDecoration(
-              border: pw.Border(top: pw.BorderSide(width: 0.7)),
-            ),
-            child: pw.Column(
-              children: [
-                pw.Text(
-                  autor?.nombre ?? 'Firma y sello del médico',
-                  textAlign: pw.TextAlign.center,
-                  style: autor == null
-                      ? estilo(tamano: 8, color: gris)
-                      : pw.TextStyle(
-                          font: f.seminegrita,
-                          fontSize: grande ? 8.5 : 7.5,
-                        ),
-                ),
-                if ((autor?.lineaRegistro ?? '').isNotEmpty)
-                  pw.Text(
-                    autor!.lineaRegistro,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      fontSize: grande ? 7.5 : 6.8,
-                      color: gris,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  pw.Widget bloqueFirma(Autor? autor, {required double alto}) =>
+      bloqueFirmaPdf(f, autor, imagen, alto: alto);
 
   pw.Widget evolucion(int numero, Evolucion e) {
     final signos = resumenSignos(e.signos);
@@ -315,39 +246,7 @@ Future<Uint8List> generarPdfHistoria({
                       ),
                       pw.SizedBox(width: 10),
                     ],
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            medico.nombre,
-                            style: pw.TextStyle(font: f.negrita, fontSize: 11),
-                          ),
-                          pw.Text(
-                            [
-                              medico.especialidad,
-                              medico.lineaRegistro,
-                            ].where((t) => t.isNotEmpty).join(' · '),
-                            style: pw.TextStyle(
-                              font: f.media,
-                              fontSize: 8,
-                              color: gris,
-                            ),
-                          ),
-                          pw.Text(
-                            [
-                              medico.consultorio,
-                              medico.direccion,
-                              medico.ciudad,
-                              if (medico.telefono.isNotEmpty)
-                                'Tel. ${medico.telefono}',
-                              medico.correo,
-                            ].where((t) => t.isNotEmpty).join(' · '),
-                            style: pw.TextStyle(fontSize: 7.5, color: gris),
-                          ),
-                        ],
-                      ),
-                    ),
+                    pw.Expanded(child: datosMedicoPdf(f, medico)),
                     pw.SizedBox(width: 10),
                     datosHistoria,
                   ],

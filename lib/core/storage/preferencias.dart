@@ -14,4 +14,10 @@ abstract final class Claves {
   static const borradorDesactivado = 'hc.borrador.desactivado';
   static const avisoPrivacidadCerrado = 'hc.avisoPrivacidad.cerrado';
   static const medico = 'hc.medico.v1';
+  static const receta = 'hc.receta.v1';
+  static const recetaNumerar = 'hc.receta.numerar';
+  static const recetaContador = 'hc.receta.contador';
+  static const recetaTitulo = 'hc.receta.titulo';
+  static const medicamentos = 'hc.medicamentos.v1';
+  static const cie10 = 'hc.cie10.info';
 }
