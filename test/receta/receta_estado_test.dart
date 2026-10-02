@@ -218,6 +218,24 @@ void main() {
       );
     });
 
+    test('solo indicaciones: "Se dieron indicaciones"', () {
+      final r = Receta(
+        id: 'r',
+        historiaId: 'h',
+        fecha: DateTime(2026, 10, 2),
+        numero: 'R-000010',
+        items: const [ItemReceta(id: 'vacio')],
+        indicaciones: 'Reposo. Control en 7 días.',
+      );
+      expect(r.sinContenido, isFalse);
+      expect(
+        r.textoParaHistoria(),
+        'Se dieron indicaciones (R-000010) el 02/10/2026:\n'
+        'Indicaciones: Reposo. Control en 7 días.',
+      );
+      expect(r.copyWith(indicaciones: '  ').sinContenido, isTrue);
+    });
+
     test('el texto lleva número, medicamentos e indicaciones', () async {
       final r = Receta(
         id: 'r',

@@ -201,6 +201,7 @@ const titulosReceta = [
   'Fórmula médica',
   'Prescripción médica',
   'Hoja de tratamiento',
+  'Indicaciones médicas',
 ];
 
 final opcionesRecetaProvider =

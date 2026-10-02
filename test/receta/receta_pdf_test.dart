@@ -98,6 +98,24 @@ void main() {
     _guardarMuestra('receta_varias_hojas.pdf', bytes);
   });
 
+  test('solo indicaciones: una hoja A5 sin medicamentos', () async {
+    final d = documento(items: const []);
+    final bytes = await pdf(
+      DocumentoReceta(
+        receta: d.receta.copyWith(
+          indicaciones: 'Reposo relativo. Líquidos abundantes.',
+        ),
+        paciente: d.paciente,
+        pais: d.pais,
+        titulo: 'Indicaciones médicas',
+        medico: d.medico,
+        recursos: d.recursos,
+      ),
+    );
+    expect(paginas(bytes), hasLength(1));
+    _guardarMuestra('receta_solo_indicaciones.pdf', bytes);
+  });
+
   test('España: se genera con la fecha de nacimiento', () async {
     final bytes = await pdf(documento(pais: Pais.espana));
     expect(paginas(bytes), hasLength(1));

@@ -158,13 +158,15 @@ void main() {
     await terminar(t);
   });
 
-  testWidgets('antes de imprimir pide medicamentos y dice qué falta', (
-    t,
-  ) async {
+  testWidgets('antes de imprimir pide contenido y dice qué falta', (t) async {
     await abrirReceta(t);
     await t.tap(find.text('Imprimir'));
     await t.pumpAndSettle();
-    expect(find.text('Agrega al menos un medicamento.'), findsOneWidget);
+    expect(
+      find.text('Escribe al menos un medicamento o unas indicaciones.'),
+      findsOneWidget,
+    );
+    expect(find.text('Obligatorio'), findsNothing, reason: 'fila vacía');
 
     await escribir(t, campo('Medicamento (DCI o genérico) *'), 'Loratadina');
     await t.tap(find.text('Imprimir'));
@@ -181,6 +183,35 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Obligatorio'), findsWidgets);
     expect(find.text('Obligatoria'), findsOneWidget);
+    await terminar(t);
+  });
+
+  testWidgets('solo indicaciones: se imprime sin medicamentos', (t) async {
+    final c = await abrirReceta(t);
+    await escribir(
+      t,
+      campo('Indicaciones y recomendaciones para el paciente'),
+      'Reposo relativo. Líquidos abundantes. Control en 7 días.',
+    );
+    await t.tap(find.text('Imprimir'));
+    await t.pumpAndSettle();
+    expect(
+      find.text('Escribe al menos un medicamento o unas indicaciones.'),
+      findsNothing,
+    );
+    expect(find.text('Faltan datos en la receta'), findsNothing);
+    expect(find.text('Obligatorio'), findsNothing, reason: 'fila vacía');
+    // Sigue el flujo normal: aquí, avisar que faltan los datos del médico.
+    expect(
+      find.text('Aún no configuraste tus datos de médico'),
+      findsOneWidget,
+    );
+    await t.tap(find.text('Cancelar'));
+    await t.pumpAndSettle();
+    expect(
+      c.read(recetaProvider).textoParaHistoria(),
+      startsWith('Se dieron indicaciones el '),
+    );
     await terminar(t);
   });
 

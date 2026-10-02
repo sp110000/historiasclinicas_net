@@ -614,7 +614,7 @@ let medicoGuardado;
   }
   await pulsarTexto(page, 'Usar 9');
   await texto(page, '(nueve)').waitFor();
-  await escribir(page, 'Indicaciones para el paciente (opcional)', 'Líquidos abundantes. Control en 7 días.');
+  await escribir(page, 'Indicaciones y recomendaciones para el paciente', 'Líquidos abundantes. Control en 7 días.');
   await activar(page, 'Numerar las recetas');
   await texto(page, 'Recibirá el R-000001').waitFor();
   await page.waitForTimeout(1200); // vista previa (300 ms) y pdf.js

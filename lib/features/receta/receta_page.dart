@@ -53,9 +53,13 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
   /// prefiere revisarla.
   Future<bool> _comprobar() async {
     final r = ref.read(recetaProvider);
-    if (r.itemsConDatos.isEmpty) {
-      setState(() => _mostrarErrores = true);
-      _mensaje('Agrega al menos un medicamento.', error: true);
+    // Puede llevar solo indicaciones (recomendaciones sin medicamentos), pero
+    // no salir en blanco.
+    if (r.sinContenido) {
+      _mensaje(
+        'Escribe al menos un medicamento o unas indicaciones.',
+        error: true,
+      );
       return false;
     }
     final faltan = [
@@ -293,7 +297,7 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
 
   Future<void> _nuevaReceta() async {
     final r = ref.read(recetaProvider);
-    if (r.itemsConDatos.isNotEmpty &&
+    if (!r.sinContenido &&
         !await confirmar(
           context,
           titulo: '¿Empezar otra receta?',
@@ -535,10 +539,10 @@ class _Editor extends ConsumerWidget {
                 ),
                 _Seccion(
                   icono: Icons.notes_outlined,
-                  titulo: 'Indicaciones generales',
+                  titulo: 'Indicaciones y recomendaciones',
                   child: CampoTexto(
                     key: ValueKey('indicaciones-$recetaId'),
-                    etiqueta: 'Indicaciones para el paciente (opcional)',
+                    etiqueta: 'Indicaciones y recomendaciones para el paciente',
                     pista: 'Líquidos abundantes, signos de alarma, control…',
                     lineas: 3,
                     valorInicial: ref.read(recetaProvider).indicaciones,

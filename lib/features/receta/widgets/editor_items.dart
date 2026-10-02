@@ -208,7 +208,8 @@ class _TarjetaItemRecetaState extends ConsumerState<TarjetaItemReceta> {
     final pais = ref.watch(historiaProvider.select((e) => e.historia.pais));
     final misMedicamentos = ref.watch(misMedicamentosProvider);
     final sugerida = cantidadSugerida(item);
-    final errores = widget.mostrarErrores;
+    // Una fila vacía no se marca: la receta puede llevar solo indicaciones.
+    final errores = widget.mostrarErrores && !item.vacio;
     final alertaAlta = widget.alertas.any(
       (a) => a.gravedad == GravedadAlerta.alta,
     );

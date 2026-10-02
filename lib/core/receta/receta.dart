@@ -337,12 +337,17 @@ class Receta {
   List<ItemReceta> get itemsConDatos =>
       items.where((i) => !i.vacio).toList(growable: false);
 
-  /// "Se formuló (R-000123): 1. … 2. …" para el plan o la evolución.
+  /// Ni medicamentos ni indicaciones. Una receta puede llevar solo
+  /// indicaciones (recomendaciones sin medicamentos).
+  bool get sinContenido => itemsConDatos.isEmpty && indicaciones.trim().isEmpty;
+
+  /// "Se formuló (R-000123): 1. … 2. …" para el plan o la evolución, o
+  /// "Se dieron indicaciones (R-000123)…" si no lleva medicamentos.
   String textoParaHistoria() {
     final lista = itemsConDatos;
     final b = StringBuffer(
-      'Se formuló${numero == null ? '' : ' ($numero)'} el '
-      '${formatoFecha(fecha)}:',
+      '${lista.isEmpty ? 'Se dieron indicaciones' : 'Se formuló'}'
+      '${numero == null ? '' : ' ($numero)'} el ${formatoFecha(fecha)}:',
     );
     for (final (i, item) in lista.indexed) {
       b.write('\n${i + 1}. ${item.resumen}');

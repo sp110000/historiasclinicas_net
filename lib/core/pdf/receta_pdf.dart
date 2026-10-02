@@ -52,6 +52,7 @@ Future<Uint8List> generarPdfReceta(
   final imagen = ImagenesPdf(d.recursos);
   final ahora = generadoEn ?? DateTime.now();
   final items = r.itemsConDatos;
+  final indicaciones = r.indicaciones.trim();
 
   pw.TextStyle estilo({double tamano = 9, pw.Font? fuente, PdfColor? color}) =>
       pw.TextStyle(
@@ -306,18 +307,25 @@ Future<Uint8List> generarPdfReceta(
       header: encabezado,
       footer: pie,
       build: (context) => [
-        pw.Text('℞', style: pw.TextStyle(font: f.negrita, fontSize: 18)),
-        pw.SizedBox(height: 4),
-        if (items.isEmpty)
-          pw.Text('Sin medicamentos.', style: estilo(color: grisPdf)),
+        // Sin medicamentos (solo indicaciones) no lleva ℞.
+        if (items.isNotEmpty || indicaciones.isEmpty) ...[
+          pw.Text('℞', style: pw.TextStyle(font: f.negrita, fontSize: 18)),
+          pw.SizedBox(height: 4),
+        ],
+        if (items.isEmpty && indicaciones.isEmpty)
+          pw.Text(
+            'Sin medicamentos ni indicaciones.',
+            style: estilo(color: grisPdf),
+          ),
         for (final (n, i) in items.indexed) ...itemReceta(n + 1, i),
-        if (r.indicaciones.trim().isNotEmpty) ...[
-          pw.Divider(color: lineaPdf, thickness: 0.5, height: 10),
+        if (indicaciones.isNotEmpty) ...[
+          if (items.isNotEmpty)
+            pw.Divider(color: lineaPdf, thickness: 0.5, height: 10),
           pw.Text(
             'INDICACIONES',
             style: estilo(tamano: 7, fuente: f.media, color: grisPdf),
           ),
-          textoLargo(r.indicaciones.trim(), estilo()),
+          textoLargo(indicaciones, estilo()),
         ],
       ],
     ),
