@@ -186,41 +186,62 @@ Future<Uint8List> generarPdfReceta(
     );
   }
 
-  pw.Widget itemReceta(int numero, ItemReceta i) => pw.Inseparable(
-    child: pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 8),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 16,
-            child: pw.Text(
-              '$numero.',
-              style: estilo(tamano: 9.5, fuente: f.seminegrita),
-            ),
+  List<pw.Widget> itemReceta(int numero, ItemReceta i) {
+    final anchoTexto = PdfPageFormat.a5.width - 28 * 2 - 16;
+    final cabe = cabeEnBloque(
+      [i.titulo, i.posologia].join('\n'),
+      anchoTexto,
+      maxLineas: 18,
+    );
+    pw.Widget sangria(pw.Widget hijo) =>
+        pw.Padding(padding: const pw.EdgeInsets.only(left: 16), child: hijo);
+    final titulo = pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(
+          width: 16,
+          child: pw.Text(
+            '$numero.',
+            style: estilo(tamano: 9.5, fuente: f.seminegrita),
           ),
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  i.titulo,
-                  style: estilo(tamano: 9.5, fuente: f.seminegrita),
-                ),
-                if (i.posologia.isNotEmpty)
-                  pw.Text(i.posologia, style: estilo()),
-                if (i.cantidad != null)
-                  pw.Text(
-                    'Cantidad: ${i.textoCantidad}',
-                    style: estilo(tamano: 8.5, fuente: f.media),
-                  ),
-              ],
-            ),
+        ),
+        pw.Expanded(
+          child: pw.Text(
+            i.titulo,
+            style: estilo(tamano: 9.5, fuente: f.seminegrita),
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      ],
+    );
+    final partes = [
+      titulo,
+      if (i.posologia.isNotEmpty)
+        sangria(
+          cabe
+              ? pw.Text(i.posologia, style: estilo())
+              : textoLargo(i.posologia, estilo()),
+        ),
+      if (i.cantidad != null)
+        sangria(
+          pw.Text(
+            'Cantidad: ${i.textoCantidad}',
+            style: estilo(tamano: 8.5, fuente: f.media),
+          ),
+        ),
+      pw.SizedBox(height: 8),
+    ];
+    // Un ítem normal no se parte entre hojas; uno larguísimo sí.
+    return cabe
+        ? [
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: partes,
+              ),
+            ),
+          ]
+        : partes;
+  }
 
   pw.Widget pie(pw.Context context) {
     final ultima = context.pageNumber == context.pagesCount;
@@ -289,14 +310,14 @@ Future<Uint8List> generarPdfReceta(
         pw.SizedBox(height: 4),
         if (items.isEmpty)
           pw.Text('Sin medicamentos.', style: estilo(color: grisPdf)),
-        for (final (n, i) in items.indexed) itemReceta(n + 1, i),
+        for (final (n, i) in items.indexed) ...itemReceta(n + 1, i),
         if (r.indicaciones.trim().isNotEmpty) ...[
           pw.Divider(color: lineaPdf, thickness: 0.5, height: 10),
           pw.Text(
             'INDICACIONES',
             style: estilo(tamano: 7, fuente: f.media, color: grisPdf),
           ),
-          pw.Text(r.indicaciones.trim(), style: estilo()),
+          textoLargo(r.indicaciones.trim(), estilo()),
         ],
       ],
     ),

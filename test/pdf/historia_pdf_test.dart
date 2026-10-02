@@ -42,6 +42,14 @@ void main() {
     generadoEn: guardado,
   );
 
+  /// Medidas de cada página: `[ancho, alto]` en puntos.
+  List<List<double>> paginas(Uint8List pdf) => [
+    for (final m in RegExp(
+      r'/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]',
+    ).allMatches(latin1.decode(pdf)))
+      [double.parse(m.group(1)!), double.parse(m.group(2)!)],
+  ];
+
   LecturaHistoriaException fallo(Uint8List bytes) {
     try {
       leerHistoriaDePdf(bytes);
@@ -134,6 +142,7 @@ void main() {
         ],
       );
       final bytes = await pdf(datos, revision: 2);
+      _guardarMuestra('historia_con_medico.pdf', bytes);
       final texto = latin1.decode(bytes);
       int contar(String patron) => RegExp(patron).allMatches(texto).length;
       // Logo, sello y firma de la historia (la evolución no tiene imágenes),
@@ -147,6 +156,82 @@ void main() {
       final sinMedico = latin1.decode(await pdf(sellada()));
       expect(RegExp(r'/Subtype\s*/Image').hasMatch(sinMedico), isFalse);
     });
+
+    test('A4 en todas las páginas', () async {
+      final p = paginas(await pdf(sellada()));
+      expect(p, isNotEmpty);
+      for (final pagina in p) {
+        expect(pagina[0], closeTo(595.28, 0.5));
+        expect(pagina[1], closeTo(841.89, 0.5));
+      }
+    });
+
+    test('textos de varias páginas continúan en la siguiente', () async {
+      // Antes, un campo o una evolución más altos que una página impedían
+      // generar el PDF.
+      final largo = [
+        for (var i = 0; i < 90; i++)
+          'Párrafo $i: evolución clínica detallada con hallazgos, conducta y '
+              'plan, escrita sin abreviaturas para que se lea con claridad.',
+      ].join('\n');
+      final base = await pdf(sellada());
+      final datos = sellarEvoluciones(
+        sellarBase({
+          ...historiaCompleta().copyWith(enfermedadActual: largo).aMapa(),
+          'finalizadaEn': '2026-10-02T09:40',
+        }),
+        [
+          Evolucion(
+            id: 'e1',
+            fechaHora: DateTime(2026, 10, 9, 10, 30),
+            texto: largo,
+          ).aMapa(),
+        ],
+      );
+      final bytes = await pdf(datos, revision: 2);
+      _guardarMuestra('historia_texto_largo.pdf', bytes);
+      expect(
+        paginas(bytes).length,
+        greaterThanOrEqualTo(paginas(base).length + 4),
+      );
+      final r = leerHistoriaDePdf(bytes);
+      expect(verificarIntegridad(r.datos).correcta, isTrue);
+      expect(HistoriaClinica.desdeMapa(r.datos).enfermedadActual, largo);
+    });
+
+    test(
+      'cambiar una letra de la evolución 2 se detecta "desde la evolución 2"',
+      () async {
+        var datos = sellada();
+        for (final (n, texto) in [(1, 'Afebril.'), (2, 'Sin odinofagia.')]) {
+          datos = sellarEvoluciones(datos, [
+            Evolucion(
+              id: 'e$n',
+              fechaHora: DateTime(2026, 10, 2 + 7 * n, 10, 30),
+              texto: texto,
+            ).aMapa(),
+          ]);
+        }
+        final v3 = leerHistoriaDePdf(await pdf(datos, revision: 3)).datos;
+        expect(verificarIntegridad(v3).correcta, isTrue);
+
+        // Alguien reescribe el adjunto con otro programa: el PDF es válido,
+        // pero la cadena de hashes no.
+        final evoluciones = v3.listaEvoluciones;
+        evoluciones[1] = {...evoluciones[1], 'texto': 'Con odinofagia.'};
+        final alterado = await pdf({
+          ...v3,
+          'evoluciones': evoluciones,
+        }, revision: 4);
+        final r = verificarIntegridad(leerHistoriaDePdf(alterado).datos);
+        expect(r.correcta, isFalse);
+        expect(r.primeraAlterada, 2);
+        expect(
+          r.descripcion,
+          'Se detectaron alteraciones desde la evolución 2',
+        );
+      },
+    );
 
     test('la vista previa del borrador no se puede reabrir', () async {
       final bytes = await pdf(historiaCompleta().aMapa(), borrador: true);
@@ -256,4 +341,11 @@ extension on Map<String, Object?> {
     for (final e in this['evoluciones']! as List)
       (e as Map).cast<String, Object?>(),
   ];
+}
+
+/// Con `MUESTRAS_PDF=carpeta` guarda los PDF para revisarlos a ojo.
+void _guardarMuestra(String nombre, Uint8List bytes) {
+  final carpeta = Platform.environment['MUESTRAS_PDF'];
+  if (carpeta == null) return;
+  File('$carpeta/$nombre').writeAsBytesSync(bytes);
 }

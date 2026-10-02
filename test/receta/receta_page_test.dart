@@ -229,14 +229,12 @@ void main() {
     await terminar(t);
   });
 
-  testWidgets('diagnóstico: busca en el catálogo CIE-10 importado', (t) async {
+  testWidgets('diagnóstico: catálogo CIE-10 incluido o importado', (t) async {
     final c = await montar(t);
-    final muestra = File('test/fixtures/cie10_muestra.csv').readAsBytesSync();
-    await t.runAsync(
-      () => c.read(infoCie10Provider.notifier).importar('muestra.csv', muestra),
+    expect(
+      find.textContaining('CIE-10 (SISPRO, 12.634 códigos)'),
+      findsOneWidget,
     );
-    await t.pumpAndSettle();
-    expect(find.textContaining('Catálogo CIE-10: 30 códigos'), findsOneWidget);
 
     await pulsar(t, find.text('Agregar diagnóstico'));
     final diagnostico = campo('Diagnóstico *');
@@ -244,13 +242,33 @@ void main() {
     // La primera vez el catálogo se carga al entrar al campo.
     await t.runAsync(() => c.read(catalogoCie10Provider.future));
     await t.pumpAndSettle();
-    await escribir(t, diagnostico, 'faringitis');
+    await escribir(t, diagnostico, 'faringitis aguda');
     await t.pumpAndSettle();
     await t.tap(find.text('FARINGITIS AGUDA, NO ESPECIFICADA'));
     await t.pumpAndSettle();
-    final d = c.read(historiaProvider).historia.diagnosticos.single;
+    var d = c.read(historiaProvider).historia.diagnosticos.single;
     expect(d.codigo, 'J029');
     expect(d.descripcion, 'FARINGITIS AGUDA, NO ESPECIFICADA');
+
+    // Un catálogo importado reemplaza al incluido.
+    final muestra = File('test/fixtures/cie10_muestra.csv').readAsBytesSync();
+    await t.runAsync(() async {
+      await c.read(infoCie10Provider.notifier).importar('muestra.csv', muestra);
+      await c.read(catalogoCie10Provider.future);
+    });
+    await t.pumpAndSettle();
+    expect(
+      find.textContaining('CIE-10 (importado, 30 códigos)'),
+      findsOneWidget,
+    );
+    await pulsar(t, find.text('Agregar diagnóstico'));
+    await escribir(t, campo('CIE-10', indice: 1), 'G43');
+    await t.pumpAndSettle();
+    expect(find.text('G439'), findsOneWidget, reason: 'solo el de la muestra');
+    await t.tap(find.text('G439'));
+    await t.pumpAndSettle();
+    d = c.read(historiaProvider).historia.diagnosticos[1];
+    expect(d.descripcion, 'MIGRAÑA, NO ESPECIFICADA');
     await terminar(t);
   });
 }

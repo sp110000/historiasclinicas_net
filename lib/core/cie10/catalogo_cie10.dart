@@ -1,11 +1,15 @@
-/// Catálogo CIE-10 que el médico importa una vez desde la fuente oficial de
-/// su país (Colombia: tabla de referencia CIE-10 de SISPRO; España:
-/// CIE-10-ES del Ministerio de Sanidad). VERIFICAR los términos de uso de
-/// cada fuente. La app no incluye ningún catálogo.
+/// Catálogo CIE-10: el incluido en la app (tabla de referencia de SISPRO,
+/// ver `catalogo_incluido.dart`) o el que el médico importe (una versión
+/// más reciente de SISPRO, la CIE-10-ES…).
+///
+/// Sin dependencias de Flutter: también lo usa
+/// `tool/cie10/generar_catalogo.dart`.
 library;
 
 import 'dart:convert';
 import 'dart:typed_data';
+
+import 'package:archive/archive.dart';
 
 import '../utils/texto.dart';
 
@@ -44,11 +48,34 @@ class CatalogoCie10 {
       EntradaCie10((e as Map)['c'] as String, e['d'] as String),
   ]);
 
+  /// Formato del catálogo incluido: una línea por código, con el código, un
+  /// tabulador y la descripción. Las líneas que empiezan por `#` son
+  /// comentarios.
+  factory CatalogoCie10.desdeTexto(String texto) => CatalogoCie10([
+    for (final linea in const LineSplitter().convert(texto))
+      if (linea.isNotEmpty && !linea.startsWith('#'))
+        if (linea.indexOf('\t') case final i when i > 0)
+          EntradaCie10(linea.substring(0, i), linea.substring(i + 1)),
+  ]);
+
   final List<EntradaCie10> entradas;
 
   int get length => entradas.length;
 
   String aJson() => jsonEncode([for (final e in entradas) e.aMapa()]);
+
+  /// Inverso de [CatalogoCie10.desdeTexto], con [encabezado] como
+  /// comentarios al principio.
+  String aTexto({List<String> encabezado = const []}) {
+    final b = StringBuffer();
+    for (final l in encabezado) {
+      b.writeln('# $l');
+    }
+    for (final e in entradas) {
+      b.writeln('${e.codigo}\t${e.descripcion}');
+    }
+    return b.toString();
+  }
 
   /// Por código ("J02", "j029", "J02.9") o por palabras de la descripción
   /// ("faring agud"), sin tildes ni mayúsculas.
@@ -86,17 +113,26 @@ class LecturaCie10 {
   final int omitidas;
 }
 
-/// Lee un catálogo en CSV, TSV, TXT (separado por `;`, `,`, tabulador o
-/// `|`) o JSON. En cada fila toma el primer campo con forma de código y el
-/// siguiente texto como descripción. Acepta UTF-8 o Windows-1252 (Excel).
-/// Lanza [FormatException] si no encuentra un catálogo.
+/// Lee un catálogo en Excel (.xlsx, como la tabla de referencia de SISPRO),
+/// CSV, TSV, TXT (separado por `;`, `,`, tabulador o `|`) o JSON. En cada
+/// fila toma el primer campo con forma de código y el siguiente texto como
+/// descripción, y omite las filas con "Habilitado" = NO. Acepta UTF-8 o
+/// Windows-1252 (los CSV de Excel). Lanza [FormatException] si no encuentra
+/// un catálogo.
 LecturaCie10 leerCatalogoCie10(Uint8List bytes) {
+  if (bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B) {
+    // "PK": un ZIP, es decir, un .xlsx.
+    return _comprobar(_desdeFilas(_filasDeXlsx(bytes)));
+  }
   var texto = _decodificar(bytes);
-  if (texto.startsWith('﻿')) texto = texto.substring(1);
+  if (texto.startsWith('\uFEFF')) texto = texto.substring(1);
   final t = texto.trimLeft();
-  final lectura = t.startsWith('[') || t.startsWith('{')
-      ? _desdeJson(t)
-      : _desdeTabla(texto);
+  return _comprobar(
+    t.startsWith('[') || t.startsWith('{') ? _desdeJson(t) : _desdeTabla(texto),
+  );
+}
+
+LecturaCie10 _comprobar(LecturaCie10 lectura) {
   if (lectura.catalogo.length < 20) {
     throw const FormatException(
       'No se encontraron códigos CIE-10 en el archivo',
@@ -169,31 +205,143 @@ LecturaCie10 _desdeTabla(String texto) {
       .where((l) => l.trim().isNotEmpty)
       .toList();
   final separador = _separador(lineas.take(50));
+  return _desdeFilas([for (final l in lineas) _campos(l, separador)]);
+}
+
+final _conLetras = RegExp(r'\p{L}.*\p{L}.*\p{L}', unicode: true);
+
+LecturaCie10 _desdeFilas(List<List<String>> filas) {
+  // Columna "Habilitado" (SISPRO): se omiten los códigos deshabilitados.
+  int? habilitado;
   final entradas = <EntradaCie10>[];
   var omitidas = 0;
-  for (final linea in lineas) {
-    final campos = _campos(linea, separador);
+  for (final campos in filas) {
     final i = campos.indexWhere(pareceCodigoCie10);
     if (i < 0) {
+      habilitado ??= _indiceHabilitado(campos);
+      omitidas++;
+      continue;
+    }
+    if (habilitado != null &&
+        habilitado < campos.length &&
+        campos[habilitado].trim().toUpperCase() == 'NO') {
       omitidas++;
       continue;
     }
     final descripcion = campos
         .skip(i + 1)
         .firstWhere(
-          (c) =>
-              RegExp(r'\p{L}.*\p{L}.*\p{L}', unicode: true).hasMatch(c) &&
-              !pareceCodigoCie10(c),
+          (c) => _conLetras.hasMatch(c) && !pareceCodigoCie10(c),
           orElse: () => '',
         );
     if (descripcion.isEmpty) {
       omitidas++;
       continue;
     }
-    entradas.add(EntradaCie10(campos[i].toUpperCase(), descripcion));
+    entradas.add(EntradaCie10(campos[i].trim().toUpperCase(), descripcion));
   }
   return LecturaCie10(_sinRepetidos(entradas), omitidas: omitidas);
 }
+
+int? _indiceHabilitado(List<String> encabezado) {
+  final i = encabezado.indexWhere((c) => _normalizarTexto(c) == 'habilitado');
+  return i < 0 ? null : i;
+}
+
+/// Filas de la primera hoja de un .xlsx, con las celdas vacías en su
+/// columna para que los encabezados coincidan.
+List<List<String>> _filasDeXlsx(Uint8List bytes) {
+  final Archive zip;
+  try {
+    zip = ZipDecoder().decodeBytes(bytes);
+  } on Object {
+    throw const FormatException('El archivo no es un Excel (.xlsx) válido');
+  }
+  String? xml(String nombre) {
+    final f = zip.findFile(nombre);
+    return f == null ? null : utf8.decode(f.content, allowMalformed: true);
+  }
+
+  final hojas =
+      zip.files
+          .map((f) => f.name)
+          .where((n) => RegExp(r'^xl/worksheets/sheet\d+\.xml$').hasMatch(n))
+          .toList()
+        ..sort();
+  final hoja = hojas.isEmpty ? null : xml(hojas.first);
+  if (hoja == null) {
+    throw const FormatException('El Excel no tiene hojas con datos');
+  }
+  // Textos compartidos: <si><t>…</t></si> (o varios <r><t>…</t></r>).
+  final compartidos = [
+    for (final si in _etiqueta(
+      'si',
+    ).allMatches(xml('xl/sharedStrings.xml') ?? ''))
+      _textoDe(si.group(1)!),
+  ];
+  final filas = <List<String>>[];
+  for (final fila in _etiqueta('row').allMatches(hoja)) {
+    final campos = <String>[];
+    for (final celda in _celda.allMatches(fila.group(1)!)) {
+      final atributos = celda.group(1)!;
+      final contenido = celda.group(2) ?? '';
+      final columna = _columna(atributos);
+      final tipo = RegExp(r'\bt="(\w+)"').firstMatch(atributos)?.group(1);
+      final v = _etiqueta('v').firstMatch(contenido)?.group(1);
+      final valor = switch (tipo) {
+        's' => compartidos.elementAtOrNull(int.tryParse(v ?? '') ?? -1) ?? '',
+        'inlineStr' => _textoDe(contenido),
+        _ => _entidades(v ?? ''),
+      };
+      while (columna != null && campos.length < columna) {
+        campos.add('');
+      }
+      campos.add(valor.trim());
+    }
+    filas.add(campos);
+  }
+  return filas;
+}
+
+/// `<x:etiqueta …>contenido</x:etiqueta>`, con o sin prefijo.
+RegExp _etiqueta(String nombre) => RegExp(
+  '<(?:\\w+:)?$nombre(?:\\s[^>]*)?>(.*?)</(?:\\w+:)?$nombre>',
+  dotAll: true,
+);
+
+final _celda = RegExp(
+  r'<(?:\w+:)?c\b([^>]*?)(?:/>|>(.*?)</(?:\w+:)?c>)',
+  dotAll: true,
+);
+
+/// Índice de columna de `r="AB12"` (A = 0).
+int? _columna(String atributos) {
+  final letras = RegExp(r'\br="([A-Z]+)\d+"').firstMatch(atributos)?.group(1);
+  if (letras == null) return null;
+  var n = 0;
+  for (final c in letras.codeUnits) {
+    n = n * 26 + (c - 64);
+  }
+  return n - 1;
+}
+
+String _textoDe(String xml) =>
+    _entidades(_etiqueta('t').allMatches(xml).map((m) => m.group(1)!).join());
+
+String _entidades(String t) => t.replaceAllMapped(
+  RegExp(r'&(#x[0-9A-Fa-f]+|#\d+|amp|lt|gt|quot|apos);'),
+  (m) => switch (m.group(1)!) {
+    'amp' => '&',
+    'lt' => '<',
+    'gt' => '>',
+    'quot' => '"',
+    'apos' => "'",
+    final n when n.startsWith('#x') => String.fromCharCode(
+      int.parse(n.substring(2), radix: 16),
+    ),
+    final n => String.fromCharCode(int.parse(n.substring(1))),
+  },
+);
 
 String _separador(Iterable<String> muestra) {
   var mejor = '\t';

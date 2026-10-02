@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/cie10/catalogo_cie10.dart';
+import '../../../core/cie10/catalogo_incluido.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/utils/ids.dart';
@@ -208,7 +209,7 @@ class _FilaDiagnosticoState extends ConsumerState<_FilaDiagnostico> {
     );
     final codigo = CampoSugerencias<EntradaCie10>(
       etiqueta: 'CIE-10',
-      pista: 'J02.9',
+      pista: 'J029',
       controller: _codigo,
       foco: _focoCodigo,
       mayusculas: TextCapitalization.characters,
@@ -352,7 +353,7 @@ class _FilaDiagnosticoState extends ConsumerState<_FilaDiagnostico> {
   }
 }
 
-/// Estado del catálogo CIE-10 y acceso para importarlo.
+/// Qué catálogo CIE-10 se usa y acceso para cambiarlo.
 class _EstadoCatalogo extends ConsumerWidget {
   const _EstadoCatalogo();
 
@@ -371,11 +372,9 @@ class _EstadoCatalogo extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              info == null
-                  ? 'Búsqueda CIE-10: importa una vez el catálogo oficial de tu '
-                        'país.'
-                  : 'Catálogo CIE-10: ${formatoMiles(info.cantidad)} códigos. '
-                        'Escribe el diagnóstico o el código para buscar.',
+              'CIE-10 (${info == null ? 'SISPRO' : 'importado'}, '
+              '${formatoMiles(info?.cantidad ?? CatalogoIncluido.cantidad)} '
+              'códigos): escribe el diagnóstico o el código para buscar.',
               style: const TextStyle(
                 fontSize: 13,
                 color: ColoresMarca.textoSuave,
@@ -384,7 +383,7 @@ class _EstadoCatalogo extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => mostrarCatalogoCie10(context),
-            child: Text(info == null ? 'Cargar catálogo' : 'Gestionar'),
+            child: const Text('Catálogo'),
           ),
         ],
       ),

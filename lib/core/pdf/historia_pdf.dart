@@ -26,7 +26,10 @@ import 'piezas_pdf.dart';
 ///
 /// Si [datos] trae `medico` (copia del autor) y `recursos`, el encabezado
 /// lleva sus datos y logo, y el bloque de firma su firma y sello. Cada
-/// evolución lleva su propio autor. El diseño final llega en la Fase 4.
+/// evolución lleva su propio autor.
+///
+/// Los textos largos (un campo o una evolución de varias páginas) continúan
+/// en la página siguiente; lo demás va en bloques que no se parten.
 Future<Uint8List> generarPdfHistoria({
   required Map<String, Object?> datos,
   int revision = 0,
@@ -73,97 +76,174 @@ Future<Uint8List> generarPdfHistoria({
     ),
   );
 
-  pw.Widget datosSeccion(List<DatoMostrado> lista) {
-    if (lista.isEmpty) {
-      return pw.Text('Sin datos registrados.', style: estilo(color: gris));
-    }
-    double ancho(AnchoDato a) => switch (a) {
-      AnchoDato.corto => (anchoUtil - 24) / 3,
-      AnchoDato.medio => (anchoUtil - 12) / 2,
-      AnchoDato.completo => anchoUtil,
-    };
-    return pw.Wrap(
-      spacing: 12,
-      runSpacing: 7,
+  double ancho(AnchoDato a) => switch (a) {
+    AnchoDato.corto => (anchoUtil - 24) / 3,
+    AnchoDato.medio => (anchoUtil - 12) / 2,
+    AnchoDato.completo => anchoUtil,
+  };
+
+  pw.Widget etiquetaDato(String etiqueta) => pw.Text(
+    etiqueta.toUpperCase(),
+    style: pw.TextStyle(font: f.media, fontSize: 6.8, color: gris),
+  );
+
+  pw.Widget dato(DatoMostrado d) => pw.SizedBox(
+    width: ancho(d.ancho),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        for (final d in lista)
-          pw.SizedBox(
-            width: ancho(d.ancho),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  d.etiqueta.toUpperCase(),
-                  style: pw.TextStyle(
-                    font: f.media,
-                    fontSize: 6.8,
-                    color: gris,
-                  ),
-                ),
-                pw.SizedBox(height: 1.5),
-                pw.Text(d.valor, style: estilo()),
-              ],
-            ),
-          ),
+        etiquetaDato(d.etiqueta),
+        pw.SizedBox(height: 1.5),
+        pw.Text(d.valor, style: estilo()),
       ],
-    );
+    ),
+  );
+
+  /// Una sección: su título va siempre con la primera fila de datos. Las
+  /// filas no se parten entre páginas; los textos largos van sueltos para
+  /// que continúen en la página siguiente (un bloque más alto que una
+  /// página no se podría imprimir).
+  List<pw.Widget> seccion(SeccionHistoria s) {
+    final lista = datosDeSeccion(s, historia);
+    final bloques = <pw.Widget>[];
+    final fila = <DatoMostrado>[];
+    var usado = 0.0;
+    void cerrarFila() {
+      if (fila.isEmpty) return;
+      bloques.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 7),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              for (final (i, d) in fila.indexed) ...[
+                if (i > 0) pw.SizedBox(width: 12),
+                dato(d),
+              ],
+            ],
+          ),
+        ),
+      );
+      fila.clear();
+      usado = 0;
+    }
+
+    for (final d in lista) {
+      final w = ancho(d.ancho);
+      if (!cabeEnBloque(d.valor, w)) {
+        cerrarFila();
+        bloques
+          ..add(etiquetaDato(d.etiqueta))
+          ..add(pw.SizedBox(height: 1.5))
+          ..add(
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 7),
+              child: textoLargo(d.valor, estilo()),
+            ),
+          );
+        continue;
+      }
+      final necesario = fila.isEmpty ? w : usado + 12 + w;
+      if (necesario > anchoUtil + 0.5) cerrarFila();
+      usado = fila.isEmpty ? w : usado + 12 + w;
+      fila.add(d);
+    }
+    cerrarFila();
+    if (bloques.isEmpty) {
+      bloques.add(
+        pw.Text('Sin datos registrados.', style: estilo(color: gris)),
+      );
+    }
+    final primero = bloques.removeAt(0);
+    return [
+      pw.Inseparable(
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [cabeceraSeccion(s), primero],
+        ),
+      ),
+      ...bloques,
+    ];
   }
 
   pw.Widget bloqueFirma(Autor? autor, {required double alto}) =>
       bloqueFirmaPdf(f, autor, imagen, alto: alto);
 
-  pw.Widget evolucion(int numero, Evolucion e) {
+  /// [titulo] (el de la sección, en la primera) va pegado a la evolución.
+  List<pw.Widget> evolucion(int numero, Evolucion e, {pw.Widget? titulo}) {
     final signos = resumenSignos(e.signos);
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(bottom: 8),
-      padding: const pw.EdgeInsets.only(left: 8, top: 2, bottom: 2),
+    final encabezado = pw.Container(
+      margin: const pw.EdgeInsets.only(top: 2),
+      padding: const pw.EdgeInsets.only(top: 5, bottom: 3),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(left: pw.BorderSide(color: linea, width: 2)),
+        border: pw.Border(top: pw.BorderSide(color: linea, width: 0.6)),
       ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
         children: [
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  'Evolución $numero · ${formatoFechaHora(e.fechaHora)}',
-                  style: pw.TextStyle(font: f.seminegrita, fontSize: 9.5),
-                ),
-              ),
-              if (e.hash != null)
-                pw.Text(
-                  'Huella ${huella(e.hash!)}',
-                  style: pw.TextStyle(fontSize: 7.5, color: gris),
-                ),
-            ],
+          pw.Expanded(
+            child: pw.Text(
+              'Evolución $numero · ${formatoFechaHora(e.fechaHora)}',
+              style: pw.TextStyle(font: f.seminegrita, fontSize: 9.5),
+            ),
           ),
-          pw.SizedBox(height: 2),
-          pw.Text(e.texto, style: estilo()),
-          if (signos.isNotEmpty)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 2),
-              child: pw.Text(signos, style: estilo(tamano: 8.5, color: gris)),
-            ),
-          if (e.avisoIntegridad != null)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 2),
-              child: pw.Text(
-                e.avisoIntegridad!,
-                style: estilo(tamano: 8, color: gris, fuente: f.media),
-              ),
-            ),
-          if (e.autor != null)
-            pw.Align(
-              alignment: pw.Alignment.centerRight,
-              child: pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 4),
-                child: bloqueFirma(e.autor, alto: 30),
-              ),
+          if (e.hash != null)
+            pw.Text(
+              'Huella ${huella(e.hash!)}',
+              style: pw.TextStyle(fontSize: 7.5, color: gris),
             ),
         ],
       ),
     );
+    pw.Widget sangria(pw.Widget hijo, {double arriba = 0}) => pw.Padding(
+      padding: pw.EdgeInsets.only(left: 8, top: arriba),
+      child: hijo,
+    );
+    final partes = [
+      if (titulo == null)
+        encabezado
+      else
+        pw.Inseparable(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [titulo, encabezado],
+          ),
+        ),
+      sangria(textoLargo(e.texto, estilo())),
+      if (signos.isNotEmpty)
+        sangria(
+          pw.Text(signos, style: estilo(tamano: 8.5, color: gris)),
+          arriba: 2,
+        ),
+      if (e.avisoIntegridad != null)
+        sangria(
+          pw.Text(
+            e.avisoIntegridad!,
+            style: estilo(tamano: 8, color: gris, fuente: f.media),
+          ),
+          arriba: 2,
+        ),
+      if (e.autor != null)
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 4),
+            child: bloqueFirma(e.autor, alto: 30),
+          ),
+        ),
+      pw.SizedBox(height: 8),
+    ];
+    // Una evolución corta no se parte; una larga continúa en otra página.
+    return cabeEnBloque(e.texto, anchoUtil - 8)
+        ? [
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: partes,
+              ),
+            ),
+          ]
+        : partes;
   }
 
   final p = historia.paciente;
@@ -273,7 +353,8 @@ Future<Uint8List> generarPdfHistoria({
       build: (context) => [
         for (final s in SeccionHistoria.values.where(
           (s) => s != SeccionHistoria.firma && s != SeccionHistoria.evoluciones,
-        )) ...[cabeceraSeccion(s), datosSeccion(datosDeSeccion(s, historia))],
+        ))
+          ...seccion(s),
         // Título y firma juntos: el título no queda solo al final de una
         // página (Inseparable impide partir el bloque).
         pw.Inseparable(
@@ -308,10 +389,18 @@ Future<Uint8List> generarPdfHistoria({
             ],
           ),
         ),
-        cabeceraSeccion(SeccionHistoria.evoluciones),
-        if (evoluciones.isEmpty)
+        if (evoluciones.isEmpty) ...[
+          cabeceraSeccion(SeccionHistoria.evoluciones),
           pw.Text('Sin evoluciones registradas.', style: estilo(color: gris)),
-        for (final (i, e) in evoluciones.indexed) evolucion(i + 1, e),
+        ],
+        for (final (i, e) in evoluciones.indexed)
+          ...evolucion(
+            i + 1,
+            e,
+            titulo: i == 0
+                ? cabeceraSeccion(SeccionHistoria.evoluciones)
+                : null,
+          ),
       ],
     ),
   );

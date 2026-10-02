@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/cie10/almacen_cie10.dart' as almacen;
 import '../../core/cie10/catalogo_cie10.dart';
+import '../../core/cie10/catalogo_incluido.dart';
 import '../../core/models/mapa.dart';
 import '../../core/storage/preferencias.dart';
 
-/// Datos del catálogo importado (sin cargarlo).
+/// Datos del catálogo importado (sin cargarlo). Sin importar, se usa el
+/// incluido en la app ([CatalogoIncluido]).
 class InfoCie10 {
   const InfoCie10({
     required this.archivo,
@@ -66,6 +68,7 @@ class Cie10Controller extends Notifier<InfoCie10?> {
     return lectura;
   }
 
+  /// Quita el importado y vuelve al catálogo incluido.
   Future<void> borrar() async {
     await almacen.borrarCatalogo();
     await ref.read(preferenciasProvider).remove(Claves.cie10);
@@ -73,10 +76,13 @@ class Cie10Controller extends Notifier<InfoCie10?> {
   }
 }
 
-/// El catálogo se lee de IndexedDB la primera vez que se usa.
-final catalogoCie10Provider = FutureProvider<CatalogoCie10?>((ref) async {
+/// El catálogo se carga la primera vez que se usa: el importado (de
+/// IndexedDB) o, si no hay, el incluido en la app.
+final catalogoCie10Provider = FutureProvider<CatalogoCie10>((ref) async {
   final info = ref.watch(infoCie10Provider);
-  if (info == null) return null;
-  final json = await almacen.leerCatalogoGuardado();
-  return json == null ? null : CatalogoCie10.desdeJson(json);
+  if (info != null) {
+    final json = await almacen.leerCatalogoGuardado();
+    if (json != null) return CatalogoCie10.desdeJson(json);
+  }
+  return cargarCatalogoIncluido();
 });

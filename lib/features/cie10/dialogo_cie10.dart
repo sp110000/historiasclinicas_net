@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/tema.dart';
 import '../../core/archivos/archivos.dart' as archivos;
+import '../../core/cie10/catalogo_incluido.dart';
 import '../../core/utils/fechas.dart';
 import '../../core/utils/numeros.dart';
 import 'cie10_provider.dart';
@@ -12,7 +13,8 @@ Future<void> mostrarCatalogoCie10(BuildContext context) => showDialog<void>(
   builder: (_) => const DialogoCatalogoCie10(),
 );
 
-/// Importar, reemplazar o quitar el catálogo CIE-10 de este navegador.
+/// Qué catálogo CIE-10 se usa: el incluido o uno importado en este
+/// navegador.
 class DialogoCatalogoCie10 extends ConsumerStatefulWidget {
   const DialogoCatalogoCie10({super.key});
 
@@ -39,7 +41,7 @@ class _DialogoCatalogoCie10State extends ConsumerState<DialogoCatalogoCie10> {
           .importar(archivo.nombre, archivo.bytes);
       _mensaje =
           'Se importaron ${formatoMiles(l.catalogo.length)} códigos'
-          '${l.omitidas > 0 ? ' (se omitieron ${formatoMiles(l.omitidas)} líneas sin código)' : ''}.';
+          '${l.omitidas > 0 ? ' (se omitieron ${formatoMiles(l.omitidas)} filas sin código)' : ''}.';
       _error = false;
     } on FormatException catch (e) {
       _mensaje = 'No se pudo importar: ${e.message}.';
@@ -67,30 +69,35 @@ class _DialogoCatalogoCie10State extends ConsumerState<DialogoCatalogoCie10> {
             children: [
               Text(
                 info == null
-                    ? 'Aún no hay catálogo en este navegador.'
-                    : '${formatoMiles(info.cantidad)} códigos · ${info.archivo} · '
-                          'importado el ${formatoFecha(info.importado)}',
+                    ? 'En uso: el incluido en la app'
+                    : 'En uso: el importado en este navegador',
                 style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                info == null
+                    ? '${CatalogoIncluido.fuente}: '
+                          '${formatoMiles(CatalogoIncluido.cantidad)} códigos, '
+                          'actualizada el '
+                          '${formatoFecha(CatalogoIncluido.actualizado)}.'
+                    : '${formatoMiles(info.cantidad)} códigos · ${info.archivo} · '
+                          'importado el ${formatoFecha(info.importado)}.',
               ),
               const SizedBox(height: 12),
               const Text(
-                'Con el catálogo, al escribir un diagnóstico o un código se '
-                'sugieren las coincidencias. Se importa una vez desde la fuente '
-                'oficial de tu país y queda solo en este navegador, para usarlo '
-                'sin conexión:',
+                'Al escribir un diagnóstico o un código se sugieren las '
+                'coincidencias, sin conexión.',
               ),
               const SizedBox(height: 8),
               const Text(
-                '• Colombia: tabla de referencia CIE-10 de SISPRO (Ministerio de '
-                'Salud y Protección Social).\n'
-                '• España: CIE-10-ES Diagnósticos (Ministerio de Sanidad).',
+                'Puedes importar otra versión: una tabla más reciente de SISPRO '
+                '(el Excel tal como se descarga) o la CIE-10-ES de España. '
+                'Reemplaza al incluido solo en este navegador.',
               ),
               const SizedBox(height: 8),
               const Text(
-                'Formatos: CSV, TXT o TSV (una fila por código, con el código y '
-                'su descripción; separados por punto y coma, coma, tabulador o '
-                '|), o JSON. Desde Excel: "Guardar como CSV". VERIFICAR los '
-                'términos de uso de la fuente.',
+                'Formatos: Excel (.xlsx), CSV, TXT o TSV (una fila por '
+                'código, con el código y su descripción) o JSON.',
                 style: TextStyle(fontSize: 13, color: ColoresMarca.textoSuave),
               ),
               if (_ocupado) ...[
@@ -120,16 +127,16 @@ class _DialogoCatalogoCie10State extends ConsumerState<DialogoCatalogoCie10> {
                 : () async {
                     await ref.read(infoCie10Provider.notifier).borrar();
                     setState(() {
-                      _mensaje = 'Se quitó el catálogo de este navegador.';
+                      _mensaje = 'Se volvió al catálogo incluido.';
                       _error = false;
                     });
                   },
-            child: const Text('Quitar catálogo'),
+            child: const Text('Volver al incluido'),
           ),
         TextButton.icon(
           onPressed: _ocupado ? null : _importar,
           icon: const Icon(Icons.upload_file_outlined),
-          label: Text(info == null ? 'Importar archivo…' : 'Reemplazar…'),
+          label: const Text('Importar otro…'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context),

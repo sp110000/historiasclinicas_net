@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/tema.dart';
 import '../../core/archivos/archivos.dart' as archivos;
+import '../../core/cie10/catalogo_incluido.dart';
 import '../../core/imagenes/procesar_imagen.dart';
 import '../../core/models/medico.dart';
 import '../../core/pais/pais_provider.dart';
@@ -283,7 +284,7 @@ class MedicoPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const _Tarjeta(
                   icono: Icons.menu_book_outlined,
-                  titulo: 'Catálogo CIE-10 (opcional)',
+                  titulo: 'Catálogo CIE-10',
                   child: _CatalogoCie10(),
                 ),
                 const SizedBox(height: 16),
@@ -790,18 +791,21 @@ class _CatalogoCie10 extends ConsumerWidget {
         Expanded(
           child: Text(
             info == null
-                ? 'Importa una vez el catálogo oficial de tu país para buscar '
-                      'diagnósticos por texto o código, sin conexión.'
-                : '${formatoMiles(info.cantidad)} códigos · ${info.archivo} · '
-                      'importado el ${formatoFecha(info.importado)}',
+                ? 'Incluido: tabla de referencia de SISPRO, '
+                      '${formatoMiles(CatalogoIncluido.cantidad)} códigos '
+                      '(actualizada el '
+                      '${formatoFecha(CatalogoIncluido.actualizado)}).'
+                : 'Importado: ${formatoMiles(info.cantidad)} códigos · '
+                      '${info.archivo} · '
+                      '${formatoFecha(info.importado)}',
             style: const TextStyle(color: ColoresMarca.textoSuave),
           ),
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => mostrarCatalogoCie10(context),
-          icon: const Icon(Icons.upload_file_outlined),
-          label: Text(info == null ? 'Importar' : 'Gestionar'),
+          icon: const Icon(Icons.menu_book_outlined),
+          label: const Text('Catálogo'),
         ),
       ],
     );

@@ -74,9 +74,10 @@ Future<ArchivoAbierto?> elegirImagen() =>
 Future<ArchivoAbierto?> elegirJson() =>
     _elegirConInput('application/json,.json');
 
-/// Pide un catálogo de texto (CSV, TXT o JSON).
+/// Pide un catálogo CIE-10 (Excel, CSV, TXT o JSON).
 Future<ArchivoAbierto?> elegirCatalogo() => _elegirConInput(
-  '.csv,.txt,.tsv,.json,text/csv,text/plain,application/json',
+  '.xlsx,.csv,.txt,.tsv,.json,text/csv,text/plain,application/json,'
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 );
 
 Future<ArchivoAbierto?> _elegirConInput(String acepta) {

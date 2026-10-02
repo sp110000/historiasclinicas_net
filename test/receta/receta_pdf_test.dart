@@ -102,6 +102,37 @@ void main() {
     final bytes = await pdf(documento(pais: Pais.espana));
     expect(paginas(bytes), hasLength(1));
   });
+
+  test(
+    'un ítem o unas indicaciones larguísimos continúan en otra hoja',
+    () async {
+      final largo = List.generate(
+        70,
+        (i) => 'Paso $i: tomar con abundante agua después de las comidas.',
+      ).join('\n');
+      final d = documento(
+        items: [
+          item(0).copyWith(nota: largo),
+          item(1),
+        ],
+      );
+      final bytes = await pdf(
+        DocumentoReceta(
+          receta: d.receta.copyWith(indicaciones: largo),
+          paciente: d.paciente,
+          pais: d.pais,
+          medico: d.medico,
+          recursos: d.recursos,
+        ),
+      );
+      final p = paginas(bytes);
+      expect(p.length, greaterThanOrEqualTo(4));
+      for (final hoja in p) {
+        expect(hoja[1], closeTo(PdfMedidas.a5Alto, 0.5));
+      }
+      _guardarMuestra('receta_texto_largo.pdf', bytes);
+    },
+  );
 }
 
 abstract final class PdfMedidas {

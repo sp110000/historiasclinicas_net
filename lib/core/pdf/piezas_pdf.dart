@@ -144,3 +144,20 @@ pw.Widget bloqueFirmaPdf(
     ),
   );
 }
+
+/// `true` si [texto] cabe holgadamente en un bloque de [ancho] puntos que no
+/// se parte entre páginas (unas 30 líneas a 9,5 pt). Si no, debe imprimirse
+/// como texto suelto, que sí continúa en la página siguiente.
+bool cabeEnBloque(String texto, double ancho, {int maxLineas = 30}) {
+  final porLinea = (ancho / 4.9).floor().clamp(10, 1000);
+  var lineas = 0;
+  for (final parrafo in texto.split('\n')) {
+    lineas += (parrafo.length / porLinea).ceil().clamp(1, 1 << 20);
+    if (lineas > maxLineas) return false;
+  }
+  return true;
+}
+
+/// Texto que continúa en la página siguiente si no cabe.
+pw.Widget textoLargo(String texto, pw.TextStyle estilo) =>
+    pw.Text(texto, style: estilo, overflow: pw.TextOverflow.span);
