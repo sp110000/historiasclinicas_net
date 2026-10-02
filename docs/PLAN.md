@@ -1,6 +1,6 @@
 # Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **plan aprobado. Fase 0 en curso.**
+> Estado: **Fase 0 completada** (ver [FASE0.md](FASE0.md)). **Pendiente: elegir la librería (A o B).**
 > Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
 
 ---

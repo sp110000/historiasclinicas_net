@@ -12,6 +12,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   archive: ^4.0.9
+  cupertino_icons: ^1.0.8
   crypto: ^3.0.7
   pdf: ^3.12.0
   printing: ^5.14.3

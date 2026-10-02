@@ -1,0 +1,12 @@
+{
+  "name": "historiasclinicas-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Pruebas de extremo a extremo en Chromium (sin conexión).",
+  "scripts": {
+    "fase0": "node fase0_offline.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

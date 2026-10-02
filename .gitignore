@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Pruebas e2e
+/tool/e2e/node_modules
+/tool/e2e/package-lock.json

@@ -126,7 +126,12 @@ Future<Uint8List> generarPdfHistoriaPoc(
               '${historia.tipoDocumento} ${historia.numeroDocumento}',
             ),
             dato('Fecha de la atención', formatoFechaHora(historia.creadaEn)),
-            dato('Id. de historia', historia.id.substring(0, 8)),
+            dato(
+              'Id. de historia',
+              historia.id.length > 8
+                  ? historia.id.substring(0, 8)
+                  : historia.id,
+            ),
           ],
         ),
         seccion('Motivo de consulta'),
