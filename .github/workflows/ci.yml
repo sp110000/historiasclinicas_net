@@ -1,0 +1,97 @@
+# Análisis, tests, compilación y prueba en Chromium (con y sin conexión) en
+# cada push y pull request. El sitio compilado queda como artefacto
+# "sitio-web" (el contenido de build/web, listo para publicar).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Análisis, tests y compilación
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.10
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Formato
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Análisis
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
+      - name: Compilar el sitio (sin CDN, con service worker)
+        run: ./tool/construir_web.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sitio-web
+          path: build/web
+          include-hidden-files: true # .htaccess
+          retention-days: 14
+
+  e2e:
+    name: Prueba en Chromium sin conexión
+    needs: verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sitio-web
+          path: build/web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Playwright, poppler y pikepdf
+        working-directory: tool/e2e
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y poppler-utils
+          pip install pikepdf
+
+      - name: Historia, receta y PDF sin conexión
+        run: |
+          node tool/e2e/servidor.mjs 8765 &
+          sleep 1
+          node tool/e2e/historia_offline.mjs
+
+      - name: App instalada (service worker y actualización)
+        run: node tool/e2e/pwa_offline.mjs
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e
+          path: build/e2e
+          retention-days: 7

@@ -11,10 +11,16 @@ import 'package:crypto/crypto.dart';
 const plantillaPorDefecto = 'tool/pwa/sw.plantilla.js';
 
 /// Lo que no se guarda: el propio service worker, el de Flutter (obsoleto,
-/// no se registra), los símbolos de depuración y los archivos ocultos.
+/// no se registra), la configuración del hosting (no se publica), los
+/// símbolos de depuración y los archivos ocultos.
 bool excluido(String ruta) =>
-    ruta == 'sw.js' ||
-    ruta == 'flutter_service_worker.js' ||
+    const {
+      'sw.js',
+      'flutter_service_worker.js',
+      '_headers',
+      '_redirects',
+      'vercel.json',
+    }.contains(ruta) ||
     ruta.endsWith('.symbols') ||
     ruta.split('/').any((parte) => parte.startsWith('.'));
 

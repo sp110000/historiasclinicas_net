@@ -1,0 +1,6 @@
+# Vercel solo publica lo ya compilado (./tool/construir_web.sh): build/web.
+/*
+!/build
+/build/*
+!/build/web
+!/vercel.json

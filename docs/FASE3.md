@@ -53,6 +53,8 @@
 - **La vista previa es el PDF real** dibujado con **pdf.js 3.2.146** (Mozilla, licencia Apache 2.0). Se sirve desde el propio sitio (`web/pdfjs/`, con su LICENSE), sin CDN, y su *worker* se carga en memoria al iniciar. Se actualiza 300 ms después del último cambio.
 
 ### CIE-10 (opcional, carga diferida)
+> **Actualizado en la Fase 4:** la app ya incluye la tabla de referencia de SISPRO completa e importa el Excel tal como se descarga (ver [FASE4.md](FASE4.md)).
+
 - **La app no trae un catálogo.** Desde aquí no pude acceder a las fuentes oficiales: SISPRO y eCIE-Maps no responden, y datos.gov.co solo tiene datos de morbilidad. Además, sus términos de uso son **VERIFICAR**. En su lugar, **el médico importa una vez el archivo oficial de su país**:
   - Colombia: tabla de referencia CIE-10 de SISPRO.
   - España: CIE-10-ES del Ministerio de Sanidad.

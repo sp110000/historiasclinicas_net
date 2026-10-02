@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:printing/printing.dart';
 
 import '../../../core/models/medico.dart';
+import '../../../core/pdf/rasterizar.dart';
 import '../../../core/pdf/receta_pdf.dart';
 import '../../../core/receta/alertas.dart';
 import '../../../core/receta/medicamentos.dart';
@@ -333,7 +333,4 @@ typedef Rasterizador = Stream<Uint8List> Function(Uint8List pdf, double dpi);
 
 /// En la web usa pdf.js, servido desde el propio sitio (sin CDN). Los tests
 /// lo sustituyen.
-final rasterizadorProvider = Provider<Rasterizador>(
-  (ref) =>
-      (pdf, dpi) => Printing.raster(pdf, dpi: dpi).asyncMap((p) => p.toPng()),
-);
+final rasterizadorProvider = Provider<Rasterizador>((ref) => rasterizarPdf);

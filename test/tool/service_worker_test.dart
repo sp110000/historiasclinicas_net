@@ -28,6 +28,9 @@ void main() {
     escribir('flutter_service_worker.js', 'obsoleto');
     escribir('sw.js', 'anterior');
     escribir('.last_build_id', 'x');
+    escribir('.htaccess', 'Header set X-Content-Type-Options nosniff');
+    escribir('_headers', '/*');
+    escribir('vercel.json', '{}');
   });
 
   test('lista de archivos, motor aparte y exclusiones', () {

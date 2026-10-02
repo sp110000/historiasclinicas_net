@@ -2,7 +2,7 @@
 //
 // Uso:
 //   ./tool/construir_web.sh
-//   python3 -m http.server 8765 --directory build/web &
+//   node tool/e2e/servidor.mjs &        # con las cabeceras de producción (CSP)
 //   node tool/e2e/historia_offline.mjs
 //
 // Variables: BASE_URL (http://localhost:8765/), OUT_DIR (build/e2e).
@@ -55,6 +55,12 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
     locale: 'es-CO',
     timezoneId: 'America/Bogota',
   });
+  // Lo que bloquee la Content-Security-Policy cuenta como error.
+  await context.addInitScript(() =>
+    document.addEventListener('securitypolicyviolation', (e) =>
+      console.error(`CSP: ${e.violatedDirective} bloqueó ${e.blockedURI} (${e.sourceFile}:${e.lineNumber})`),
+    ),
+  );
   if (initScript) await context.addInitScript(initScript);
   context.on('request', (r) => {
     const u = r.url();

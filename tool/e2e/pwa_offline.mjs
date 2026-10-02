@@ -19,9 +19,10 @@
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import http from 'node:http';
 import path from 'node:path';
 import { chromium } from 'playwright';
+
+import { crearServidor } from './servidor.mjs';
 
 const SITIO = path.resolve(process.env.SITIO ?? 'build/web');
 const OUT = path.resolve(process.env.OUT_DIR ?? 'build/e2e');
@@ -31,41 +32,10 @@ if (!fs.existsSync(path.join(SITIO, 'sw.js'))) {
   process.exit(1);
 }
 
-// ─────────────── Servidor estático con "versiones" ───────────────
-const tipos = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.json': 'application/json',
-  '.wasm': 'application/wasm',
-  '.png': 'image/png',
-  '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-  '.woff2': 'font/woff2',
-  '.txt': 'text/plain; charset=utf-8',
-};
-/** Ruta → contenido que reemplaza al del disco (la "versión nueva"). */
-let reemplazos = {};
-const servidos = [];
-const servidor = http.createServer((pedido, respuesta) => {
-  let ruta = decodeURIComponent(new URL(pedido.url, 'http://x').pathname).replace(/^\/+/, '');
-  if (ruta === '' || ruta.endsWith('/')) ruta += 'index.html';
-  servidos.push(ruta);
-  const archivo = path.join(SITIO, ruta);
-  const cuerpo = reemplazos[ruta] ?? (archivo.startsWith(SITIO) && fs.existsSync(archivo) && fs.statSync(archivo).isFile() ? fs.readFileSync(archivo) : null);
-  if (cuerpo === null) {
-    respuesta.writeHead(404).end();
-    return;
-  }
-  respuesta.writeHead(200, {
-    'Content-Type': tipos[path.extname(ruta)] ?? 'application/octet-stream',
-    'Cache-Control': ruta === 'sw.js' ? 'no-cache' : 'max-age=3600',
-  });
-  respuesta.end(cuerpo);
-});
-await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
-// localhost cuenta como sitio seguro: el service worker funciona sin HTTPS.
-const BASE = `http://localhost:${servidor.address().port}/`;
+// ─────────────── Servidor con "versiones" ───────────────
+const servidor = await crearServidor({ sitio: SITIO });
+const { base: BASE, estado: sitio } = servidor;
+const servidos = sitio.servidos;
 
 const swOriginal = fs.readFileSync(path.join(SITIO, 'sw.js'), 'utf8');
 const archivosDe = (sw) => JSON.parse(sw.match(/const ARCHIVOS = (\{[\s\S]*?\});/)[1]);
@@ -150,6 +120,10 @@ const context = await browser.newContext({
 await context.addInitScript(() => {
   delete window.showOpenFilePicker;
   delete window.showSaveFilePicker;
+  // Lo que bloquee la Content-Security-Policy cuenta como error.
+  document.addEventListener('securitypolicyviolation', (e) =>
+    console.error(`CSP: ${e.violatedDirective} bloqueó ${e.blockedURI} (${e.sourceFile}:${e.lineNumber})`),
+  );
 });
 context.on('request', (r) => {
   const u = r.url();
@@ -264,7 +238,7 @@ await page.waitForTimeout(1200); // autoguardado del borrador
 // ─────────────── 3. Versión nueva ───────────────
 await context.setOffline(false);
 const notices = Buffer.concat([fs.readFileSync(path.join(SITIO, 'assets/NOTICES')), Buffer.from('\nversión de prueba\n')]);
-reemplazos = {
+sitio.reemplazos = {
   'sw.js': versionNueva('prueba00002', 'assets/NOTICES', notices),
   'assets/NOTICES': notices,
 };
@@ -288,8 +262,8 @@ if (version !== 'hc-app-prueba00002') throw new Error(`Versión en uso: ${versio
 paso('"Actualizar" recarga con la versión nueva y conserva lo escrito');
 
 // ─────────────── 4. Archivo que no coincide con su huella ───────────────
-reemplazos = {
-  ...reemplazos,
+sitio.reemplazos = {
+  ...sitio.reemplazos,
   'sw.js': versionNueva('prueba00003', 'index.html', 'no importa', { huellaFalsa: true }),
 };
 const estado = await page.evaluate(async () => {
@@ -308,7 +282,7 @@ await esperarApp(page);
 paso('Un archivo que no coincide con su huella hace rechazar la versión; la instalada sigue funcionando sin conexión');
 
 await browser.close();
-servidor.close();
+servidor.cerrar();
 informe.externas = [...new Set(informe.externas)];
 fs.writeFileSync(path.join(OUT, 'informe_pwa.json'), JSON.stringify(informe, null, 2));
 console.log('\nPeticiones fuera del sitio:', informe.externas.length ? informe.externas : 'ninguna');

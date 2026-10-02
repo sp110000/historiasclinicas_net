@@ -1,6 +1,6 @@
 # Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **Fase 3 completada** (ver [FASE3.md](FASE3.md), [FASE2.md](FASE2.md) y [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 4** (PDF final, PWA sin conexión y despliegue).
+> Estado: **las cuatro fases están completadas** (ver [FASE4.md](FASE4.md), [FASE3.md](FASE3.md), [FASE2.md](FASE2.md) y [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Para publicar: [DESPLIEGUE.md](DESPLIEGUE.md).
 > Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
 
 ---
@@ -26,7 +26,7 @@
 | 14 | Alergias | Coincidencias de texto y grupos; el aviso no bloquea |
 | 15 | Medicamentos frecuentes | **Lista vacía al inicio**, pero preparada para crecer: agregar, importar y exportar JSON, y en el futuro cargar un catálogo |
 | 16 | Numeración de recetas | Sí, `R-000001`, activable |
-| 17 | CIE-10 | Sí, opcional, con carga diferida |
+| 17 | CIE-10 | Sí, con carga diferida. **Incluido:** la tabla de referencia de SISPRO completa, que enviaste, para Colombia y España. Se puede importar otra versión |
 | 18–22 | Resto | Por defecto: un perfil de médico, guía de despliegue para varios proveedores, borrador que se borra al guardar, solo plataforma web |
 
 ### Perfiles por país
@@ -477,11 +477,11 @@ Cada fase termina con `flutter analyze` sin advertencias, `flutter test` en verd
 - "Volver a la historia" conserva todo lo escrito. CIE-10 opcional.
 - **Tests:** numeración tras agregar, eliminar y reordenar; número a letras; alertas (tildes, grupos); precarga.
 
-> **Ajustes (Fase 3):** solo el formato A5 vertical, según tu respuesta 10. La vista previa usa pdf.js servido por el propio sitio. La lista de medicamentos empieza vacía y se puede exportar e importar (respuesta 15). El catálogo CIE-10 no viene con la app: se importa una vez desde la fuente oficial de cada país, porque desde aquí no se pudo acceder a esas fuentes ni verificar sus términos de uso.
+> **Ajustes (Fase 3):** solo el formato A5 vertical, según tu respuesta 10. La vista previa usa pdf.js servido por el propio sitio. La lista de medicamentos empieza vacía y se puede exportar e importar (respuesta 15). El catálogo CIE-10 no venía con la app en la Fase 3; desde la Fase 4 incluye la tabla de referencia de SISPRO que enviaste.
 
 > **Ajuste (Fase 1):** la reapertura con verificación de la cadena y el modo "historia abierta" se adelantaron a la Fase 1. La Fase 4 conserva el diseño final del PDF, la PWA sin conexión y el despliegue.
 
-### Fase 4: PDF final, reapertura, PWA y despliegue
+### Fase 4: PDF final, reapertura, PWA y despliegue ✅ (ver [FASE4.md](FASE4.md))
 - PDF A4 final de la historia: encabezado, secciones, evoluciones con huella, firma y sello, paginación "Pág. X de Y", apto para blanco y negro.
 - Nombres automáticos de archivo y sufijo de versión.
 - Reapertura completa con verificación de la cadena, modo "historia abierta" y guardado con `showSaveFilePicker` o descarga normal.
