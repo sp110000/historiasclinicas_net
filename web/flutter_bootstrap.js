@@ -14,7 +14,28 @@ const usarServiceWorker =
     (b) => b.compileTarget === 'dart2js' || b.compileTarget === 'dart2wasm',
   );
 
+// Avisos para la app (lib/core/pwa/pwa_web.dart): se escuchan desde el
+// principio y se guardan hasta que la app los pide, para no perder ninguno
+// mientras arranca (en equipos lentos el service worker puede terminar antes).
+const avisosPwa = { pendientes: [], alAvisar: null };
+window.hcAvisosPwa = avisosPwa;
+function avisar(tipo) {
+  if (avisosPwa.alAvisar) avisosPwa.alAvisar(tipo);
+  else avisosPwa.pendientes.push(tipo);
+}
+
 if (usarServiceWorker) {
+  // Si al abrir ya había un service worker, uno nuevo es una versión nueva;
+  // si no, es la primera instalación.
+  const habiaControlador = navigator.serviceWorker.controller !== null;
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.tipo === 'lista' && e.data.completa && !habiaControlador) {
+      avisar('listaSinConexion');
+    }
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (habiaControlador) avisar('versionNueva');
+  });
   navigator.serviceWorker
     .register('sw.js', { updateViaCache: 'none' })
     .catch((e) => console.warn('La app no quedará disponible sin conexión:', e));

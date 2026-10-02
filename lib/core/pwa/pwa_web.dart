@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 
 import 'package:web/web.dart' as web;
 
@@ -8,35 +7,32 @@ import 'aviso_pwa.dart';
 
 export 'aviso_pwa.dart';
 
-/// Avisos del service worker. Los que llegan antes de escuchar se guardan.
+/// Los avisos que recoge web/flutter_bootstrap.js desde que abre la página.
+@JS('hcAvisosPwa')
+external _AvisosPwa? get _avisosPwa;
+
+extension type _AvisosPwa._(JSObject _) implements JSObject {
+  external JSArray<JSString> get pendientes;
+  external set alAvisar(JSFunction? funcion);
+}
+
+/// Avisos del service worker: primero los que llegaron mientras la app
+/// arrancaba, después los nuevos.
 Stream<AvisoPwa> escucharAvisosPwa() {
   final avisos = StreamController<AvisoPwa>();
-  // Sin HTTPS (o en navegadores sin service worker) no hay nada que escuchar.
-  if (!web.window.navigator.has('serviceWorker')) return avisos.stream;
-  final sw = web.window.navigator.serviceWorker;
-  // Si la página ya estaba controlada al abrir, un controlador nuevo es una
-  // versión nueva. Si no, es la primera instalación.
-  final habiaControlador = sw.controller != null;
-  sw
-    ..addEventListener(
-      'message',
-      (web.MessageEvent e) {
-        final datos = e.data.dartify();
-        if (datos is Map &&
-            datos['tipo'] == 'lista' &&
-            datos['completa'] == true &&
-            !habiaControlador) {
-          avisos.add(AvisoPwa.listaSinConexion);
-        }
-      }.toJS,
-    )
-    ..addEventListener(
-      'controllerchange',
-      (web.Event _) {
-        if (habiaControlador) avisos.add(AvisoPwa.versionNueva);
-      }.toJS,
-    )
-    ..startMessages();
+  final js = _avisosPwa;
+  // Con `flutter run` (sin service worker) no hay nada que escuchar.
+  if (js == null) return avisos.stream;
+  void recibir(String tipo) {
+    for (final a in AvisoPwa.values) {
+      if (a.name == tipo) avisos.add(a);
+    }
+  }
+
+  for (final tipo in js.pendientes.toDart) {
+    recibir(tipo.toDart);
+  }
+  js.alAvisar = ((JSString tipo) => recibir(tipo.toDart)).toJS;
   return avisos.stream;
 }
 

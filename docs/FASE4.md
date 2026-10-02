@@ -96,6 +96,7 @@
 2. **La vista previa de la receta usaba `eval`** (dentro del paquete `printing`), que una política de seguridad estricta bloquea. Se reemplazó por un dibujo propio con pdf.js, sin `eval`.
 3. **Imprimir** dependía de un `<script>` en línea del mismo paquete. La CSP lo permite por su huella, y hay una copia de respaldo.
 4. **Los iconos eran los de Flutter:** ahora son propios.
+5. **En equipos lentos se perdía el aviso "ya funciona sin conexión".** La app quedaba guardada igual, pero no lo avisaba. Lo detectó la primera ejecución en GitHub Actions y lo reproduje con la CPU 6 veces más lenta (0 de 3). Si el service worker terminaba antes de que la app arrancara, el aviso se perdía o se tomaba la primera instalación por una actualización. Ahora `flutter_bootstrap.js` recoge los avisos desde que abre la página y se los entrega a la app cuando está lista (3 de 3).
 
 ## Límites que conviene recordar
 - **La primera visita necesita conexión y HTTPS.** El aviso "ya funciona sin conexión" confirma que quedó guardada.
