@@ -14,6 +14,7 @@ import '../../core/pdf/lector_adjunto.dart';
 import '../../core/presentacion/datos_historia.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
+import '../medico/medico_provider.dart';
 import 'estado/archivo_provider.dart';
 import 'estado/borrador_provider.dart';
 import 'estado/estado_historia.dart';
@@ -238,7 +239,10 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
 
   Future<void> _vistaPrevia() async {
     final h = _estado.historia;
-    final bytes = await generarPdfHistoria(datos: h.aMapa(), borrador: true);
+    final bytes = await generarPdfHistoria(
+      datos: _ctrl.datosConMedico(ref.read(medicoProvider)),
+      borrador: true,
+    );
     await Printing.layoutPdf(
       onLayout: (_) async => bytes,
       name:
@@ -256,6 +260,15 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       return;
     }
     if (!mounted) return;
+    final medico = await _comprobarMedico(
+      'La historia se guardará sin tu nombre, registro, firma ni sello.',
+    );
+    if (medico == null || !mounted) return;
+    if (!medico) {
+      // Ya confirmó en el aviso del médico: se guarda sin más preguntas.
+      await _guardar(sobrescribir: false);
+      return;
+    }
     final si = await confirmar(
       context,
       titulo: 'Finalizar y guardar la historia',
@@ -285,7 +298,50 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       await _irA(SeccionHistoria.evoluciones);
       return;
     }
+    final medico = await _comprobarMedico(
+      'Las evoluciones se guardarán sin tu nombre, registro, firma ni sello.',
+    );
+    if (medico == null) return;
     await _guardar(sobrescribir: sobrescribir);
+  }
+
+  /// Si faltan los datos del médico, ofrece configurarlos. Devuelve `true`
+  /// si están configurados, `false` si se decide seguir sin ellos y `null`
+  /// si se cancela (o se va a configurarlos).
+  Future<bool?> _comprobarMedico(String consecuencia) async {
+    if (ref.read(medicoProvider).configurado) return true;
+    final accion = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.badge_outlined, color: ColoresMarca.aviso),
+        title: const Text('Aún no configuraste tus datos de médico'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Text(
+            '$consecuencia Puedes configurarlos ahora (solo una vez) y volver.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'sin'),
+            child: const Text('Guardar sin mis datos'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, 'configurar'),
+            child: const Text('Configurar ahora'),
+          ),
+        ],
+      ),
+    );
+    if (accion == 'configurar' && mounted) {
+      await context.push('/medico');
+      return null;
+    }
+    return accion == 'sin' ? false : null;
   }
 
   /// Pide el destino (antes que nada: el navegador exige que el selector
@@ -305,7 +361,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
     if (destino == null) return;
     setState(() => _ocupado = true);
     try {
-      final datos = _ctrl.prepararGuardado();
+      final datos = _ctrl.prepararGuardado(medico: ref.read(medicoProvider));
       final bytes = await generarPdfHistoria(
         datos: datos.datos,
         revision: datos.revision,
@@ -426,6 +482,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
                         alDescartar: () => _empezarDeCero(preguntar: true),
                       ),
                     const AvisoPrivacidad(),
+                    if (!estado.abierta) const AvisoMedicoSinConfigurar(),
                     if (estado.abierta) AvisoHistoriaAbierta(estado: estado),
                     for (final s in SeccionHistoria.values)
                       Padding(
@@ -491,12 +548,14 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
         icono: iconoSeccion(s),
         bloqueada: true,
         plegada: plegada,
-        resumen: resumenSeccion(s, h),
+        resumen: resumenSeccion(s, h, medico: estado.medicoDeLaHistoria),
         insignia: InsigniaSeccion.soloLectura,
         alAlternar: () => setState(
           () => plegada ? _desplegadas.add(s) : _desplegadas.remove(s),
         ),
-        child: DatosLectura(datosDeSeccion(s, h)),
+        child: DatosLectura(
+          datosDeSeccion(s, h, medico: estado.medicoDeLaHistoria),
+        ),
       );
     }
     final avance = avanceSeccion(s, h);
@@ -847,8 +906,8 @@ class _MenuMas extends ConsumerWidget {
         ],
         MenuItemButton(
           leadingIcon: const Icon(Icons.badge_outlined),
-          onPressed: null,
-          child: const Text('Datos del médico (Fase 2)'),
+          onPressed: () => context.push('/medico'),
+          child: const Text('Datos del médico'),
         ),
         const Divider(),
         MenuItemButton(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -6,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../integridad/cadena_hash.dart';
 import '../models/historia.dart';
 import '../models/mapa.dart';
+import '../models/medico.dart';
 import '../models/secciones.dart';
 import '../presentacion/datos_historia.dart';
 import '../utils/fechas.dart';
@@ -22,8 +24,9 @@ import 'fuentes_pdf.dart';
 ///   historia finalizada.
 /// * Si no, incrusta `historia.json` con [revision].
 ///
-/// Diseño provisional: el encabezado del médico, la firma y el sello llegan
-/// en la Fase 2 y el diseño final en la Fase 4.
+/// Si [datos] trae `medico` (copia del autor) y `recursos`, el encabezado
+/// lleva sus datos y logo, y el bloque de firma su firma y sello. Cada
+/// evolución lleva su propio autor. El diseño final llega en la Fase 4.
 Future<Uint8List> generarPdfHistoria({
   required Map<String, Object?> datos,
   int revision = 0,
@@ -39,6 +42,16 @@ Future<Uint8List> generarPdfHistoria({
   final hashBase = datos['hashBase'] as String?;
   final finalizadaEn = datos.fecha('finalizadaEn');
   final ahora = generadoEn ?? DateTime.now();
+  final medico = datos['medico'] is Map
+      ? Autor.desdeMapa(datos.mapa('medico'))
+      : null;
+  final recursos = datos.mapa('recursos');
+  final imagenes = <String, pw.MemoryImage>{};
+  pw.MemoryImage? imagen(String? hash) {
+    final b64 = hash == null ? null : recursos[hash];
+    if (b64 is! String) return null;
+    return imagenes[hash!] ??= pw.MemoryImage(base64Decode(b64));
+  }
 
   const gris = PdfColor.fromInt(0xFF5A6670);
   const linea = PdfColor.fromInt(0xFFB9C3CA);
@@ -103,6 +116,71 @@ Future<Uint8List> generarPdfHistoria({
     );
   }
 
+  /// Firma y sello (en posición fija) sobre la línea, con nombre y registro.
+  pw.Widget bloqueFirma(Autor? autor, {required double alto}) {
+    final sello = imagen(autor?.sello);
+    final firma = imagen(autor?.firma);
+    final grande = alto >= 50;
+    return pw.Container(
+      width: grande ? 220 : 170,
+      child: pw.Column(
+        children: [
+          pw.SizedBox(
+            height: alto,
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                if (sello != null)
+                  pw.Container(
+                    width: alto * 1.15,
+                    height: alto,
+                    child: pw.Image(sello, fit: pw.BoxFit.contain),
+                  ),
+                if (sello != null && firma != null) pw.SizedBox(width: 4),
+                if (firma != null)
+                  pw.Container(
+                    width: alto * 2.2,
+                    height: alto * 0.82,
+                    child: pw.Image(firma, fit: pw.BoxFit.contain),
+                  ),
+              ],
+            ),
+          ),
+          pw.Container(
+            padding: const pw.EdgeInsets.only(top: 3),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(top: pw.BorderSide(width: 0.7)),
+            ),
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  autor?.nombre ?? 'Firma y sello del médico',
+                  textAlign: pw.TextAlign.center,
+                  style: autor == null
+                      ? estilo(tamano: 8, color: gris)
+                      : pw.TextStyle(
+                          font: f.seminegrita,
+                          fontSize: grande ? 8.5 : 7.5,
+                        ),
+                ),
+                if ((autor?.lineaRegistro ?? '').isNotEmpty)
+                  pw.Text(
+                    autor!.lineaRegistro,
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(
+                      fontSize: grande ? 7.5 : 6.8,
+                      color: gris,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   pw.Widget evolucion(int numero, Evolucion e) {
     final signos = resumenSignos(e.signos);
     return pw.Container(
@@ -144,6 +222,14 @@ Future<Uint8List> generarPdfHistoria({
                 style: estilo(tamano: 8, color: gris, fuente: f.media),
               ),
             ),
+          if (e.autor != null)
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 4),
+                child: bloqueFirma(e.autor, alto: 30),
+              ),
+            ),
         ],
       ),
     );
@@ -152,7 +238,7 @@ Future<Uint8List> generarPdfHistoria({
   final p = historia.paciente;
   final doc = pw.Document(
     title: 'Historia clínica · ${p.nombreCompleto}',
-    author: 'historiasclinicas.net',
+    author: medico?.nombre ?? 'historiasclinicas.net',
     creator: 'historiasclinicas.net',
     theme: f.tema,
   );
@@ -177,54 +263,97 @@ Future<Uint8List> generarPdfHistoria({
               )
             : null,
       ),
-      header: (context) => pw.Container(
-        margin: const pw.EdgeInsets.only(bottom: 8),
-        padding: const pw.EdgeInsets.only(bottom: 6),
-        decoration: const pw.BoxDecoration(
-          border: pw.Border(bottom: pw.BorderSide(width: 1.1)),
-        ),
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
+      header: (context) {
+        final paciente = [
+          p.nombreCompleto,
+          if (p.numeroDocumento.isNotEmpty)
+            '${p.tipoDocumento} ${p.numeroDocumento}',
+        ].join(' · ');
+        final logo = imagen(medico?.logo);
+        final datosHistoria = pw.Column(
+          crossAxisAlignment: medico == null
+              ? pw.CrossAxisAlignment.start
+              : pw.CrossAxisAlignment.end,
           children: [
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'HISTORIA CLÍNICA',
-                    style: pw.TextStyle(font: f.negrita, fontSize: 14),
-                  ),
-                  pw.Text(
-                    [
-                      p.nombreCompleto,
-                      if (p.numeroDocumento.isNotEmpty)
-                        '${p.tipoDocumento} ${p.numeroDocumento}',
-                    ].join(' · '),
-                    style: pw.TextStyle(
-                      font: f.media,
-                      fontSize: 9,
-                      color: gris,
-                    ),
-                  ),
-                ],
+            pw.Text(
+              'HISTORIA CLÍNICA',
+              style: pw.TextStyle(
+                font: f.negrita,
+                fontSize: medico == null ? 14 : 11.5,
               ),
             ),
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Text(
-                  'Atención: ${formatoFechaHora(historia.fechaAtencion)}',
-                  style: pw.TextStyle(fontSize: 8, color: gris),
-                ),
-                pw.Text(
-                  'Pág. ${context.pageNumber} de ${context.pagesCount}',
-                  style: pw.TextStyle(fontSize: 8, color: gris),
-                ),
-              ],
+            pw.Text(
+              paciente,
+              style: pw.TextStyle(font: f.media, fontSize: 8.5, color: gris),
+            ),
+            pw.Text(
+              'Atención: ${formatoFechaHora(historia.fechaAtencion)} · '
+              'Pág. ${context.pageNumber} de ${context.pagesCount}',
+              style: pw.TextStyle(fontSize: 7.5, color: gris),
             ),
           ],
-        ),
-      ),
+        );
+        return pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 8),
+          padding: const pw.EdgeInsets.only(bottom: 6),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(bottom: pw.BorderSide(width: 1.1)),
+          ),
+          child: medico == null
+              ? pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [pw.Expanded(child: datosHistoria)],
+                )
+              : pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    if (logo != null) ...[
+                      pw.Container(
+                        height: 40,
+                        constraints: const pw.BoxConstraints(maxWidth: 110),
+                        child: pw.Image(logo, fit: pw.BoxFit.contain),
+                      ),
+                      pw.SizedBox(width: 10),
+                    ],
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            medico.nombre,
+                            style: pw.TextStyle(font: f.negrita, fontSize: 11),
+                          ),
+                          pw.Text(
+                            [
+                              medico.especialidad,
+                              medico.lineaRegistro,
+                            ].where((t) => t.isNotEmpty).join(' · '),
+                            style: pw.TextStyle(
+                              font: f.media,
+                              fontSize: 8,
+                              color: gris,
+                            ),
+                          ),
+                          pw.Text(
+                            [
+                              medico.consultorio,
+                              medico.direccion,
+                              medico.ciudad,
+                              if (medico.telefono.isNotEmpty)
+                                'Tel. ${medico.telefono}',
+                              medico.correo,
+                            ].where((t) => t.isNotEmpty).join(' · '),
+                            style: pw.TextStyle(fontSize: 7.5, color: gris),
+                          ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 10),
+                    datosHistoria,
+                  ],
+                ),
+        );
+      },
       footer: (context) => pw.Container(
         margin: const pw.EdgeInsets.only(top: 6),
         padding: const pw.EdgeInsets.only(top: 4),
@@ -246,41 +375,39 @@ Future<Uint8List> generarPdfHistoria({
         for (final s in SeccionHistoria.values.where(
           (s) => s != SeccionHistoria.firma && s != SeccionHistoria.evoluciones,
         )) ...[cabeceraSeccion(s), datosSeccion(datosDeSeccion(s, historia))],
-        cabeceraSeccion(SeccionHistoria.firma),
-        pw.SizedBox(height: 18),
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+        // Título y firma juntos: el título no queda solo al final de una
+        // página (Inseparable impide partir el bloque).
+        pw.Inseparable(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              cabeceraSeccion(SeccionHistoria.firma),
+              pw.SizedBox(height: 18),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  if (finalizadaEn != null)
-                    pw.Text(
-                      'Historia finalizada el ${formatoFechaHora(finalizadaEn)}',
-                      style: estilo(tamano: 8, color: gris),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        if (finalizadaEn != null)
+                          pw.Text(
+                            'Historia finalizada el ${formatoFechaHora(finalizadaEn)}',
+                            style: estilo(tamano: 8, color: gris),
+                          ),
+                        if (hashBase != null)
+                          pw.Text(
+                            'Huella de la historia: ${huella(hashBase)}',
+                            style: estilo(tamano: 8, color: gris),
+                          ),
+                      ],
                     ),
-                  if (hashBase != null)
-                    pw.Text(
-                      'Huella de la historia: ${huella(hashBase)}',
-                      style: estilo(tamano: 8, color: gris),
-                    ),
+                  ),
+                  bloqueFirma(medico, alto: 62),
                 ],
               ),
-            ),
-            pw.Container(
-              width: 190,
-              padding: const pw.EdgeInsets.only(top: 4),
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(top: pw.BorderSide(width: 0.7)),
-              ),
-              child: pw.Text(
-                'Firma y sello del médico',
-                textAlign: pw.TextAlign.center,
-                style: estilo(tamano: 8, color: gris),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         cabeceraSeccion(SeccionHistoria.evoluciones),
         if (evoluciones.isEmpty)

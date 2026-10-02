@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/clinica/rangos.dart';
 import '../../../core/models/historia.dart';
+import '../../../core/models/medico.dart';
+import '../../../core/pais/perfil_pais.dart';
 import '../../../core/presentacion/datos_historia.dart';
 import '../../../core/widgets/campos.dart';
+import '../../medico/medico_provider.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
 
@@ -618,30 +622,58 @@ class FormularioFirma extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final f = ref.watch(historiaProvider.select((e) => e.historia.firma));
+    final pais = ref.watch(historiaProvider.select((e) => e.historia.pais));
+    final m = ref.watch(medicoProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: ColoresMarca.primario.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.badge_outlined, color: ColoresMarca.primario),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Tus datos (nombre, especialidad, registro), tu firma y tu sello '
-                  'se configuran una sola vez en "Datos del médico" (Fase 2) y '
-                  'se colocan aquí al imprimir.',
-                ),
+        if (m.configurado)
+          _ResumenMedico(
+            medico: m,
+            pais: pais,
+            conFirma: f.incluirFirma,
+            conSello: f.incluirSello,
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: ColoresMarca.aviso.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: ColoresMarca.aviso.withValues(alpha: 0.35),
               ),
-            ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.badge_outlined, color: ColoresMarca.aviso),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Aún no configuras tus datos de médico',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Sin ellos, la historia se imprime sin tu nombre, '
+                        'registro, firma ni sello. Se configuran una sola vez.',
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: () => context.push('/medico'),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Configurar ahora'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         FilaCampos(
           children: [
@@ -649,6 +681,9 @@ class FormularioFirma extends ConsumerWidget {
               value: f.incluirFirma,
               contentPadding: EdgeInsets.zero,
               title: const Text('Incluir firma'),
+              subtitle: m.configurado && m.firma == null
+                  ? const Text('No has cargado tu firma')
+                  : null,
               onChanged: (v) => ref.editar(
                 (h) => h.copyWith(firma: h.firma.copyWith(incluirFirma: v)),
               ),
@@ -657,6 +692,9 @@ class FormularioFirma extends ConsumerWidget {
               value: f.incluirSello,
               contentPadding: EdgeInsets.zero,
               title: const Text('Incluir sello'),
+              subtitle: m.configurado && m.sello == null
+                  ? const Text('No has cargado tu sello')
+                  : null,
               onChanged: (v) => ref.editar(
                 (h) => h.copyWith(firma: h.firma.copyWith(incluirSello: v)),
               ),
@@ -669,6 +707,116 @@ class FormularioFirma extends ConsumerWidget {
           style: TextStyle(fontSize: 12.5, color: ColoresMarca.textoSuave),
         ),
       ],
+    );
+  }
+}
+
+/// Cómo quedará el bloque de firma, con los datos del médico configurado.
+class _ResumenMedico extends StatelessWidget {
+  const _ResumenMedico({
+    required this.medico,
+    required this.pais,
+    required this.conFirma,
+    required this.conSello,
+  });
+
+  final Medico medico;
+  final Pais pais;
+  final bool conFirma;
+  final bool conSello;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = medico;
+    final firma = conFirma ? m.firma : null;
+    final sello = conSello ? m.sello : null;
+    const suave = TextStyle(fontSize: 13, color: ColoresMarca.textoSuave);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColoresMarca.borde),
+      ),
+      child: Wrap(
+        spacing: 20,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          SizedBox(
+            width: 240,
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 58,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (sello != null)
+                        Flexible(
+                          child: SizedBox(
+                            width: 64,
+                            height: 58,
+                            child: Image.memory(
+                              sello,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                            ),
+                          ),
+                        ),
+                      if (firma != null)
+                        Flexible(
+                          flex: 2,
+                          child: SizedBox(
+                            width: 150,
+                            height: 46,
+                            child: Image.memory(
+                              firma,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                            ),
+                          ),
+                        ),
+                      if (firma == null && sello == null)
+                        const Flexible(
+                          child: Text(
+                            '(sin firma ni sello)',
+                            style: suave,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 8, color: Colors.black87),
+                Text(
+                  m.nombre.trim(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  '${etiquetaRegistro(pais)} ${m.registro.trim()}',
+                  textAlign: TextAlign.center,
+                  style: suave,
+                ),
+                if (m.especialidad.trim().isNotEmpty)
+                  Text(
+                    m.especialidad.trim(),
+                    textAlign: TextAlign.center,
+                    style: suave,
+                  ),
+              ],
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/medico'),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Editar datos del médico'),
+          ),
+        ],
+      ),
     );
   }
 }

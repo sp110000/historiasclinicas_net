@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/tema.dart';
 import '../../core/presentacion/datos_historia.dart';
+import '../../core/models/medico.dart';
 import '../historia/estado/historia_controller.dart';
+import '../medico/medico_provider.dart';
 
 /// Receta de media hoja (Fase 3). Por ahora muestra los datos que se
 /// precargarán desde la historia y comprueba que volver conserva lo escrito.
@@ -15,7 +17,14 @@ class RecetaPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final h = ref.watch(historiaProvider.select((e) => e.historia));
     final p = h.paciente;
+    final m = ref.watch(medicoProvider);
     final datos = <(String, String)>[
+      (
+        'Médico',
+        m.configurado
+            ? '${m.nombre.trim()} · ${etiquetaRegistro(h.pais)} ${m.registro.trim()}'
+            : 'Sin configurar (Datos del médico)',
+      ),
       ('Paciente', p.nombreCompleto),
       (
         'Documento',

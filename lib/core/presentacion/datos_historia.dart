@@ -5,6 +5,7 @@ library;
 import '../clinica/gestacion.dart';
 import '../clinica/imc.dart';
 import '../models/historia.dart';
+import '../models/medico.dart';
 import '../models/secciones.dart';
 import '../pais/perfil_pais.dart';
 import '../utils/fechas.dart';
@@ -88,7 +89,13 @@ String tituloSeccion(SeccionHistoria s, PerfilPais perfil) =>
     s == SeccionHistoria.signos ? perfil.etiquetaSignosVitales : s.titulo;
 
 /// Datos de la sección [s] para mostrar o imprimir; omite lo vacío.
-List<DatoMostrado> datosDeSeccion(SeccionHistoria s, HistoriaClinica h) {
+///
+/// [medico] es la copia de los datos del médico guardada en la historia.
+List<DatoMostrado> datosDeSeccion(
+  SeccionHistoria s,
+  HistoriaClinica h, {
+  Autor? medico,
+}) {
   final perfil = h.perfil;
   final datos = <DatoMostrado>[];
   void dato(
@@ -232,6 +239,11 @@ List<DatoMostrado> datosDeSeccion(SeccionHistoria s, HistoriaClinica h) {
         p.proximoControl == null ? '' : formatoFecha(p.proximoControl!),
       );
     case SeccionHistoria.firma:
+      if (medico != null) {
+        dato('Médico', medico.nombre);
+        dato(medico.etiquetaRegistro, medico.registro);
+        dato('Especialidad', medico.especialidad);
+      }
       dato('Firma', h.firma.incluirFirma ? 'Se incluye' : 'No se incluye');
       dato('Sello', h.firma.incluirSello ? 'Se incluye' : 'No se incluye');
     case SeccionHistoria.evoluciones:
@@ -241,7 +253,7 @@ List<DatoMostrado> datosDeSeccion(SeccionHistoria s, HistoriaClinica h) {
 }
 
 /// Una línea para la sección plegada en modo "historia abierta".
-String resumenSeccion(SeccionHistoria s, HistoriaClinica h) {
+String resumenSeccion(SeccionHistoria s, HistoriaClinica h, {Autor? medico}) {
   String corta(String t) {
     final una = t.trim().replaceAll(RegExp(r'\s+'), ' ');
     return una.length > 110 ? '${una.substring(0, 110)}…' : una;
@@ -276,7 +288,7 @@ String resumenSeccion(SeccionHistoria s, HistoriaClinica h) {
           : h.plan.indicaciones,
     ),
     SeccionHistoria.firma =>
-      'Firma ${h.firma.incluirFirma ? 'sí' : 'no'} · Sello ${h.firma.incluirSello ? 'sí' : 'no'}',
+      '${medico == null ? '' : '${medico.nombre} · '}Firma ${h.firma.incluirFirma ? 'sí' : 'no'} · Sello ${h.firma.incluirSello ? 'sí' : 'no'}',
     SeccionHistoria.evoluciones => '',
   };
 }

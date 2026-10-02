@@ -6,13 +6,15 @@
 //   node tool/e2e/historia_offline.mjs
 //
 // Variables: BASE_URL (http://localhost:8765/), OUT_DIR (build/e2e).
-// Opcional: python3 + pikepdf para el caso "PDF alterado".
+// Opcional: python3 + pikepdf para el caso "PDF alterado" y para inspeccionar
+// lo que guarda cada PDF (médico, autores e imágenes).
 //
 // Recorre, SIN CONEXIÓN: validación, llenado completo (edad e IMC
-// calculados), finalizar y guardar el PDF, ir a la receta y volver, agregar
-// una evolución, descargar la v2, reabrirla, detectar un PDF alterado y
-// rechazar un PDF ajeno. Con conexión: recuperación del borrador al recargar.
-// Falla si hay peticiones fuera del sitio.
+// calculados), ir a la receta y volver, configurar los datos del médico
+// (firma dibujada con el ratón, sello y logo subidos), finalizar y guardar
+// el PDF, agregar una evolución, descargar la v2, reabrirla, detectar un PDF
+// alterado y rechazar un PDF ajeno. Con conexión: recuperación del borrador
+// al recargar. Falla si hay peticiones fuera del sitio.
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -99,13 +101,21 @@ const comienzo = (t) => new RegExp('^' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'
 const campo = (page, etiqueta) => page.getByRole('textbox', { name: comienzo(etiqueta) }).first();
 
 // Flutter necesita un fotograma para enfocar el campo nuevo: se espera un
-// instante tras el clic (una persona nunca escribe en 0 ms).
+// instante tras el clic (una persona nunca escribe en 0 ms). Si el campo
+// estaba fuera de la pantalla, el desplazamiento puede robar ese fotograma:
+// se comprueba lo escrito y se reintenta con más calma.
 async function escribir(page, etiqueta, valor) {
   const c = campo(page, etiqueta);
-  await c.click();
-  await page.waitForTimeout(150);
-  await c.fill(valor);
-  await page.waitForTimeout(100);
+  for (let intento = 0; intento < 3; intento++) {
+    await c.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150 + intento * 300);
+    await c.click();
+    await page.waitForTimeout(150 + intento * 300);
+    await c.fill(valor);
+    await page.waitForTimeout(100);
+    if ((await page.evaluate(() => document.activeElement?.value)) === valor) return;
+  }
+  throw new Error(`No se pudo escribir "${valor}" en "${etiqueta}"`);
 }
 
 // Para campos con máscara (fechas): se teclea como lo haría una persona.
@@ -141,6 +151,62 @@ async function abrirArchivo(page, ruta) {
   const [selector] = await Promise.all([
     page.waitForEvent('filechooser'),
     boton(page, 'Abrir historia existente').click(),
+  ]);
+  await selector.setFiles(ruta);
+}
+
+// Resumen del PDF con pikepdf (null si no está disponible).
+function inspeccionar(ruta) {
+  try {
+    const salida = execFileSync('python3', [path.join(AQUI, 'inspeccionar_pdf.py'), ruta], { stdio: 'pipe' });
+    return JSON.parse(salida.toString());
+  } catch (e) {
+    if (String(e.stderr ?? '').includes('pikepdf')) {
+      console.log('  (sin python3/pikepdf: no se inspecciona el PDF)');
+      return null;
+    }
+    throw e;
+  }
+}
+
+// El lienzo de la firma: su nodo semántico tiene el tamaño del área.
+async function areaDeFirma(page) {
+  const nodo = page
+    .locator('flt-semantics[aria-label="Área para dibujar la firma"]')
+    .or(page.locator('flt-semantics:has(> span:text-is("Área para dibujar la firma"))'))
+    .first();
+  await nodo.waitFor({ state: 'attached' });
+  const caja = await nodo.boundingBox();
+  if (!caja || caja.width < 100) throw new Error(`Área de firma no encontrada: ${JSON.stringify(caja)}`);
+  return caja;
+}
+
+// Una firma con bucles y una rúbrica, trazada como lo haría una persona.
+async function dibujarFirma(page, caja) {
+  const p = (fx, fy) => [caja.x + caja.width * fx, caja.y + caja.height * fy];
+  const trazo = async (puntos) => {
+    await page.mouse.move(...p(...puntos[0]));
+    await page.mouse.down();
+    for (const pt of puntos.slice(1)) await page.mouse.move(...p(...pt), { steps: 2 });
+    await page.mouse.up();
+  };
+  const curva = [];
+  for (let i = 0; i <= 90; i++) {
+    const t = i / 90;
+    curva.push([
+      0.12 + 0.62 * t + 0.035 * Math.sin(2 * Math.PI * 5 * t),
+      0.5 - 0.2 * Math.sin(2 * Math.PI * 2.5 * t + 0.5) * (1 - 0.35 * t) - 0.06 * Math.cos(2 * Math.PI * 5 * t),
+    ]);
+  }
+  await trazo(curva);
+  await trazo([[0.14, 0.8], [0.35, 0.76], [0.6, 0.74], [0.84, 0.7]]);
+  await trazo([[0.78, 0.3], [0.8, 0.38]]);
+}
+
+async function subirImagen(page, ruta) {
+  const [selector] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    boton(page, 'Subir imagen').click(),
   ]);
   await selector.setFiles(ruta);
 }
@@ -220,7 +286,49 @@ let v2;
   await texto(page, '24,6 kg/m² · Normal').waitFor();
   paso('Receta: precarga paciente y diagnóstico; al volver se conserva todo');
 
-  // Finalizar y guardar.
+  // Al finalizar sin datos del médico, la app ofrece configurarlos.
+  await texto(page, 'Configura tus datos de médico').waitFor();
+  await boton(page, 'Imprimir / Guardar PDF').click();
+  await page.getByText('Finalizar y guardar PDF', { exact: true }).first().click();
+  await texto(page, 'Aún no configuraste tus datos de médico').waitFor();
+  await page.getByRole('button', { name: 'Configurar ahora' }).last().click();
+  await texto(page, 'Datos profesionales').waitFor();
+  await escribir(page, 'Nombre completo *', 'Dra. Ana Pérez Gómez');
+  await escribir(page, 'Especialidad', 'Medicina interna');
+  await escribir(page, 'Registro profesional *', 'RM 54321');
+  await escribir(page, 'Nombre del consultorio o institución', 'Consultorio Salud Plena');
+  await escribir(page, 'Dirección', 'Cra. 15 # 93-60, cons. 402');
+  await escribir(page, 'Ciudad', 'Bogotá');
+  await escribir(page, 'Teléfono', '601 555 0101');
+  await texto(page, 'Guardado en este navegador').waitFor();
+
+  // Firma dibujada con el ratón.
+  await boton(page, 'Dibujar firma').click();
+  await texto(page, 'Dibuja tu firma').waitFor();
+  await page.waitForTimeout(400);
+  const caja = await areaDeFirma(page);
+  await dibujarFirma(page, caja);
+  await captura(page, 'm1_firma_dibujada.png');
+  await page.getByRole('button', { name: 'Usar esta firma' }).click();
+  await boton(page, 'Dibujar de nuevo').waitFor();
+
+  // Sello fotografiado sobre papel gris (se le quita el fondo) y logo.
+  await subirImagen(page, path.join(AQUI, 'fixtures', 'sello_foto.jpg'));
+  await page.getByRole('button', { name: 'Reemplazar con imagen' }).nth(1).waitFor();
+  await subirImagen(page, path.join(AQUI, 'fixtures', 'logo.png'));
+  await page.getByRole('button', { name: 'Reemplazar con imagen' }).nth(2).waitFor();
+  await captura(page, 'm2_datos_medico.png');
+  await page.mouse.move(700, 600);
+  await page.mouse.wheel(0, 5000);
+  await captura(page, 'm3_vista_previa_medico.png');
+  paso('Datos del médico: firma dibujada, sello sin fondo y logo, sin conexión');
+
+  await page.getByRole('button', { name: 'Volver a la historia' }).first().click();
+  await boton(page, 'Editar datos del médico').waitFor({ state: 'attached' });
+  await irASeccion(page, 'Firma y sello');
+  await captura(page, 'm4_firma_en_historia.png');
+
+  // Finalizar y guardar (ya no pregunta por el médico).
   await boton(page, 'Imprimir / Guardar PDF').click();
   await page.getByText('Finalizar y guardar PDF', { exact: true }).first().click();
   await texto(page, 'Finalizar y guardar la historia').waitFor();
@@ -230,6 +338,24 @@ let v2;
   await texto(page, 'Historia abierta · ').waitFor();
   await texto(page, 'Integridad verificada').waitFor();
   paso(`Historia finalizada y sellada sin conexión → ${path.basename(v1)}`);
+  const i1 = inspeccionar(v1);
+  if (i1) {
+    if (i1.medico?.nombre !== 'Dra. Ana Pérez Gómez' || i1.medico?.registro !== 'RM 54321') {
+      throw new Error(`Médico no guardado en historia.json: ${JSON.stringify(i1.medico)}`);
+    }
+    if (i1.recursos !== 3 || !i1.recursosCorrectos) throw new Error(`Recursos: ${JSON.stringify(i1)}`);
+    const sv = i1.signos ?? {};
+    if (sv.paSistolica !== 118 || sv.paDiastolica !== 76 || sv.peso !== 64.5) {
+      throw new Error(`Signos vitales guardados: ${JSON.stringify(sv)}`);
+    }
+    // Logo en el encabezado de cada página; firma y sello al final. Cada
+    // imagen se guarda una sola vez aunque se dibuje en varias páginas.
+    const pags = i1.imagenesPorPagina;
+    if (pags.some((n) => n < 1) || pags.at(-1) < 3 || i1.imagenesUnicas !== 3) {
+      throw new Error(`Imágenes por página ${pags}, únicas ${i1.imagenesUnicas}`);
+    }
+    paso(`PDF v1: signos, médico, firma, sello y logo (${pags.length} págs., 3 imágenes sin repetir)`);
+  }
   await page.mouse.wheel(0, -5000);
   await captura(page, '05_historia_abierta.png');
 
@@ -243,6 +369,17 @@ let v2;
   );
   await texto(page, 'Integridad verificada (2 sellos encadenados)').waitFor();
   paso(`Evolución sellada y v2 descargada → ${path.basename(v2)}`);
+  const i2 = inspeccionar(v2);
+  if (i2) {
+    const autor = i2.autores[0];
+    if (autor?.nombre !== 'Dra. Ana Pérez Gómez' || !autor.firma || !autor.sello || autor.logo) {
+      throw new Error(`Autor de la evolución: ${JSON.stringify(autor)}`);
+    }
+    if (i2.recursos !== 3 || i2.imagenesUnicas !== 3) {
+      throw new Error(`Las imágenes se duplicaron: ${i2.recursos} / ${i2.imagenesUnicas}`);
+    }
+    paso('PDF v2: la evolución lleva su autor con firma y sello, sin duplicar imágenes');
+  }
 
   // Reabrir v2 desde cero.
   await boton(page, 'Cerrar historia').click();
@@ -251,6 +388,10 @@ let v2;
   await texto(page, 'Integridad verificada (2 sellos encadenados)').waitFor();
   paso('v2 reabierta: evolución sellada e integridad verificada');
   await captura(page, '07_v2_reabierta.png');
+  await irASeccion(page, 'Evoluciones');
+  await texto(page, 'Dra. Ana Pérez Gómez · Registro profesional RM 54321').waitFor();
+  paso('v2 reabierta: cada evolución muestra quién la firmó');
+  await captura(page, 'm5_evolucion_con_autor.png');
 
   // PDF alterado fuera de la app (requiere pikepdf).
   const alterado = path.join(OUT, 'Historia_alterada.pdf');

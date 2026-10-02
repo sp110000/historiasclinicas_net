@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/integridad/cadena_hash.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/models/mapa.dart';
+import '../../../core/models/medico.dart';
 import '../../../core/pais/pais_provider.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/utils/ids.dart';
@@ -97,20 +98,55 @@ class HistoriaController extends Notifier<EstadoHistoria> {
     );
   }
 
+  /// Historia inicial con la copia del médico y sus imágenes, sin sellar.
+  /// Sirve para finalizar y para la vista previa del borrador.
+  Map<String, Object?> datosConMedico(Medico medico, {DateTime? finalizadaEn}) {
+    final h = state.historia;
+    final copia = instantaneaMedico(
+      medico,
+      pais: h.pais,
+      firma: h.firma.incluirFirma,
+      sello: h.firma.incluirSello,
+    );
+    return {
+      ...h.aMapa(),
+      if (finalizadaEn != null) 'finalizadaEn': fechaHoraIso(finalizadaEn),
+      if (medico.configurado) 'medico': copia.autor,
+      if (medico.configurado && copia.recursos.isNotEmpty)
+        'recursos': copia.recursos,
+    };
+  }
+
   /// Datos sellados para el próximo guardado: la historia inicial (si es
-  /// nueva) o las evoluciones nuevas encadenadas al final.
-  DatosParaGuardar prepararGuardado({DateTime? ahora}) {
+  /// nueva) o las evoluciones nuevas encadenadas al final. Cada parte lleva
+  /// una copia de [medico] (su autor) con sus imágenes en `recursos`.
+  DatosParaGuardar prepararGuardado({
+    Medico medico = const Medico(),
+    DateTime? ahora,
+  }) {
     if (!state.abierta) {
-      final base = {
-        ...state.historia.aMapa(),
-        'finalizadaEn': fechaHoraIso(ahora ?? DateTime.now()),
-      };
-      return DatosParaGuardar(sellarBase(base), 1);
+      return DatosParaGuardar(
+        sellarBase(
+          datosConMedico(medico, finalizadaEn: ahora ?? DateTime.now()),
+        ),
+        1,
+      );
+    }
+    final recursos = <String, String>{};
+    final nuevas = <Map<String, Object?>>[];
+    for (final e in state.evolucionesNuevas) {
+      final copia = instantaneaMedico(
+        medico,
+        pais: state.historia.pais,
+        logo: false,
+        firma: e.incluirFirma,
+        sello: e.incluirSello,
+      );
+      if (medico.configurado) recursos.addAll(copia.recursos);
+      nuevas.add({...e.aMapa(), if (medico.configurado) 'autor': copia.autor});
     }
     return DatosParaGuardar(
-      sellarEvoluciones(state.datosSellados!, [
-        for (final e in state.evolucionesNuevas) e.aMapa(),
-      ]),
+      sellarEvoluciones(state.datosSellados!, nuevas, recursos: recursos),
       state.revision + 1,
     );
   }

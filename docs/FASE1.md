@@ -2,6 +2,8 @@
 
 **Estado: completada.** Entorno: Flutter 3.38.10 y Dart 3.10.9. Librería de PDF: opción **A** (`pdf` + lector propio).
 
+> Después de esta fase se añadieron "Revisión de síntomas por sistemas", "Análisis" y el tipo "Interconsulta": la historia tiene ahora 11 secciones. Ver [FASE2.md](FASE2.md).
+
 ## Qué incluye
 
 ### Pantalla de historia clínica (`/`)

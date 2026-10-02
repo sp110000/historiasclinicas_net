@@ -1,6 +1,6 @@
 # Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **Fase 1 completada** (ver [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 2** (datos del médico, firma y sello).
+> Estado: **Fase 2 completada** (ver [FASE2.md](FASE2.md) y [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 3** (receta de media hoja).
 > Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
 
 ---
@@ -111,7 +111,7 @@ Convenciones: `*` = obligatorio, `auto` = lo calcula o llena la app, `VERIFICAR`
 | Campo | Tipo | Notas |
 |---|---|---|
 | Fecha y hora de la atención* | fecha y hora | auto (ahora), editable mientras no esté sellada |
-| Tipo de consulta | primera vez / control / urgencia | opcional |
+| Tipo de consulta | primera vez / control / urgencia / interconsulta | opcional |
 | N.º de historia | texto | auto = n.º de documento (**VERIFICAR**) |
 | Consultorio / lugar | texto | auto, desde "Datos del médico" |
 
@@ -146,7 +146,10 @@ Convenciones: `*` = obligatorio, `auto` = lo calcula o llena la app, `VERIFICAR`
 | Gineco-obstétricos (FUM, G P A C, anticoncepción) | varios | aparece solo si sexo = F |
 | Otros | texto | |
 
-### 4. Funciones vitales
+### 4. Revisión de síntomas por sistemas
+12 sistemas (generales, piel, cabeza y cuello, respiratorio, cardiovascular, gastrointestinal, genitourinario, endocrino, musculoesquelético, neurológico, mental, hematológico). En cada uno, **Niega** o **Refiere** con detalle. Hay un botón para marcar los pendientes como "Niega" y un campo de observaciones. Es opcional.
+
+### 5. Funciones vitales
 | Campo | Unidad | Notas |
 |---|---|---|
 | PA sistólica / diastólica | mmHg | dos casillas: `[120] / [80]` |
@@ -161,10 +164,13 @@ Convenciones: `*` = obligatorio, `auto` = lo calcula o llena la app, `VERIFICAR`
 
 Los valores fuera de rango se resaltan en ámbar como aviso, pero nunca bloquean.
 
-### 5. Examen físico
+### 6. Examen físico
 Estado general y un texto largo, con un botón opcional "Insertar plantilla por sistemas" (cabeza y cuello, tórax, cardiopulmonar, abdomen, extremidades, neurológico, piel).
 
-### 6. Diagnósticos (lista ordenable)
+### 7. Análisis
+Texto libre después del examen físico. Es opcional.
+
+### 8. Diagnósticos (lista ordenable)
 | Campo | Notas |
 |---|---|
 | Descripción* | texto libre |
@@ -172,13 +178,13 @@ Estado general y un texto largo, con un botón opcional "Insertar plantilla por 
 | Tipo | principal / relacionado |
 | Carácter | presuntivo / definitivo / repetido (nombres según país, **VERIFICAR**) |
 
-### 7. Plan de tratamiento e indicaciones
+### 9. Plan de tratamiento e indicaciones
 Plan terapéutico, exámenes solicitados, interconsultas, indicaciones y signos de alarma, próximo control (fecha opcional).
 
-### 8. Firma y sello
-Se toman de "Datos del médico": nombre, especialidad y registro. Hay interruptores "Incluir firma" e "Incluir sello" para cada documento.
+### 10. Firma y sello
+Se toman de "Datos del médico": nombre, especialidad y registro. Hay interruptores "Incluir firma" e "Incluir sello" para cada documento. Al finalizar se guarda una copia del médico en la historia.
 
-### 9. Evoluciones (solo se agregan, nunca se editan las anteriores)
+### 11. Evoluciones (solo se agregan, nunca se editan las anteriores)
 | Campo | Notas |
 |---|---|
 | N.º | auto, correlativo |
@@ -190,7 +196,7 @@ Se toman de "Datos del médico": nombre, especialidad y registro. Hay interrupto
 | Hash y huella | auto; el hash completo va en el JSON y una huella corta (`3f9a·c21e`) se imprime en el PDF |
 
 ### Metadatos (solo en el JSON incrustado)
-`app`, `schemaVersion`, `appVersion`, `historiaId` (UUID), `creada`, `actualizada`, `hashBase`, `evoluciones[]` (cada una con su `hash` y `hashPrevio`), `recursos{}` (imágenes de firma y sello en base64, identificadas por su SHA-256).
+`app`, `schemaVersion`, `appVersion`, `historiaId` (UUID), `creada`, `actualizada`, `hashBase`, `medico{}` (copia del médico que finalizó), `evoluciones[]` (cada una con su `hash`, `hashPrevio` y `autor`), `recursos{}` (imágenes de firma, sello y logo en base64, identificadas por su SHA-256).
 
 ### Campos normativos adicionales
 **Pendiente del país.** Cada campo que la norma exija se añadirá marcado y con su referencia, y quedará **VERIFICAR** si no tengo certeza.
@@ -430,6 +436,7 @@ Todas se verifican en la Fase 0.
 - `hashBase = SHA-256("HC1|" + JSON canónico de la historia inicial)`
 - `hash_i = SHA-256(JSON canónico de la evolución i (sin su hash) + "|" + hash_(i-1))`, con `hash_0 = hashBase`.
 - Al abrir, se recalcula toda la cadena y se informa de la **primera** entrada que no coincide. Desde ahí, todo se considera no verificado.
+- Las imágenes (`recursos`) quedan fuera de la cadena para no repetirlas, pero cada una se identifica por su SHA-256 y esa referencia sí está sellada. Al abrir se comprueba que cada imagen coincida con su SHA-256 y que no falte ninguna (Fase 2).
 - **Límite que debe quedar claro:** sin servidor y sin clave secreta, alguien con conocimientos podría modificar los datos y recalcular los hashes. La cadena detecta alteraciones accidentales y ediciones ingenuas del JSON, pero no prueba la autoría. Como respaldo, la huella corta de cada entrada se imprime en el papel, y el papel firmado sirve de ancla.
 - Si alguien edita el *texto visible* del PDF con otro programa, la app lo ignora: siempre regenera el documento desde el JSON.
 
@@ -456,7 +463,7 @@ Cada fase termina con `flutter analyze` sin advertencias, `flutter test` en verd
 - Avisos de privacidad y limitaciones.
 - **Tests:** edad (incluidos años bisiestos y menores de 2 años), IMC y clasificación, serialización del modelo, widgets básicos del formulario y del borrador.
 
-### Fase 2: datos del médico, firma y sello
+### Fase 2: datos del médico, firma y sello ✅ (ver [FASE2.md](FASE2.md))
 - Panel con perfil, logo, firma subida o dibujada (PNG transparente con recorte automático) y sello.
 - Guardado en el navegador, con opciones para cambiar o borrar.
 - Interruptores de firma y sello por documento, más el aviso "imagen ≠ firma digital certificada".

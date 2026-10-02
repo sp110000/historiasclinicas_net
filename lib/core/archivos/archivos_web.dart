@@ -61,14 +61,18 @@ Future<ArchivoAbierto?> elegirPdf() async {
       // Cualquier otro fallo del selector moderno: se usa el clásico.
     }
   }
-  return _elegirConInput();
+  return _elegirConInput('.pdf,application/pdf');
 }
 
-Future<ArchivoAbierto?> _elegirConInput() {
+/// Pide una imagen (PNG o JPG) con el selector clásico.
+Future<ArchivoAbierto?> elegirImagen() =>
+    _elegirConInput('image/png,image/jpeg,.png,.jpg,.jpeg');
+
+Future<ArchivoAbierto?> _elegirConInput(String acepta) {
   final completer = Completer<ArchivoAbierto?>();
   final input = web.HTMLInputElement()
     ..type = 'file'
-    ..accept = '.pdf,application/pdf'
+    ..accept = acepta
     ..style.display = 'none';
 
   void terminar(ArchivoAbierto? resultado) {

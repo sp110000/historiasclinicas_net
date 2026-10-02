@@ -1,4 +1,5 @@
 import 'mapa.dart';
+import 'medico.dart';
 import 'signos_vitales.dart';
 
 /// Entrada de seguimiento. Se agrega al final y, una vez sellada (con
@@ -12,6 +13,7 @@ class Evolucion {
     this.incluirFirma = true,
     this.incluirSello = true,
     this.avisoIntegridad,
+    this.autor,
     this.hash,
   });
 
@@ -23,6 +25,7 @@ class Evolucion {
     incluirFirma: m.booleano('incluirFirma', porDefecto: true),
     incluirSello: m.booleano('incluirSello', porDefecto: true),
     avisoIntegridad: m.textoONulo('avisoIntegridad'),
+    autor: m['autor'] == null ? null : Autor.desdeMapa(m.mapa('autor')),
     hash: m.textoONulo('hash'),
   );
 
@@ -38,6 +41,9 @@ class Evolucion {
 
   /// Nota automática cuando se agregó sobre una historia con alteraciones.
   final String? avisoIntegridad;
+
+  /// Médico que la escribió (copia tomada al sellarla).
+  final Autor? autor;
 
   /// SHA-256 encadenado; `null` mientras no está sellada.
   final String? hash;
@@ -59,6 +65,7 @@ class Evolucion {
     incluirFirma: incluirFirma ?? this.incluirFirma,
     incluirSello: incluirSello ?? this.incluirSello,
     avisoIntegridad: cambio(avisoIntegridad, this.avisoIntegridad),
+    autor: autor,
     hash: hash,
   );
 
@@ -71,5 +78,6 @@ class Evolucion {
     'incluirFirma': incluirFirma,
     'incluirSello': incluirSello,
     'avisoIntegridad': avisoIntegridad,
+    'autor': autor?.aMapa(),
   });
 }

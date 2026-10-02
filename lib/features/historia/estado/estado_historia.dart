@@ -1,6 +1,7 @@
 import '../../../core/integridad/cadena_hash.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/models/mapa.dart';
+import '../../../core/models/medico.dart';
 import '../../../core/pais/perfil_pais.dart';
 
 enum ModoHistoria {
@@ -114,6 +115,12 @@ class EstadoHistoria {
   final DateTime? borradorRestauradoEn;
 
   bool get abierta => modo == ModoHistoria.abierta;
+
+  /// Médico que finalizó la historia (copia guardada en el PDF).
+  Autor? get medicoDeLaHistoria {
+    final m = datosSellados?['medico'];
+    return m is Map ? Autor.desdeMapa(m.cast<String, Object?>()) : null;
+  }
 
   bool get hayCambiosSinGuardar =>
       abierta ? evolucionesNuevas.isNotEmpty : !historia.estaVacia;

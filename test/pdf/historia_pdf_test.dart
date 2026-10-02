@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
 import 'package:historiasclinicas_net/core/integridad/json_canonico.dart';
 import 'package:historiasclinicas_net/core/models/historia.dart';
+import 'package:historiasclinicas_net/core/models/mapa.dart';
+import 'package:historiasclinicas_net/core/models/medico.dart';
+import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
 import 'package:historiasclinicas_net/core/pdf/adjunto_historia.dart';
 import 'package:historiasclinicas_net/core/pdf/fuentes_pdf.dart';
 import 'package:historiasclinicas_net/core/pdf/historia_pdf.dart';
@@ -104,6 +107,45 @@ void main() {
       final bytes = await pdf(datos, revision: 61);
       final r = leerHistoriaDePdf(bytes);
       expect(verificarIntegridad(r.datos).sellos, 61);
+    });
+
+    test('con el médico: encabezado, firma y sello como imágenes', () async {
+      final copia = instantaneaMedico(medicoEjemplo(), pais: Pais.colombia);
+      final otro = instantaneaMedico(
+        const Medico(nombre: 'Dr. Luis Mora', registro: 'RM 999'),
+        pais: Pais.colombia,
+      );
+      final datos = sellarEvoluciones(
+        sellarBase({
+          ...historiaCompleta().aMapa(),
+          'finalizadaEn': '2026-10-02T09:40',
+          'medico': copia.autor,
+          'recursos': copia.recursos,
+        }),
+        [
+          {
+            ...Evolucion(
+              id: 'e1',
+              fechaHora: DateTime(2026, 10, 9, 10, 30),
+              texto: 'Afebril.',
+            ).aMapa(),
+            'autor': otro.autor,
+          },
+        ],
+      );
+      final bytes = await pdf(datos, revision: 2);
+      final texto = latin1.decode(bytes);
+      int contar(String patron) => RegExp(patron).allMatches(texto).length;
+      // Logo, sello y firma de la historia (la evolución no tiene imágenes),
+      // cada una con su máscara de transparencia.
+      expect(contar(r'/SMask\s+\d+'), 3);
+      expect(contar(r'/Subtype\s*/Image'), 6);
+      final r = leerHistoriaDePdf(bytes);
+      expect(verificarIntegridad(r.datos).correcta, isTrue);
+      expect(Autor.desdeMapa(r.datos.mapa('medico')).nombre, contains('Ana'));
+
+      final sinMedico = latin1.decode(await pdf(sellada()));
+      expect(RegExp(r'/Subtype\s*/Image').hasMatch(sinMedico), isFalse);
     });
 
     test('la vista previa del borrador no se puede reabrir', () async {

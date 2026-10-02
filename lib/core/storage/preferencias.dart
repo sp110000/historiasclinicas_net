@@ -13,4 +13,5 @@ abstract final class Claves {
   static const borrador = 'hc.borrador.v1';
   static const borradorDesactivado = 'hc.borrador.desactivado';
   static const avisoPrivacidadCerrado = 'hc.avisoPrivacidad.cerrado';
+  static const medico = 'hc.medico.v1';
 }

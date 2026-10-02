@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/utils/fechas.dart';
+import '../../medico/medico_provider.dart';
 import '../estado/archivo_provider.dart';
 import '../estado/estado_historia.dart';
 import 'dialogos.dart';
@@ -207,6 +209,36 @@ class AvisoHistoriaAbierta extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Invita a configurar los datos del médico si aún no están.
+class AvisoMedicoSinConfigurar extends ConsumerWidget {
+  const AvisoMedicoSinConfigurar({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(medicoProvider.select((m) => m.configurado))) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Aviso(
+        icono: Icons.badge_outlined,
+        color: ColoresMarca.aviso,
+        titulo: 'Configura tus datos de médico',
+        texto: const Text(
+          'Tu nombre, registro, consultorio, firma y sello aparecerán en el PDF '
+          'de la historia y en las recetas. Se configuran una sola vez.',
+        ),
+        acciones: [
+          FilledButton.tonal(
+            onPressed: () => context.push('/medico'),
+            child: const Text('Configurar ahora'),
+          ),
+        ],
       ),
     );
   }

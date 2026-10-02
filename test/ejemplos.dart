@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:historiasclinicas_net/core/models/historia.dart';
+import 'package:historiasclinicas_net/core/models/medico.dart';
 import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
 
 /// Historia con todas las secciones llenas, para tests.
@@ -82,4 +85,28 @@ HistoriaClinica historiaCompleta() => HistoriaClinica(
         'Líquidos abundantes. Consultar si hay dificultad respiratoria.',
     proximoControl: DateTime(2026, 10, 9),
   ),
+);
+
+/// PNG mínimos (12x6) y distintos entre sí, para firma, sello y logo.
+final pngFirma = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAEklEQVR42mMQ0Yj6TwpmGIkaAAMBcel5m29DAAAAAElFTkSuQmCC',
+);
+final pngSello = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAE0lEQVR42mOQi1pwghTMMBI1AAA5GYcBEaOYAAAAAABJRU5ErkJggg==',
+);
+final pngLogo = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAEklEQVR42mOQy+r9TwpmGIkaAI0plaHgY9aPAAAAAElFTkSuQmCC',
+);
+
+/// Médico configurado con firma, sello y logo, para tests.
+Medico medicoEjemplo() => Medico(
+  nombre: 'Dra. Ana Pérez Gómez',
+  especialidad: 'Medicina interna',
+  registro: 'RM 54321',
+  consultorio: 'Consultorio Salud Plena',
+  ciudad: 'Bogotá',
+  telefono: '601 555 0101',
+  firma: pngFirma,
+  sello: pngSello,
+  logo: pngLogo,
 );

@@ -8,6 +8,7 @@ import '../../../core/models/historia.dart';
 import '../../../core/presentacion/datos_historia.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/campos.dart';
+import '../../medico/medico_provider.dart';
 import '../estado/historia_controller.dart';
 
 const plantillaSoap = 'S: \nO: \nA: \nP: ';
@@ -145,6 +146,20 @@ class _EvolucionSellada extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           SelectableText(ev.texto, style: const TextStyle(height: 1.45)),
+          if (ev.autor != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              [
+                ev.autor!.nombre,
+                ev.autor!.lineaRegistro,
+              ].where((t) => t.isNotEmpty).join(' · '),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: ColoresMarca.textoSuave,
+              ),
+            ),
+          ],
           if (signos.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
@@ -287,6 +302,7 @@ class _EditorEvolucionState extends ConsumerState<_EditorEvolucion> {
         ) ??
         _inicial;
     final s = ev.signos;
+    final medico = ref.watch(medicoProvider);
     Widget numero(
       String etiqueta,
       double? valor,
@@ -486,7 +502,19 @@ class _EditorEvolucionState extends ConsumerState<_EditorEvolucion> {
           const SizedBox(height: 4),
           Wrap(
             spacing: 24,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              Text(
+                medico.configurado
+                    ? 'Quedará a nombre de ${medico.nombre.trim()}'
+                    : 'Sin datos del médico: quedará sin nombre ni registro',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: medico.configurado
+                      ? ColoresMarca.textoSuave
+                      : ColoresMarca.aviso,
+                ),
+              ),
               _Interruptor(
                 texto: 'Incluir firma',
                 valor: ev.incluirFirma,

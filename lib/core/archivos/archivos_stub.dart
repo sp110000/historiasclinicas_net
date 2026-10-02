@@ -6,6 +6,8 @@ bool get puedeSobrescribirArchivos => false;
 
 Future<ArchivoAbierto?> elegirPdf() async => null;
 
+Future<ArchivoAbierto?> elegirImagen() async => null;
+
 Future<DestinoGuardado?> prepararGuardado({
   required String nombreSugerido,
   ArchivoAbierto? sobrescribir,
