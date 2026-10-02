@@ -27,6 +27,8 @@ El sitio queda en **`build/web/`** y eso es lo que se publica, **completo**. Inc
 ./tool/construir_web.sh --base-href /historias/
 ```
 
+**Para un hosting sin cabeceras propias** (GitHub Pages), `--csp-en-html` copia la Content-Security-Policy dentro de `index.html`. El flujo de GitHub Pages ya lo usa.
+
 **En Windows** (sin bash), los mismos dos pasos:
 ```powershell
 flutter build web --release --no-web-resources-cdn
@@ -53,7 +55,7 @@ node tool/e2e/servidor.mjs        # http://localhost:8765, con las mismas cabece
 | **Vercel** | Un comando | `vercel.json`, ya incluido | VERIFICAR: no pude probarlo |
 | **Hosting tradicional** (cPanel, Apache) | Subir archivos por FTP o el administrador | `.htaccess`, ya incluido | Si ya tienes un hosting |
 | **Nginx** (servidor propio) | Copiar archivos | Configuración abajo | |
-| **GitHub Pages** | Rama `gh-pages` | ❌ No permite cabeceras | Funciona, pero sin las cabeceras de seguridad |
+| **GitHub Pages** (elegido) | Automático en cada push a `main` (`.github/workflows/pages.yml`) | Solo la CSP, dentro de `index.html` | Gratis con repositorio público. Pasos abajo |
 
 Las cuatro configuraciones (`_headers`, `firebase.json`, `vercel.json` y `.htaccess`) envían **exactamente las mismas cabeceras**; un test lo comprueba (`test/tool/despliegue_test.dart`). No pude probar ningún proveedor real desde aquí. Las cabeceras sí se probaron en Chromium con un servidor local que las aplica igual.
 
@@ -121,8 +123,47 @@ server {
 }
 ```
 
-### GitHub Pages
-Funciona con HTTPS y sin conexión, pero no permite cabeceras propias, así que no lleva la Content-Security-Policy. En un repositorio de proyecto (`usuario.github.io/historiasclinicas_net/`) compila con `--base-href /historiasclinicas_net/`.
+### GitHub Pages con el dominio de Namecheap (el elegido)
+GitHub Pages es gratis para repositorios públicos, como `sp110000/historiasclinicas_net`. El sitio se publica solo: cada vez que algo llega a `main`, `.github/workflows/pages.yml` corre los tests, compila y publica.
+
+GitHub Pages no permite cabeceras propias. Por eso la compilación para Pages (`--csp-en-html`) pone la Content-Security-Policy dentro de `index.html`, que el navegador aplica igual. Las demás cabeceras (HSTS, `nosniff`…) no se pueden enviar, pero "Enforce HTTPS" obliga a usar HTTPS. Las dos pruebas en Chromium pasan así, sin cabeceras y con la CSP en el HTML.
+
+**A. DNS en Namecheap** (se hace una vez; tarda de minutos a unas horas en propagarse)
+1. Entra en namecheap.com → *Domain List* → **Manage**, junto a `historiasclinicas.net`.
+2. En la pestaña *Domain*, comprueba que *Nameservers* diga **Namecheap BasicDNS**. Si no, cámbialo y guarda.
+3. Ve a la pestaña **Advanced DNS** → *Host Records*. **Borra** los registros que trae por defecto: `CNAME www → parkingpage.namecheap.com` y `URL Redirect @`.
+4. Con **Add New Record** agrega:
+
+   | Tipo | Host | Valor | TTL |
+   |---|---|---|---|
+   | A Record | `@` | `185.199.108.153` | Automatic |
+   | A Record | `@` | `185.199.109.153` | Automatic |
+   | A Record | `@` | `185.199.110.153` | Automatic |
+   | A Record | `@` | `185.199.111.153` | Automatic |
+   | CNAME Record | `www` | `sp110000.github.io.` | Automatic |
+   | AAAA Record (opcional, IPv6) | `@` | `2606:50c0:8000::153`, `…8001::153`, `…8002::153`, `…8003::153` (4 registros) | Automatic |
+
+5. Guarda cada uno con el ✓ verde.
+
+**B. Verificar el dominio en GitHub** (recomendado: evita que otra cuenta lo use)
+1. En GitHub: tu foto (arriba a la derecha) → **Settings** → **Pages** → **Add a domain** → `historiasclinicas.net` → *Add domain*.
+2. GitHub muestra un registro TXT. En Namecheap → Advanced DNS → *Add New Record* → **TXT Record**:
+   - *Host*: lo que GitHub indique (`_github-pages-challenge-sp110000`).
+   - *Value*: el código que muestra GitHub.
+3. Vuelve a GitHub y pulsa **Verify**. Si no verifica aún, espera unos minutos y reintenta.
+
+**C. Activar Pages en el repositorio**
+1. Repositorio → **Settings** → **Pages**.
+2. *Build and deployment* → *Source*: **GitHub Actions**.
+3. *Custom domain*: `historiasclinicas.net` → **Save**. Espera a "DNS check successful".
+
+**D. Publicar:** lleva los cambios a `main` (sección 9). El flujo **"Publicar en GitHub Pages"** se ejecuta solo y tarda unos 5 minutos; se ve en la pestaña *Actions*. Si falló porque Pages aún no estaba activado, entra en *Actions* → "Publicar en GitHub Pages" → **Run workflow**.
+
+**E. HTTPS:** de vuelta en *Settings* → *Pages*, cuando GitHub termine el certificado (de minutos a 24 h), marca **Enforce HTTPS**.
+
+**F. Listo:** abre `https://historiasclinicas.net`. `www.historiasclinicas.net` redirige solo a la dirección sin `www`. Haz las comprobaciones de la sección 5.
+
+> GitHub Pages es para sitios sin fines comerciales: no se puede usar para un negocio de venta en línea o un software por suscripción. Si algún día cobras por la app, conviene pasar a Netlify o Cloudflare Pages, que tienen las mismas configuraciones listas.
 
 ## 4. Dominio historiasclinicas.net
 
@@ -159,7 +200,7 @@ El HTTPS se activa solo cuando los DNS ya apuntan bien. Puede tardar desde minut
 - compila el sitio y lo guarda como artefacto `sitio-web`;
 - ejecuta las dos pruebas en Chromium con las cabeceras de producción.
 
-No publica nada por sí solo. Si quieres que publique automáticamente en Netlify o Firebase al subir a `main`, se puede agregar con un token del proveedor guardado como *secret* del repositorio.
+La publicación es otro flujo: `.github/workflows/pages.yml` publica en GitHub Pages cada vez que algo llega a `main` (sección 3, GitHub Pages).
 
 ## 7. Qué hace cada cabecera
 
@@ -187,3 +228,25 @@ No publica nada por sí solo. Si quieres que publique automáticamente en Netlif
 - El hosting registra las visitas como cualquier sitio web (dirección IP, fecha, archivo pedido). No ve ningún dato clínico.
 - Borrar los datos del navegador borra el borrador en curso, los datos del médico, la numeración de recetas y "Mis medicamentos". **Las historias no se pierden: están en los PDF.**
 - El catálogo CIE-10 incluido viene de la tabla de referencia de SISPRO (Ministerio de Salud y Protección Social de Colombia). La CIE-10 es una clasificación de la OMS: **VERIFICAR** las condiciones de redistribución si el sitio se vuelve comercial.
+
+## 9. Pasar los cambios a `main` y a tu Mac
+
+Los cambios se preparan en una rama (por ejemplo `claude/sleepy-wozniak-1ryfqe`) y llegan a `main` con un *pull request*. Al llegar a `main` se publican solos.
+
+**En GitHub (navegador):**
+1. Abre el repositorio. Si aparece el aviso amarillo "*claude/… had recent pushes*", pulsa **Compare & pull request**. Si no: *Pull requests* → **New pull request** → *base*: `main` ← *compare*: la rama.
+2. **Create pull request**. Espera a que las comprobaciones (CI) estén en verde.
+3. **Merge pull request** → **Confirm merge**. Puedes borrar la rama después con *Delete branch*.
+
+**En tu Mac (Terminal):**
+```bash
+cd ~/ruta/de/historiasclinicas_net   # tu carpeta del proyecto
+git status                            # debe decir "nothing to commit"; si no, ver abajo
+git checkout main
+git pull origin main
+flutter clean && flutter pub get
+flutter run -d chrome                 # para comprobar
+```
+- **Si `git status` muestra archivos cambiados** que no quieres conservar: `git restore .`. Si sí quieres conservarlos: `git stash`, y después del `pull`, `git stash pop`.
+- **Si la carpeta no es un clon del repositorio:** `git clone https://github.com/sp110000/historiasclinicas_net.git` en otra carpeta.
+- Para ver qué hay en tu Mac frente a GitHub: `git log --oneline -5`. Debe coincidir con `main` en GitHub.

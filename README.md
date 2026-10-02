@@ -28,7 +28,7 @@ node tool/e2e/servidor.mjs &       # build/web con las cabeceras de producción 
 node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) y poppler-utils (pdfinfo, pdftotext)
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
 ```
-GitHub Actions (`.github/workflows/ci.yml`) ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push.
+GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
 ## Estructura
 ```
@@ -59,11 +59,11 @@ test/               unitarios, PDF, widgets, service worker y configuraciones de
 web/                index.html, manifest, iconos, cabeceras (_headers, .htaccess) y pdfjs/
 web/pdfjs/          pdf.js 3.2.146 (Mozilla, Apache 2.0) para la vista previa, sin CDN ni eval
 tool/construir_web.sh  compila el sitio y genera el service worker
-tool/pwa/           plantilla y generador del service worker
+tool/pwa/           plantilla y generador del service worker; CSP dentro del HTML (GitHub Pages)
 tool/cie10/         genera el catálogo incluido desde el Excel de SISPRO
 tool/e2e/           servidor con cabeceras, pruebas en Chromium, inspección y alteración de PDF
 firebase.json, vercel.json, .vercelignore   configuración de esos proveedores
-.github/workflows/  CI: análisis, tests, compilación y pruebas en Chromium
+.github/workflows/  CI (análisis, tests, compilación, pruebas en Chromium) y publicación en GitHub Pages
 ```
 
 ## Licencias de terceros

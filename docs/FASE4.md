@@ -125,3 +125,11 @@ Abre `http://localhost:8765` y espera el aviso "ya funciona sin conexión". Desp
 - `pdf_historia_final.png` y `Historia_PENA_1032456789_v2.pdf`: el PDF final (de la prueba en Chromium), con una evolución firmada.
 - `pdf_texto_largo.png` y `historia_texto_largo.pdf`: un texto de varias páginas que continúa.
 - `iconos.png`: iconos normal, maskable, pequeño y favicon.
+
+## Después de la Fase 4
+- **Receta solo con indicaciones.** Ya no es obligatorio agregar un medicamento: a veces solo se dan recomendaciones. Lo que se pide es al menos un medicamento **o** unas indicaciones.
+  - Sin medicamentos, la hoja no lleva ℞: solo las indicaciones. Hay un título nuevo, "Indicaciones médicas".
+  - Al registrarla en la historia dice "Se dieron indicaciones (R-…) el …".
+  - Una fila de medicamento vacía ya no se marca como obligatoria.
+- **Publicación en GitHub Pages** con `historiasclinicas.net` (Namecheap). `.github/workflows/pages.yml` publica en cada push a `main`, con la CSP dentro de `index.html`. Los pasos están en [DESPLIEGUE.md](DESPLIEGUE.md), en GitHub Pages y en la sección 9 (pasar los cambios a `main` y a la Mac).
+
