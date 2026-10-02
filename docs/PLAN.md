@@ -1,7 +1,51 @@
-# Plan de trabajo: Historia clínica y receta (Flutter Web, offline)
+# Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **propuesta pendiente de aprobación**. Aún no hay código de la app.
-> Lo que digo sobre normas legales está marcado **VERIFICAR** hasta que confirmes el país.
+> Estado: **plan aprobado. Fase 0 en curso.**
+> Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
+
+---
+
+## Decisiones confirmadas (02/10/2026)
+
+| # | Tema | Decisión |
+|---|---|---|
+| — | Entorno del médico | **Flutter 3.38.10 (stable), Dart 3.10.9**, macOS. El proyecto se fija a esa versión (`sdk: ^3.10.9`) y los paquetes se eligen compatibles con ella |
+| — | Nombre y dominio | **historiasclinicas.net** |
+| 1 | Países | **Colombia y España.** El país de ejercicio se elige en "Datos del médico" (ver "Perfiles por país") |
+| 2 | Pacientes | Niños y gestantes: sí (edad en meses y días, nota de percentiles en el IMC, antecedentes gineco-obstétricos condicionales) |
+| 3 | Nombre del paciente | Primer apellido, segundo apellido y nombres en campos separados |
+| 4–5 | Bloqueo y sellado | "Finalizar y guardar PDF" sella la historia inicial. Cada evolución se sella al descargar |
+| 6 | Varios médicos | Sí. Cada entrada guarda su autor y sus imágenes de firma y sello |
+| 7 | Integridad fallida | Se permite agregar tras confirmar; el aviso queda visible y el problema se registra en la nueva entrada |
+| 8 | Guardado | Nueva versión `_vN` por defecto; sobrescribir como opción en Chrome y Edge |
+| 9 | Evolución | Texto libre, plantilla SOAP opcional, signos vitales opcionales |
+| 10 | Receta | **A5 vertical** |
+| 11 | Cantidad | En números y letras |
+| 12 | Control especial | Fuera del alcance; solo un aviso |
+| 13 | Registrar receta | Sí: se ofrece agregarla al plan o a la evolución en curso |
+| 14 | Alergias | Coincidencias de texto y grupos; el aviso no bloquea |
+| 15 | Medicamentos frecuentes | **Lista vacía al inicio**, pero preparada para crecer: agregar, importar y exportar JSON, y en el futuro cargar un catálogo |
+| 16 | Numeración de recetas | Sí, `R-000001`, activable |
+| 17 | CIE-10 | Sí, opcional, con carga diferida |
+| 18–22 | Resto | Por defecto: un perfil de médico, guía de despliegue para varios proveedores, borrador que se borra al guardar, solo plataforma web |
+
+### Perfiles por país
+
+Todo es **VERIFICAR**: son referencias para orientar, no asesoría legal.
+
+| Aspecto | Colombia | España |
+|---|---|---|
+| Norma de historia clínica | Res. 1995/1999, Ley 2015/2020, Res. 866/2021 | Ley 41/2002 (art. 15, contenido mínimo), normativa autonómica |
+| Norma de prescripción | Decreto 2200/2005 (compilado en el Decreto 780/2016) | Real Decreto 1718/2010 (receta médica y órdenes de dispensación) |
+| Profesional | "Registro profesional" (RETHUS) | "N.º de colegiado" |
+| Documento del paciente | CC, TI, CE, PA, RC, PPT, … | DNI, NIE, pasaporte, CIP/TSI |
+| Etiqueta de constantes | "Signos vitales" | "Constantes vitales" |
+| Campos de receta adicionales posibles | cantidad en letras, n.º de historia, vigencia | n.º de envases y formato del envase, fecha prevista de dispensación, fecha de nacimiento del paciente |
+| ⚠ Advertencia importante | — | **VERIFICAR:** en la asistencia privada, la receta en papel podría tener que imprimirse en talonarios oficiales que editan los Colegios de Médicos, o hacerse electrónica por los cauces oficiales. Si es así, la hoja que genera la app serviría como **hoja de tratamiento o instrucciones al paciente**, no como receta dispensable. La etiqueta del documento será configurable |
+| Datos de salud | Ley 1581/2012 (datos sensibles) | RGPD y LOPDGDD (categoría especial) |
+| Conservación de historias | Res. 839/2017 | Ley 41/2002 y normas autonómicas |
+
+La conservación de las historias es responsabilidad del médico, porque el PDF es el único registro.
 
 ---
 
@@ -10,10 +54,10 @@
 | Tema | Hallazgo | Consecuencia |
 |---|---|---|
 | Repositorio | Es la plantilla de `flutter create` (Dart `^3.10`), con todas las plataformas | Partimos de cero. Propongo dejar solo `web/` |
-| Flutter | La versión estable actual es la 3.47.6 (Dart 3.13.5). En el contenedor no está instalado, pero sí se puede descargar | La instalo en la Fase 0 para correr `flutter analyze` y los tests |
-| `pdf` 3.13.1 (Apache-2.0) | **Ya trae `PdfaAttachedFiles`**, que escribe archivos incrustados (`/EmbeddedFiles` y `/AF`, el mecanismo de PDF/A-3 y Factur-X). **No puede leer PDF existentes.** Hay un detalle: declara `/Size` contando unidades UTF-16, así que con tildes el tamaño no cuadra | Escribir: resuelto. Leer: hace falta un lector propio pequeño. El problema de `/Size` se evita escribiendo el JSON solo con ASCII (`á` en lugar de `á`) |
+| Flutter | Se usa **3.38.10 (Dart 3.10.9)**, la misma versión del médico. Instalada en el contenedor para correr `flutter analyze` y los tests | Las últimas versiones de `pdf` y `printing` exigen Flutter 3.41, así que se fijan `pdf` 3.12.0 y `printing` 5.14.3, que funcionan con 3.38 y tienen todo lo necesario |
+| `pdf` 3.12.0 (Apache-2.0) | **Ya trae `PdfaAttachedFiles`**, que escribe archivos incrustados (`/EmbeddedFiles` y `/AF`, el mecanismo de PDF/A-3 y Factur-X). **No puede leer PDF existentes.** Hay un detalle: declara `/Size` contando unidades UTF-16, así que con tildes el tamaño no cuadra | Escribir: resuelto. Leer: hace falta un lector propio pequeño. El problema de `/Size` se evita escribiendo el JSON solo con ASCII (`\u00e1` en lugar de `á`) |
 | `syncfusion_flutter_pdf` 35.1.37 | Lee y escribe adjuntos de forma nativa. **Licencia comercial o Community License**: ingresos brutos anuales menores a USD 1 millón y menos de 5 desarrolladores, además de aceptar sus términos y condiciones. Arrastra `syncfusion_flutter_core`, `http`, `xml` e `intl` | Funciona, pero añade una condición de licencia y peso al sitio |
-| `printing` 5.15.1 en web | La vista previa usa **pdf.js descargado de `unpkg.com`** (un CDN), salvo que exista la variable `dartPdfJsBaseUrl`. Para imprimir usa un iframe oculto | Incluiremos pdf.js (Apache-2.0) dentro de `web/`. En Safari y Firefox la impresión directa varía, así que se ofrecerá descargar como alternativa |
+| `printing` 5.14.3 en web | La vista previa usa **pdf.js descargado de `unpkg.com`** (un CDN), salvo que exista la variable `dartPdfJsBaseUrl`. Para imprimir usa un iframe oculto | Incluiremos pdf.js (Apache-2.0) dentro de `web/`. En Safari y Firefox la impresión directa varía, así que se ofrecerá descargar como alternativa |
 | Flutter Web sin conexión | Por defecto, CanvasKit se descarga de `gstatic.com`. El service worker propio de Flutter está obsoleto | Compilaremos con `--no-web-resources-cdn`, empaquetaremos las fuentes y escribiremos un service worker propio. Lo verifico en la Fase 4 con Chromium en modo sin conexión |
 
 **Recomendación preliminar:** usar `pdf` y `printing` para generar, más un lector propio y pequeño del adjunto. Ventajas: licencias sin condiciones (Apache-2.0), menos peso y control total del formato. En la Fase 0 pruebo **las dos** opciones y te muestro la comparación antes de decidir.
