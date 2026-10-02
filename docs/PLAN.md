@@ -1,6 +1,6 @@
 # Plan de trabajo: historiasclinicas.net (Flutter Web, offline)
 
-> Estado: **Fase 0 completada** (ver [FASE0.md](FASE0.md)). **Pendiente: elegir la librería (A o B).**
+> Estado: **Fase 1 completada** (ver [FASE1.md](FASE1.md)). Librería elegida: **A** (`pdf` + lector propio). Siguiente: **Fase 2** (datos del médico, firma y sello).
 > Todo lo normativo sigue marcado **VERIFICAR**. La validación legal la hace el médico.
 
 ---
@@ -469,6 +469,8 @@ Cada fase termina con `flutter analyze` sin advertencias, `flutter test` en verd
 - Precarga desde la historia, alertas de alergia, contador correlativo opcional.
 - "Volver a la historia" conserva todo lo escrito. CIE-10 opcional.
 - **Tests:** numeración tras agregar, eliminar y reordenar; número a letras; alertas (tildes, grupos); precarga.
+
+> **Ajuste (Fase 1):** la reapertura con verificación de la cadena y el modo "historia abierta" se adelantaron a la Fase 1. La Fase 4 conserva el diseño final del PDF, la PWA sin conexión y el despliegue.
 
 ### Fase 4: PDF final, reapertura, PWA y despliegue
 - PDF A4 final de la historia: encabezado, secciones, evoluciones con huella, firma y sello, paginación "Pág. X de Y", apto para blanco y negro.

@@ -1,16 +1,16 @@
 # historiasclinicas.net
 
-Historia clínica y receta en el navegador. Sin servidor, sin base de datos y sin conexión tras la primera carga. El único registro es el PDF que descarga el médico, que lleva los datos incrustados (`historia.json`) para poder reabrirlo y añadir evoluciones.
+Historia clínica y receta en el navegador. Sin servidor, sin base de datos y sin conexión tras la primera carga. El único registro es el PDF que descarga el médico: lleva los datos incrustados (`historia.json`) y una cadena de huellas SHA-256, para reabrirlo otro día y añadir evoluciones al final.
 
-**Estado:** Fase 0 (prueba de concepto) completada. Ver [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md).
+**Estado:** Fase 1 completada (historia clínica). Ver [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md).
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
 
 ## Desarrollo
 ```bash
-flutter pub get
-flutter run -d chrome                      # desarrollo
+flutter clean && flutter pub get   # tras cambiar dependencias o hacer git pull
+flutter run -d chrome
 flutter analyze
 flutter test
 ```
@@ -21,23 +21,30 @@ flutter build web --release --no-web-resources-cdn
 ```
 El resultado queda en `build/web/`. CanvasKit y las fuentes se sirven desde el propio sitio, sin peticiones a terceros.
 
-## Prueba sin conexión en Chromium
+## Prueba de extremo a extremo (Chromium, sin conexión)
 ```bash
 python3 -m http.server 8765 --directory build/web &
 cd tool/e2e && npm install && npx playwright install chromium
-node fase0_offline.mjs
+node historia_offline.mjs          # opcional: pip install pikepdf (caso "PDF alterado")
 ```
 
 ## Estructura
 ```
 lib/
-  app/            tema visual
+  app/              tema, rutas (go_router: / y /receta), MaterialApp
   core/
-    archivos/     abrir, guardar, sobrescribir y soltar PDF (web)
-    integridad/   JSON canónico y SHA-256
-    pdf/          adjunto historia.json (escritura y lectura), fuentes
-    utils/        fechas, nombres de archivo, texto
-  features/poc/   pantalla de la Fase 0
-test/             tests unitarios, de PDF y de widgets
-tool/e2e/         prueba de extremo a extremo sin conexión
+    archivos/       abrir, guardar, sobrescribir y soltar PDF (web)
+    clinica/        edad, IMC, gestación, rangos de signos vitales
+    integridad/     JSON canónico y cadena SHA-256
+    models/         historia, paciente, antecedentes, signos, diagnósticos, evoluciones
+    pais/           perfiles Colombia y España
+    pdf/            historia.json incrustado (escritura y lectura), PDF de la historia, fuentes
+    presentacion/   textos de cada sección (pantalla y PDF)
+    storage/        preferencias y borrador (localStorage)
+    widgets/        campos de formulario, tarjeta de sección
+  features/
+    historia/       pantalla, estado (Riverpod), formularios, evoluciones
+    receta/         receta (Fase 3)
+test/               unitarios, PDF y widgets
+tool/e2e/           prueba en Chromium sin conexión
 ```

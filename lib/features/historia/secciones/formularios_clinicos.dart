@@ -149,30 +149,34 @@ class _BloqueAlergias extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: ColoresMarca.aviso,
-                  size: 20,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Alergias *',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Se usarán para avisar al formular la receta',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: ColoresMarca.textoSuave,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            Semantics(
+              container: true,
+              header: true,
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: ColoresMarca.aviso,
+                    size: 20,
                   ),
-                ),
-              ],
+                  SizedBox(width: 8),
+                  Text(
+                    'Alergias *',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Se usarán para avisar al formular la receta',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: ColoresMarca.textoSuave,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             CampoEtiquetas(

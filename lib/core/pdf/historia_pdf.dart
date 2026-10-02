@@ -246,7 +246,8 @@ Future<Uint8List> generarPdfHistoria({
         for (final s in SeccionHistoria.values.where(
           (s) => s != SeccionHistoria.firma && s != SeccionHistoria.evoluciones,
         )) ...[cabeceraSeccion(s), datosSeccion(datosDeSeccion(s, historia))],
-        pw.SizedBox(height: 22),
+        cabeceraSeccion(SeccionHistoria.firma),
+        pw.SizedBox(height: 18),
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
