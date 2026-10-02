@@ -5,7 +5,8 @@
 //   node tool/e2e/servidor.mjs &        # con las cabeceras de producción (CSP)
 //   node tool/e2e/historia_offline.mjs
 //
-// Variables: BASE_URL (http://localhost:8765/), OUT_DIR (build/e2e).
+// Variables: BASE_URL (http://localhost:8765/), OUT_DIR (build/e2e) y
+// LENTITUD (por ejemplo 4: la CPU 4 veces más lenta, como en la CI).
 // Opcional: python3 + pikepdf para el caso "PDF alterado" y para inspeccionar
 // lo que guarda cada PDF (médico, autores e imágenes).
 //
@@ -74,6 +75,10 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
     informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
   });
   const page = await context.newPage();
+  if (process.env.LENTITUD) {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.LENTITUD) });
+  }
   page.on('console', (m) => {
     consola.push(`[${m.type()}] ${m.text()}`);
     if (m.type() === 'error') informe.erroresConsola.push(m.text());
@@ -159,8 +164,40 @@ async function valorDe(page, etiqueta) {
   const c = campo(page, etiqueta);
   await c.scrollIntoViewIfNeeded();
   await c.click();
-  await page.waitForTimeout(250);
-  return page.evaluate(() => document.activeElement?.value ?? '');
+  // Solo vale lo leído si el foco llegó a ESTE campo: en un equipo lento el
+  // clic tarda un fotograma y el foco sigue en el campo anterior (la CI leyó
+  // así el diagnóstico en vez del código). Si no llega, devuelve ''.
+  return c.evaluate(
+    (el) =>
+      new Promise((listo) => {
+        const inicio = Date.now();
+        (function mirar() {
+          if (document.activeElement === el) {
+            // Flutter copia el valor al <input> un instante después.
+            setTimeout(() => listo(el.value), 150);
+          } else if (Date.now() - inicio > 3000) {
+            listo('');
+          } else {
+            requestAnimationFrame(mirar);
+          }
+        })();
+      }),
+  );
+}
+
+// Flutter pasa el valor al <input> del árbol semántico un instante después de
+// enfocarlo; en un equipo lento (la CI) puede tardar. Se reintenta hasta que
+// [cumple] (un texto exacto o una función) o hasta ~10 s, y se devuelve lo
+// último leído para el mensaje de error.
+async function esperarValor(page, etiqueta, cumple) {
+  const ok = typeof cumple === 'function' ? cumple : (v) => v === cumple;
+  let v = '';
+  for (let intento = 0; intento < 8; intento++) {
+    await page.waitForTimeout(intento * 250);
+    v = await valorDe(page, etiqueta);
+    if (ok(v)) return v;
+  }
+  return v;
 }
 
 // Interruptores (Switch) y casillas.
@@ -340,7 +377,7 @@ let medicoGuardado;
     ['Diagnóstico (CIE-10)', 'J02.9 Faringitis aguda'],
     ['Alergias', 'Penicilina'],
   ]) {
-    const v = await valorDe(page, etiqueta);
+    const v = await esperarValor(page, etiqueta, esperado);
     if (v !== esperado) throw new Error(`Receta: ${etiqueta} = "${v}", se esperaba "${esperado}"`);
   }
   await captura(page, '04_receta_precarga.png');
@@ -496,10 +533,7 @@ let medicoGuardado;
   await page.waitForTimeout(1200);
   await cargar(page);
   await texto(page, 'Se recuperó el borrador').waitFor();
-  // Flutter copia el valor al <input> del árbol semántico al enfocarlo.
-  await campo(page, 'Primer apellido *').click();
-  await page.waitForTimeout(200);
-  const apellido = await page.evaluate(() => document.activeElement?.value);
+  const apellido = await esperarValor(page, 'Primer apellido *', 'Gómez');
   if (apellido !== 'Gómez') throw new Error(`Borrador no restaurado: "${apellido}"`);
   paso('Borrador: al recargar la pestaña se recupera lo escrito');
   await captura(page, '09_borrador_recuperado.png');
@@ -564,7 +598,8 @@ let medicoGuardado;
   await captura(page, 'r1b_sugerencia_cie10.png');
   await page.keyboard.press('Enter'); // elige la primera sugerencia
   await page.waitForTimeout(300);
-  if ((await valorDe(page, 'CIE-10')) !== 'J029') throw new Error('CIE-10 no se completó');
+  const codigo = await esperarValor(page, 'CIE-10', 'J029');
+  if (codigo !== 'J029') throw new Error(`CIE-10 no se completó: "${codigo}"`);
   paso('CIE-10: con el catálogo de SISPRO incluido, sin conexión, el diagnóstico completa el código');
 
   // Receta.
@@ -671,7 +706,11 @@ let medicoGuardado;
 
   await page.getByRole('button', { name: 'Volver a la historia' }).first().click();
   await page.waitForTimeout(500);
-  const plan = await valorDe(page, 'Plan terapéutico');
+  const plan = await esperarValor(
+    page,
+    'Plan terapéutico',
+    (v) => v.includes('Se formuló (R-000001)') && v.includes('AMOXICILINA'),
+  );
   if (!plan.includes('Se formuló (R-000001)') || !plan.includes('AMOXICILINA')) {
     throw new Error(`Plan sin la receta: "${plan}"`);
   }

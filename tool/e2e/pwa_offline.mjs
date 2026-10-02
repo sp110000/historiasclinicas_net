@@ -4,7 +4,8 @@
 //   ./tool/construir_web.sh
 //   node tool/e2e/pwa_offline.mjs
 //
-// Variables: SITIO (build/web), OUT_DIR (build/e2e).
+// Variables: SITIO (build/web), OUT_DIR (build/e2e) y LENTITUD (por ejemplo
+// 4: la CPU 4 veces más lenta, como en la CI).
 //
 // Levanta su propio servidor para poder publicar "otra versión":
 // 1. Primera visita con conexión: la app queda guardada y lo avisa.
@@ -95,9 +96,43 @@ async function escribir(page, etiqueta, valor) {
 }
 
 async function valorDe(page, etiqueta) {
-  await campo(page, etiqueta).click();
-  await page.waitForTimeout(150);
-  return page.evaluate(() => document.activeElement?.value ?? '');
+  const c = campo(page, etiqueta);
+  await c.scrollIntoViewIfNeeded();
+  await c.click();
+  // Solo vale lo leído si el foco llegó a ESTE campo: en un equipo lento el
+  // clic tarda un fotograma y el foco sigue en el campo anterior (la CI leyó
+  // así el diagnóstico en vez del código). Si no llega, devuelve ''.
+  return c.evaluate(
+    (el) =>
+      new Promise((listo) => {
+        const inicio = Date.now();
+        (function mirar() {
+          if (document.activeElement === el) {
+            // Flutter copia el valor al <input> un instante después.
+            setTimeout(() => listo(el.value), 150);
+          } else if (Date.now() - inicio > 3000) {
+            listo('');
+          } else {
+            requestAnimationFrame(mirar);
+          }
+        })();
+      }),
+  );
+}
+
+// Flutter pasa el valor al <input> del árbol semántico un instante después de
+// enfocarlo; en un equipo lento (la CI) puede tardar. Se reintenta hasta que
+// [cumple] (un texto exacto o una función) o hasta ~10 s, y se devuelve lo
+// último leído para el mensaje de error.
+async function esperarValor(page, etiqueta, cumple) {
+  const ok = typeof cumple === 'function' ? cumple : (v) => v === cumple;
+  let v = '';
+  for (let intento = 0; intento < 8; intento++) {
+    await page.waitForTimeout(intento * 250);
+    v = await valorDe(page, etiqueta);
+    if (ok(v)) return v;
+  }
+  return v;
 }
 
 /** Espera a que la app esté lista (con o sin conexión) y activa la semántica. */
@@ -133,7 +168,11 @@ context.on('requestfailed', (r) => {
   if (r.url().startsWith('blob:')) return;
   informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
 });
-function vigilar(page) {
+async function vigilar(page) {
+  if (process.env.LENTITUD) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.LENTITUD) });
+  }
   page.on('console', (m) => {
     consola.push(`[${m.type()}] ${m.text()}`);
     if (m.type() === 'error') informe.erroresConsola.push(m.text());
@@ -147,7 +186,7 @@ function vigilar(page) {
 }
 
 // ─────────────── 1. Primera visita ───────────────
-const page = vigilar(await context.newPage());
+const page = await vigilar(await context.newPage());
 await page.goto(BASE);
 await esperarApp(page);
 await texto(page, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
@@ -178,7 +217,7 @@ await esperarApp(page);
 if (servidos.length) throw new Error(`Sin conexión se pidió al servidor: ${servidos.join(', ')}`);
 paso('Sin conexión: recargar la página abre la app desde el navegador');
 
-const otra = vigilar(await context.newPage());
+const otra = await vigilar(await context.newPage());
 await otra.goto(BASE);
 await esperarApp(otra);
 await otra.close();
@@ -197,7 +236,8 @@ await texto(page, 'HIPERTENSION ESENCIAL (PRIMARIA)').waitFor();
 await captura(page, 'p2_cie10_sin_conexion.png');
 await page.keyboard.press('Enter');
 await page.waitForTimeout(300);
-if ((await valorDe(page, 'CIE-10')) !== 'I10X') throw new Error('El CIE-10 no se completó');
+const codigo = await esperarValor(page, 'CIE-10', 'I10X');
+if (codigo !== 'I10X') throw new Error(`El CIE-10 no se completó: "${codigo}"`);
 paso('Sin conexión: el CIE-10 de SISPRO incluido sugiere y completa el código (I10X)');
 
 await page.getByRole('button', { name: /receta/i }).first().click();
@@ -256,7 +296,8 @@ await boton(page, 'Actualizar').click();
 await page.waitForLoadState('load');
 await esperarApp(page);
 await texto(page, 'Se recuperó el borrador').waitFor().catch(() => {});
-if ((await valorDe(page, 'Primer apellido *')) !== 'Ríos') throw new Error('Se perdió lo escrito al actualizar');
+const apellido = await esperarValor(page, 'Primer apellido *', 'Ríos');
+if (apellido !== 'Ríos') throw new Error(`Se perdió lo escrito al actualizar: "${apellido}"`);
 const version = await page.evaluate(async () => (await self.caches.keys()).find((n) => n.startsWith('hc-app-')));
 if (version !== 'hc-app-prueba00002') throw new Error(`Versión en uso: ${version}`);
 paso('"Actualizar" recarga con la versión nueva y conserva lo escrito');
