@@ -1,7 +1,9 @@
 {
+    "id": "./",
     "name": "historiasclinicas.net",
     "short_name": "Historias",
-    "start_url": ".",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
     "background_color": "#F4F7F9",
     "theme_color": "#1E6A8D",

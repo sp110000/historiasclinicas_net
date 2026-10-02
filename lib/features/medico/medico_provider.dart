@@ -49,6 +49,11 @@ class MedicoController extends Notifier<Medico> {
     });
   }
 
+  /// Guarda ya los cambios que esperaban (por ejemplo, antes de recargar).
+  Future<void> guardarPendiente() async {
+    if (_pendiente != null) await guardarAhora();
+  }
+
   /// Guarda de inmediato (por ejemplo, tras cambiar una imagen).
   Future<void> guardarAhora() async {
     _temporizador?.cancel();

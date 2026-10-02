@@ -27,6 +27,7 @@ class BorradorController extends Notifier<EstadoBorrador> {
   static const espera = Duration(milliseconds: 700);
 
   Timer? _temporizador;
+  EstadoHistoria? _pendiente;
 
   BorradorStore get _store => ref.read(borradorStoreProvider);
 
@@ -45,10 +46,20 @@ class BorradorController extends Notifier<EstadoBorrador> {
   void programar(EstadoHistoria estado) {
     _temporizador?.cancel();
     if (state.desactivado) return;
+    _pendiente = estado;
     _temporizador = Timer(espera, () => _escribir(estado));
   }
 
+  /// Escribe ya lo que estaba programado (por ejemplo, antes de recargar).
+  Future<void> guardarPendiente() async {
+    final pendiente = _pendiente;
+    if (pendiente == null || !(_temporizador?.isActive ?? false)) return;
+    _temporizador?.cancel();
+    await _escribir(pendiente);
+  }
+
   Future<void> _escribir(EstadoHistoria estado) async {
+    _pendiente = null;
     if (estado.hayCambiosSinGuardar) {
       final hora = await _store.guardar(estado.aBorrador());
       state = EstadoBorrador(guardadoEn: hora, desactivado: state.desactivado);

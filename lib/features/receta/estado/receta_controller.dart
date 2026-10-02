@@ -166,6 +166,11 @@ class RecetaController extends Notifier<Receta> {
   /// Empieza otra receta para la misma historia.
   void nueva() => _cambiar(_nueva(state.historiaId));
 
+  /// Guarda ya los cambios que esperaban (por ejemplo, antes de recargar).
+  Future<void> guardarPendiente() async {
+    if (_pendiente != null) await guardarAhora();
+  }
+
   /// Guarda de inmediato lo pendiente.
   Future<void> guardarAhora() async {
     _temporizador?.cancel();

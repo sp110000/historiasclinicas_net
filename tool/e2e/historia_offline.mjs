@@ -1,7 +1,7 @@
 // Prueba de extremo a extremo de la historia clínica en Chromium.
 //
 // Uso:
-//   flutter build web --release --no-web-resources-cdn
+//   ./tool/construir_web.sh
 //   python3 -m http.server 8765 --directory build/web &
 //   node tool/e2e/historia_offline.mjs
 //
@@ -14,7 +14,7 @@
 // (firma dibujada con el ratón, sello y logo subidos), finalizar y guardar
 // el PDF, agregar una evolución, descargar la v2, reabrirla, detectar un PDF
 // alterado y rechazar un PDF ajeno. Después, la receta: catálogo CIE-10
-// importado, alerta de alergia, cantidades en letras, vista previa real,
+// incluido, alerta de alergia, cantidades en letras, vista previa real,
 // numeración, PDF A5 y registro en la historia, también en móvil. Con
 // conexión: recuperación del borrador al recargar. Falla si hay peticiones
 // fuera del sitio.
@@ -64,8 +64,8 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
     // El iframe de impresión carga el PDF en memoria (blob:) y Chromium sin
     // visor de PDF lo aborta: no es una petición de red.
     if (r.url().startsWith('blob:')) return;
-    // Recargar sin red falla por diseño hasta la Fase 4 (service worker).
-    if (!r.url().startsWith(BASE) || !sinRed) informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
+    // Sin conexión todo sale del service worker: nada debe fallar.
+    informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
   });
   const page = await context.newPage();
   page.on('console', (m) => {
@@ -78,6 +78,11 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
   });
   paginaActual = page;
   await cargar(page);
+  // Se corta la red cuando la app ya quedó guardada en el navegador (el
+  // aviso dura unos segundos y tapa la parte de abajo: se espera a que se
+  // vaya).
+  await texto(page, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
+  await texto(page, 'ya funciona sin conexión').desaparece({ timeout: 20000 });
   if (sinRed) await context.setOffline(true);
   return { context, page };
 }
@@ -99,7 +104,10 @@ const texto = (page, t) => {
     .getByText(t, { exact: false })
     .or(page.locator(`flt-semantics[aria-label*="${t.replaceAll('"', '\\"')}"]`))
     .first();
-  return { waitFor: (o = {}) => l.waitFor({ state: 'attached', ...o }) };
+  return {
+    waitFor: (o = {}) => l.waitFor({ state: 'attached', ...o }),
+    desaparece: (o = {}) => l.waitFor({ state: 'detached', ...o }),
+  };
 };
 // El nombre accesible puede incluir la pista ("Motivo de consulta * En
 // palabras del paciente"): se busca por el comienzo de la etiqueta.
@@ -536,27 +544,22 @@ let medicoGuardado;
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 
-  // CIE-10: se importa una vez (muestra de prueba, no oficial) y se busca.
+  // CIE-10: el catálogo de SISPRO incluido en la app.
   await irASeccion(page, 'Diagnósticos');
-  await boton(page, 'Cargar catálogo').click();
-  const [selector] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    boton(page, 'Importar archivo…').click(),
-  ]);
-  await selector.setFiles(path.join(AQUI, 'fixtures', 'cie10_muestra.csv'));
-  await texto(page, 'Se importaron 30 códigos').waitFor();
+  await boton(page, 'Catálogo').click();
+  await texto(page, '12.634 códigos').waitFor();
   await captura(page, 'r1_catalogo_cie10.png');
   await boton(page, 'Cerrar').click();
   await boton(page, 'Agregar diagnóstico').click();
   await escribir(page, 'Diagnóstico *', 'faring');
-  await page.waitForTimeout(800); // el catálogo se carga al entrar al campo
-  await escribir(page, 'Diagnóstico *', 'faringitis');
+  await page.waitForTimeout(1500); // el catálogo se carga al entrar al campo
+  await escribir(page, 'Diagnóstico *', 'faringitis aguda');
   await texto(page, 'FARINGITIS AGUDA, NO ESPECIFICADA').waitFor();
   await captura(page, 'r1b_sugerencia_cie10.png');
   await page.keyboard.press('Enter'); // elige la primera sugerencia
   await page.waitForTimeout(300);
   if ((await valorDe(page, 'CIE-10')) !== 'J029') throw new Error('CIE-10 no se completó');
-  paso('CIE-10: catálogo importado sin conexión; el diagnóstico completa el código');
+  paso('CIE-10: con el catálogo de SISPRO incluido, sin conexión, el diagnóstico completa el código');
 
   // Receta.
   await boton(page, 'Formular receta').click();

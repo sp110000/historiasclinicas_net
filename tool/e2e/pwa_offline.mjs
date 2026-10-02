@@ -1,0 +1,317 @@
+// Prueba de la app instalada (service worker) en Chromium.
+//
+// Uso:
+//   ./tool/construir_web.sh
+//   node tool/e2e/pwa_offline.mjs
+//
+// Variables: SITIO (build/web), OUT_DIR (build/e2e).
+//
+// Levanta su propio servidor para poder publicar "otra versión":
+// 1. Primera visita con conexión: la app queda guardada y lo avisa.
+// 2. Sin conexión: recargar, abrir otra pestaña, buscar en el CIE-10
+//    incluido, vista previa de la receta y guardar su PDF.
+// 3. Versión nueva: se instala en segundo plano descargando solo lo que
+//    cambió, la app ofrece "Actualizar" y no se pierde lo escrito.
+// 4. Un archivo que no coincide con su huella: la versión nueva se rechaza y
+//    la instalada sigue funcionando.
+// Falla si hay peticiones fuera del sitio o errores de consola.
+
+import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { chromium } from 'playwright';
+
+const SITIO = path.resolve(process.env.SITIO ?? 'build/web');
+const OUT = path.resolve(process.env.OUT_DIR ?? 'build/e2e');
+fs.mkdirSync(OUT, { recursive: true });
+if (!fs.existsSync(path.join(SITIO, 'sw.js'))) {
+  console.error(`Falta ${SITIO}/sw.js: compila con ./tool/construir_web.sh`);
+  process.exit(1);
+}
+
+// ─────────────── Servidor estático con "versiones" ───────────────
+const tipos = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json',
+  '.wasm': 'application/wasm',
+  '.png': 'image/png',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+};
+/** Ruta → contenido que reemplaza al del disco (la "versión nueva"). */
+let reemplazos = {};
+const servidos = [];
+const servidor = http.createServer((pedido, respuesta) => {
+  let ruta = decodeURIComponent(new URL(pedido.url, 'http://x').pathname).replace(/^\/+/, '');
+  if (ruta === '' || ruta.endsWith('/')) ruta += 'index.html';
+  servidos.push(ruta);
+  const archivo = path.join(SITIO, ruta);
+  const cuerpo = reemplazos[ruta] ?? (archivo.startsWith(SITIO) && fs.existsSync(archivo) && fs.statSync(archivo).isFile() ? fs.readFileSync(archivo) : null);
+  if (cuerpo === null) {
+    respuesta.writeHead(404).end();
+    return;
+  }
+  respuesta.writeHead(200, {
+    'Content-Type': tipos[path.extname(ruta)] ?? 'application/octet-stream',
+    'Cache-Control': ruta === 'sw.js' ? 'no-cache' : 'max-age=3600',
+  });
+  respuesta.end(cuerpo);
+});
+await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
+// localhost cuenta como sitio seguro: el service worker funciona sin HTTPS.
+const BASE = `http://localhost:${servidor.address().port}/`;
+
+const swOriginal = fs.readFileSync(path.join(SITIO, 'sw.js'), 'utf8');
+const archivosDe = (sw) => JSON.parse(sw.match(/const ARCHIVOS = (\{[\s\S]*?\});/)[1]);
+const huella = (contenido) => crypto.createHash('sha256').update(contenido).digest('hex').slice(0, 16);
+/** sw.js de una versión nueva en la que [ruta] cambió a [contenido]. */
+function versionNueva(version, ruta, contenido, { huellaFalsa = false } = {}) {
+  const archivos = archivosDe(swOriginal);
+  archivos[ruta] = huellaFalsa ? '0000000000000000' : huella(contenido);
+  return swOriginal
+    .replace(/const VERSION = '\w+';/, `const VERSION = '${version}';`)
+    .replace(/const ARCHIVOS = \{[\s\S]*?\};/, `const ARCHIVOS = ${JSON.stringify(archivos, null, 2)};`);
+}
+
+// ─────────────── Informe y ayudas ───────────────
+const informe = { externas: [], fallidas: [], erroresConsola: [], pasos: [] };
+const consola = [];
+let paginaActual;
+const paso = (t) => {
+  informe.pasos.push(t);
+  console.log('✓', t);
+};
+const alFallar = async (e) => {
+  console.error('✗ Falló la prueba:', e.message);
+  console.error('Últimos mensajes de consola:\n  ' + consola.slice(-25).join('\n  '));
+  if (paginaActual) await paginaActual.screenshot({ path: path.join(OUT, 'ERROR_pwa.png') }).catch(() => {});
+  process.exit(1);
+};
+process.on('unhandledRejection', alFallar);
+process.on('uncaughtException', alFallar);
+
+const texto = (page, t) => {
+  const l = page
+    .getByText(t, { exact: false })
+    .or(page.locator(`flt-semantics[aria-label*="${t.replaceAll('"', '\\"')}"]`))
+    .first();
+  return {
+    waitFor: (o = {}) => l.waitFor({ state: 'attached', ...o }),
+    desaparece: (o = {}) => l.waitFor({ state: 'detached', ...o }),
+  };
+};
+const boton = (page, nombre) => page.getByRole('button', { name: nombre }).first();
+const comienzo = (t) => new RegExp('^' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const campo = (page, etiqueta) => page.getByRole('textbox', { name: comienzo(etiqueta) }).first();
+
+async function escribir(page, etiqueta, valor) {
+  const c = campo(page, etiqueta);
+  for (let intento = 0; intento < 3; intento++) {
+    await c.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150 + intento * 300);
+    await c.click();
+    await page.waitForTimeout(150 + intento * 300);
+    await c.fill(valor);
+    await page.waitForTimeout(100);
+    if ((await page.evaluate(() => document.activeElement?.value)) === valor) return;
+  }
+  throw new Error(`No se pudo escribir "${valor}" en "${etiqueta}"`);
+}
+
+async function valorDe(page, etiqueta) {
+  await campo(page, etiqueta).click();
+  await page.waitForTimeout(150);
+  return page.evaluate(() => document.activeElement?.value ?? '');
+}
+
+/** Espera a que la app esté lista (con o sin conexión) y activa la semántica. */
+async function esperarApp(page) {
+  await page.waitForSelector('flt-semantics-placeholder', { state: 'attached', timeout: 60000 });
+  await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
+  await page.getByRole('button', { name: /receta/i }).first().waitFor({ timeout: 30000 });
+}
+
+const captura = (page, nombre) => page.screenshot({ path: path.join(OUT, nombre) });
+
+const browser = await chromium.launch();
+const context = await browser.newContext({
+  acceptDownloads: true,
+  viewport: { width: 1440, height: 1000 },
+  locale: 'es-CO',
+  timezoneId: 'America/Bogota',
+});
+// "Guardar PDF" como descarga normal (sin el selector de archivos nativo).
+await context.addInitScript(() => {
+  delete window.showOpenFilePicker;
+  delete window.showSaveFilePicker;
+});
+context.on('request', (r) => {
+  const u = r.url();
+  if (!u.startsWith(BASE) && !u.startsWith('blob:') && !u.startsWith('data:')) informe.externas.push(u);
+});
+context.on('requestfailed', (r) => {
+  if (r.url().startsWith('blob:')) return;
+  informe.fallidas.push(`${r.url()} ${r.failure()?.errorText}`);
+});
+function vigilar(page) {
+  page.on('console', (m) => {
+    consola.push(`[${m.type()}] ${m.text()}`);
+    if (m.type() === 'error') informe.erroresConsola.push(m.text());
+  });
+  page.on('pageerror', (e) => {
+    consola.push(`[pageerror] ${e.message}`);
+    informe.erroresConsola.push(e.message);
+  });
+  paginaActual = page;
+  return page;
+}
+
+// ─────────────── 1. Primera visita ───────────────
+const page = vigilar(await context.newPage());
+await page.goto(BASE);
+await esperarApp(page);
+await texto(page, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
+await captura(page, 'p1_lista_sin_conexion.png');
+const caches = await page.evaluate(async () => {
+  const r = {};
+  for (const n of await self.caches.keys()) {
+    r[n] = (await (await self.caches.open(n)).keys()).map((q) => new URL(q.url).pathname.slice(1));
+  }
+  return r;
+});
+const nombreApp = Object.keys(caches).find((n) => n.startsWith('hc-app-'));
+const nombreMotor = Object.keys(caches).find((n) => n.startsWith('hc-motor-'));
+const esperados = Object.keys(archivosDe(swOriginal));
+const faltan = esperados.filter((r) => !caches[nombreApp]?.includes(r));
+if (faltan.length) throw new Error(`No quedaron guardados: ${faltan.join(', ')}`);
+const motor = caches[nombreMotor] ?? [];
+if (!motor.some((r) => r.endsWith('canvaskit.wasm')) || !motor.some((r) => r.endsWith('canvaskit.js'))) {
+  throw new Error(`Motor sin guardar: ${JSON.stringify(motor)}`);
+}
+paso(`Primera visita: ${esperados.length} archivos guardados más el motor de este navegador (${motor.join(', ')}); la app lo avisa`);
+
+// ─────────────── 2. Sin conexión ───────────────
+await context.setOffline(true);
+servidos.length = 0;
+await page.reload();
+await esperarApp(page);
+if (servidos.length) throw new Error(`Sin conexión se pidió al servidor: ${servidos.join(', ')}`);
+paso('Sin conexión: recargar la página abre la app desde el navegador');
+
+const otra = vigilar(await context.newPage());
+await otra.goto(BASE);
+await esperarApp(otra);
+await otra.close();
+paginaActual = page;
+paso('Sin conexión: una pestaña nueva también abre la app');
+
+await escribir(page, 'Primer apellido *', 'Ríos');
+await escribir(page, 'Nombres *', 'Marta');
+await escribir(page, 'Número de documento *', '52111222');
+await page.getByRole('button', { name: 'Diagnósticos' }).first().click().catch(() => {});
+await boton(page, 'Agregar diagnóstico').click();
+await escribir(page, 'Diagnóstico *', 'hiper');
+await page.waitForTimeout(1500); // el catálogo se carga al entrar al campo
+await escribir(page, 'Diagnóstico *', 'hipertension esencial');
+await texto(page, 'HIPERTENSION ESENCIAL (PRIMARIA)').waitFor();
+await captura(page, 'p2_cie10_sin_conexion.png');
+await page.keyboard.press('Enter');
+await page.waitForTimeout(300);
+if ((await valorDe(page, 'CIE-10')) !== 'I10X') throw new Error('El CIE-10 no se completó');
+paso('Sin conexión: el CIE-10 de SISPRO incluido sugiere y completa el código (I10X)');
+
+await page.getByRole('button', { name: /receta/i }).first().click();
+await texto(page, 'Vista previa de la receta, hoja 1 de 1').waitFor({ timeout: 20000 });
+await escribir(page, 'Medicamento (DCI o genérico) *', 'Losartán');
+for (const [etiqueta, valor] of [
+  ['Concentración *', '50 mg'],
+  ['Forma farmacéutica *', 'tableta'],
+  ['Dosis *', '1 tableta'],
+  ['Vía *', 'oral'],
+  ['Frecuencia *', 'cada 24 horas'],
+  ['Duración *', '30 días'],
+]) {
+  await escribir(page, etiqueta, valor);
+  await page.keyboard.press('Escape');
+}
+await escribir(page, 'Cantidad *', '30');
+await page.waitForTimeout(800);
+await captura(page, 'p3_receta_sin_conexion.png');
+const [descarga] = await Promise.all([
+  page.waitForEvent('download'),
+  (async () => {
+    await boton(page, 'Guardar PDF').click();
+    await boton(page, 'Continuar sin mis datos').click();
+  })(),
+]);
+const pdf = path.join(OUT, 'pwa_receta.pdf');
+await descarga.saveAs(pdf);
+const info = execFileSync('pdfinfo', [pdf]).toString();
+if (!/Page size:\s+419\.5\d* x 595\.2\d* pts/.test(info)) throw new Error(`El PDF no es A5:\n${info}`);
+const contenido = execFileSync('pdftotext', [pdf, '-']).toString();
+if (!contenido.includes('LOSARTÁN') || !contenido.includes('I10X')) throw new Error(`PDF incompleto:\n${contenido}`);
+paso('Sin conexión: la receta se ve en la vista previa y su PDF A5 se guarda');
+await page.getByRole('button', { name: 'Ahora no' }).first().click().catch(() => {});
+await page.getByRole('button', { name: 'Volver a la historia' }).first().click();
+await page.waitForTimeout(1200); // autoguardado del borrador
+
+// ─────────────── 3. Versión nueva ───────────────
+await context.setOffline(false);
+const notices = Buffer.concat([fs.readFileSync(path.join(SITIO, 'assets/NOTICES')), Buffer.from('\nversión de prueba\n')]);
+reemplazos = {
+  'sw.js': versionNueva('prueba00002', 'assets/NOTICES', notices),
+  'assets/NOTICES': notices,
+};
+servidos.length = 0;
+await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r.update()));
+await texto(page, 'Hay una versión nueva').waitFor({ timeout: 60000 });
+await captura(page, 'p4_version_nueva.png');
+const descargados = [...new Set(servidos)].sort();
+if (JSON.stringify(descargados) !== JSON.stringify(['assets/NOTICES', 'sw.js'])) {
+  throw new Error(`La actualización descargó de más: ${descargados.join(', ')}`);
+}
+paso('Versión nueva: se instala en segundo plano y solo descarga lo que cambió (sw.js y NOTICES)');
+
+await boton(page, 'Actualizar').click();
+await page.waitForLoadState('load');
+await esperarApp(page);
+await texto(page, 'Se recuperó el borrador').waitFor().catch(() => {});
+if ((await valorDe(page, 'Primer apellido *')) !== 'Ríos') throw new Error('Se perdió lo escrito al actualizar');
+const version = await page.evaluate(async () => (await self.caches.keys()).find((n) => n.startsWith('hc-app-')));
+if (version !== 'hc-app-prueba00002') throw new Error(`Versión en uso: ${version}`);
+paso('"Actualizar" recarga con la versión nueva y conserva lo escrito');
+
+// ─────────────── 4. Archivo que no coincide con su huella ───────────────
+reemplazos = {
+  ...reemplazos,
+  'sw.js': versionNueva('prueba00003', 'index.html', 'no importa', { huellaFalsa: true }),
+};
+const estado = await page.evaluate(async () => {
+  const r = await navigator.serviceWorker.getRegistration();
+  await r.update().catch(() => {});
+  const nuevo = r.installing;
+  if (!nuevo) return 'sin instalación';
+  return new Promise((listo) => nuevo.addEventListener('statechange', () => {
+    if (nuevo.state === 'redundant' || nuevo.state === 'activated') listo(nuevo.state);
+  }));
+});
+if (estado !== 'redundant') throw new Error(`Se aceptó una versión con un archivo alterado (${estado})`);
+await context.setOffline(true);
+await page.reload();
+await esperarApp(page);
+paso('Un archivo que no coincide con su huella hace rechazar la versión; la instalada sigue funcionando sin conexión');
+
+await browser.close();
+servidor.close();
+informe.externas = [...new Set(informe.externas)];
+fs.writeFileSync(path.join(OUT, 'informe_pwa.json'), JSON.stringify(informe, null, 2));
+console.log('\nPeticiones fuera del sitio:', informe.externas.length ? informe.externas : 'ninguna');
+console.log('Peticiones fallidas:', informe.fallidas.length ? informe.fallidas : 'ninguna');
+console.log('Errores de consola:', informe.erroresConsola.length ? informe.erroresConsola : 'ninguno');
+if (informe.externas.length || informe.fallidas.length || informe.erroresConsola.length) process.exit(1);

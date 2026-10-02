@@ -1,22 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/pwa/avisos_pwa.dart';
 import 'router.dart';
 import 'tema.dart';
 
-class HistoriasClinicasApp extends StatefulWidget {
+class HistoriasClinicasApp extends ConsumerStatefulWidget {
   const HistoriasClinicasApp({super.key});
 
   @override
-  State<HistoriasClinicasApp> createState() => _HistoriasClinicasAppState();
+  ConsumerState<HistoriasClinicasApp> createState() =>
+      _HistoriasClinicasAppState();
 }
 
-class _HistoriasClinicasAppState extends State<HistoriasClinicasApp> {
+class _HistoriasClinicasAppState extends ConsumerState<HistoriasClinicasApp> {
   final GoRouter _router = crearRouter();
+  final _mensajero = GlobalKey<ScaffoldMessengerState>();
+  late final StreamSubscription<AvisoPwa> _avisos;
+
+  @override
+  void initState() {
+    super.initState();
+    // "Ya funciona sin conexión" y "Hay una versión nueva".
+    _avisos = mostrarAvisosPwa(ref, _mensajero);
+  }
 
   @override
   void dispose() {
+    unawaited(_avisos.cancel());
     _router.dispose();
     super.dispose();
   }
@@ -28,6 +43,7 @@ class _HistoriasClinicasAppState extends State<HistoriasClinicasApp> {
       debugShowCheckedModeBanner: false,
       theme: temaClaro(),
       routerConfig: _router,
+      scaffoldMessengerKey: _mensajero,
       locale: const Locale('es'),
       supportedLocales: const [
         Locale('es'),
