@@ -1,12 +1,14 @@
 {
-    "name": "historiasclinicas_net",
-    "short_name": "historiasclinicas_net",
-    "start_url": ".",
+    "id": "./",
+    "name": "historiasclinicas.net",
+    "short_name": "Historias",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F4F7F9",
+    "theme_color": "#1E6A8D",
+    "description": "Historia clínica y receta en el navegador, sin servidor y sin conexión.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +33,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "lang": "es"
 }

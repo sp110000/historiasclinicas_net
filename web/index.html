@@ -1,38 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    Si el sitio se publica en una subcarpeta, `flutter build web --base-href`
+    reemplaza este valor. Debe empezar y terminar con "/".
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="historiasclinicas.net: historia clínica y receta en el navegador, sin servidor y sin conexión.">
+  <meta name="theme-color" content="#1E6A8D">
 
-  <!-- iOS meta tags & icons -->
+  <!-- iOS -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="historiasclinicas_net">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="historiasclinicas.net">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>historiasclinicas_net</title>
+  <title>historiasclinicas.net</title>
   <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="background:#F4F7F9">
+  <!-- Vista previa de la receta (pdf.js local, sin CDN). -->
+  <script src="pdfjs/pdf.min.js" defer></script>
+  <script src="pdfjs/iniciar.js" defer></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

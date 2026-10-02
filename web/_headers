@@ -1,0 +1,14 @@
+# Cabeceras para Netlify y Cloudflare Pages (tool/construir_web.sh lo deja en
+# build/web). Son las mismas que en vercel.json, firebase.json y .htaccess
+# (un test lo comprueba). Ver docs/DESPLIEGUE.md.
+#
+# script-src: 'wasm-unsafe-eval' para el motor gráfico (WebAssembly) y la
+# huella del <script> con el que el paquete printing imprime.
+/*
+  Cache-Control: no-cache
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-+M0fGRkOqgYlCQCff9oNQn6k6a7Si4Et8iofLMceadE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000

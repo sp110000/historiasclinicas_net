@@ -1,0 +1,63 @@
+# Publica historiasclinicas.net en GitHub Pages en cada push a main, si los
+# tests pasan. Una sola vez antes: Settings → Pages → Source "GitHub Actions"
+# y el dominio propio (docs/DESPLIEGUE.md → GitHub Pages).
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  compilar:
+    name: Tests y compilación
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.10
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Tests
+        run: flutter test
+
+      # base_path es "" con el dominio propio y "/historiasclinicas_net" sin él.
+      # GitHub Pages no permite cabeceras: la CSP va dentro de index.html.
+      - name: Compilar
+        run: |
+          ./tool/construir_web.sh --csp-en-html --base-href "${{ steps.pages.outputs.base_path }}/"
+          rm -f build/web/_headers build/web/.htaccess
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  publicar:
+    name: Publicar
+    needs: compilar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4
