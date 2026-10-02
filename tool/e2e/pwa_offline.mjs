@@ -81,16 +81,18 @@ const boton = (page, nombre) => page.getByRole('button', { name: nombre }).first
 const comienzo = (t) => new RegExp('^' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 const campo = (page, etiqueta) => page.getByRole('textbox', { name: comienzo(etiqueta) }).first();
 
+// Vale solo si el foco está en ESE campo y tiene el valor (en un equipo lento
+// el foco puede seguir en el campo anterior).
 async function escribir(page, etiqueta, valor) {
   const c = campo(page, etiqueta);
-  for (let intento = 0; intento < 3; intento++) {
+  for (let intento = 0; intento < 4; intento++) {
     await c.scrollIntoViewIfNeeded();
     await page.waitForTimeout(150 + intento * 300);
     await c.click();
     await page.waitForTimeout(150 + intento * 300);
     await c.fill(valor);
     await page.waitForTimeout(100);
-    if ((await page.evaluate(() => document.activeElement?.value)) === valor) return;
+    if (await c.evaluate((el, v) => document.activeElement === el && el.value === v, valor)) return;
   }
   throw new Error(`No se pudo escribir "${valor}" en "${etiqueta}"`);
 }

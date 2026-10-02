@@ -129,18 +129,33 @@ const campo = (page, etiqueta) => page.getByRole('textbox', { name: comienzo(eti
 // instante tras el clic (una persona nunca escribe en 0 ms). Si el campo
 // estaba fuera de la pantalla, el desplazamiento puede robar ese fotograma:
 // se comprueba lo escrito y se reintenta con más calma.
-async function escribir(page, etiqueta, valor) {
-  const c = campo(page, etiqueta);
-  for (let intento = 0; intento < 3; intento++) {
+// Vale solo si el foco está en ESE campo y tiene el valor (en un equipo lento
+// el foco puede seguir en el campo anterior).
+async function escribirEn(page, c, valor, nombre) {
+  for (let intento = 0; intento < 4; intento++) {
     await c.scrollIntoViewIfNeeded();
     await page.waitForTimeout(150 + intento * 300);
     await c.click();
     await page.waitForTimeout(150 + intento * 300);
     await c.fill(valor);
     await page.waitForTimeout(100);
-    if ((await page.evaluate(() => document.activeElement?.value)) === valor) return;
+    if (await c.evaluate((el, v) => document.activeElement === el && el.value === v, valor)) return;
   }
-  throw new Error(`No se pudo escribir "${valor}" en "${etiqueta}"`);
+  throw new Error(`No se pudo escribir "${valor}" en "${nombre}"`);
+}
+
+const escribir = (page, etiqueta, valor) => escribirEn(page, campo(page, etiqueta), valor, etiqueta);
+
+// Etiquetas (alergias): Enter la agrega y aparece su botón "Quitar …". Si el
+// Enter llegó antes de tiempo, se reintenta.
+async function agregarEtiqueta(page, etiqueta, valor) {
+  for (let intento = 0; intento < 3; intento++) {
+    await escribir(page, etiqueta, valor);
+    await page.keyboard.press('Enter');
+    const quitar = page.getByRole('button', { name: `Quitar ${valor}` }).first();
+    if (await quitar.waitFor({ state: 'attached', timeout: 3000 }).then(() => true, () => false)) return;
+  }
+  throw new Error(`No se agregó "${valor}" en "${etiqueta}"`);
 }
 
 // Pulsa un control por su texto, sea cual sea su rol en el árbol semántico.
@@ -344,10 +359,7 @@ let medicoGuardado;
   await escribir(page, 'Enfermedad actual *', 'Odinofagia y fiebre de 2 días de evolución, 38,5 °C.');
 
   // Antecedentes: alergias como etiquetas.
-  const alergia = campo(page, 'Alergia (medicamento, alimento, otro)');
-  await alergia.click();
-  await alergia.fill('Penicilina');
-  await page.keyboard.press('Enter');
+  await agregarEtiqueta(page, 'Alergia (medicamento, alimento, otro)', 'Penicilina');
   await escribir(page, 'Medicación actual', 'Levotiroxina 50 µg/día');
 
   // Signos vitales e IMC.
@@ -580,9 +592,7 @@ let medicoGuardado;
   await escribir(page, 'Nombres *', 'Juan Carlos');
   await escribir(page, 'Número de documento *', '79123456');
   await irASeccion(page, 'Antecedentes');
-  await escribir(page, 'Alergia (medicamento, alimento, otro)', 'Penicilina');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  await agregarEtiqueta(page, 'Alergia (medicamento, alimento, otro)', 'Penicilina');
 
   // CIE-10: el catálogo de SISPRO incluido en la app.
   await irASeccion(page, 'Diagnósticos');
@@ -639,12 +649,7 @@ let medicoGuardado;
     ['Frecuencia *', 'cada 8 horas'],
     ['Duración *', '3 días'],
   ]) {
-    const c = segundo(etiqueta);
-    await c.scrollIntoViewIfNeeded();
-    await c.click();
-    await page.waitForTimeout(200);
-    await c.fill(valor);
-    await page.waitForTimeout(100);
+    await escribirEn(page, segundo(etiqueta), valor, `${etiqueta} (2.º)`);
     await page.keyboard.press('Escape');
   }
   await pulsarTexto(page, 'Usar 9');
