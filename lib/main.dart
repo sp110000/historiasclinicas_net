@@ -1,37 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'app/tema.dart';
+import 'app/app.dart';
 import 'core/pdf/fuentes_pdf.dart';
-import 'features/poc/poc_page.dart';
+import 'core/storage/preferencias.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Las fuentes del PDF se cargan al inicio: así generar un PDF funciona
   // aunque después se pierda la conexión.
   unawaited(FuentesPdf.cargar().then((_) {}, onError: (_) {}));
-  runApp(const HistoriasClinicasApp());
-}
-
-class HistoriasClinicasApp extends StatelessWidget {
-  const HistoriasClinicasApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'historiasclinicas.net',
-      debugShowCheckedModeBanner: false,
-      theme: temaClaro(),
-      locale: const Locale('es'),
-      supportedLocales: const [
-        Locale('es'),
-        Locale('es', 'CO'),
-        Locale('es', 'ES'),
-      ],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: const PocPage(),
-    );
-  }
+  final preferencias = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [preferenciasProvider.overrideWithValue(preferencias)],
+      child: const HistoriasClinicasApp(),
+    ),
+  );
 }
