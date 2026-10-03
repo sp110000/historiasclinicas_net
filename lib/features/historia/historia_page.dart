@@ -14,6 +14,7 @@ import '../../core/pdf/lector_adjunto.dart';
 import '../../core/presentacion/datos_historia.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
+import '../../core/widgets/titulo_dialogo.dart';
 import '../medico/medico_provider.dart';
 import 'estado/archivo_provider.dart';
 import 'estado/borrador_provider.dart';
@@ -27,6 +28,7 @@ import 'secciones/formularios_clinicos.dart';
 import 'secciones/seccion_evoluciones.dart';
 import 'widgets/avisos.dart';
 import 'widgets/dialogos.dart';
+import 'widgets/franja_paciente.dart';
 import 'widgets/iconos.dart';
 import 'widgets/indice_secciones.dart';
 
@@ -35,6 +37,12 @@ const _anchoEscritorio = 1180.0;
 
 /// Por debajo de este ancho las acciones van en una barra inferior.
 const _anchoMovil = 700.0;
+
+/// Secciones que una historia abierta muestra selladas, en una sola tarjeta.
+final _selladas = [
+  for (final s in SeccionHistoria.values)
+    if (s != SeccionHistoria.evoluciones) s,
+];
 
 class HistoriaPage extends ConsumerStatefulWidget {
   const HistoriaPage({super.key});
@@ -313,8 +321,13 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
     final accion = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.badge_outlined, color: ColoresMarca.aviso),
-        title: const Text('Aún no configuraste tus datos de médico'),
+        title: const TituloDialogo(
+          'Aún no configuraste tus datos de médico',
+          icono: Icons.badge_outlined,
+          color: ColoresMarca.aviso,
+        ),
+        actionsOverflowDirection: VerticalDirection.up,
+        actionsOverflowButtonSpacing: 8,
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: Text(
@@ -484,18 +497,49 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
                     const AvisoPrivacidad(),
                     if (!estado.abierta) const AvisoMedicoSinConfigurar(),
                     if (estado.abierta) AvisoHistoriaAbierta(estado: estado),
-                    for (final s in SeccionHistoria.values)
+                    // En una historia abierta, las secciones selladas (1 a
+                    // 10) van en una sola tarjeta con filas desplegables; las
+                    // evoluciones siguen aparte.
+                    if (estado.abierta)
                       Padding(
-                        key: _claves[s],
                         padding: const EdgeInsets.only(bottom: 16),
-                        // La GlobalKey conserva el estado al cambiar la
-                        // versión: los campos se recrean aquí dentro para
-                        // que muestren los datos nuevos.
-                        child: KeyedSubtree(
-                          key: ValueKey(estado.versionFormulario),
-                          child: _tarjeta(s, estado),
+                        child: Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: ColoresMarca.bloqueado,
+                            borderRadius: RadiosMarca.tarjeta,
+                            border: Border.all(color: ColoresMarca.borde),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final (i, s) in _selladas.indexed) ...[
+                                if (i > 0) const Divider(height: 1),
+                                KeyedSubtree(
+                                  key: _claves[s],
+                                  child: KeyedSubtree(
+                                    key: ValueKey(estado.versionFormulario),
+                                    child: _tarjeta(s, estado),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
+                    for (final s in SeccionHistoria.values)
+                      if (!estado.abierta || !_selladas.contains(s))
+                        Padding(
+                          key: _claves[s],
+                          padding: const EdgeInsets.only(bottom: 16),
+                          // La GlobalKey conserva el estado al cambiar la
+                          // versión: los campos se recrean aquí dentro para
+                          // que muestren los datos nuevos.
+                          child: KeyedSubtree(
+                            key: ValueKey(estado.versionFormulario),
+                            child: _tarjeta(s, estado),
+                          ),
+                        ),
                   ],
                 ),
               ),
@@ -553,6 +597,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
         titulo: titulo,
         icono: iconoSeccion(s),
         bloqueada: true,
+        enLista: true,
         plegada: plegada,
         resumen: resumenSeccion(s, h, medico: estado.medicoDeLaHistoria),
         insignia: InsigniaSeccion.soloLectura,
@@ -674,17 +719,30 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       toolbarHeight: 64,
       title: Row(
         children: [
-          const Icon(
-            Icons.health_and_safety_outlined,
-            color: ColoresMarca.primario,
-            size: 26,
-          ),
-          const SizedBox(width: 10),
+          // Wordmark tipográfico, sin ícono.
           const Flexible(
-            child: Text(
-              'historiasclinicas.net',
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'historiasclinicas',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: ColoresMarca.primario,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '.net',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      color: ColoresMarca.tinta,
+                    ),
+                  ),
+                ],
+              ),
+              semanticsLabel: 'historiasclinicas.net',
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              style: TextStyle(fontSize: 18, letterSpacing: -0.2),
             ),
           ),
           if (ancho >= 1000) ...[
@@ -697,12 +755,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
           ],
         ],
       ),
-      bottom: _ocupado
-          ? const PreferredSize(
-              preferredSize: Size.fromHeight(3),
-              child: LinearProgressIndicator(minHeight: 3),
-            )
-          : null,
+      bottom: franjaPaciente(estado.historia, ocupado: _ocupado, movil: movil),
       actions: [
         if (!movil) ...[
           accionTexto(
@@ -725,9 +778,6 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
           guardarPdf,
           const SizedBox(width: 10),
           FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: ColoresMarca.secundario,
-            ),
             onPressed: _formularReceta,
             icon: const Text(
               '℞',
@@ -776,9 +826,6 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
             const SizedBox(width: 10),
             Expanded(
               child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: ColoresMarca.secundario,
-                ),
                 onPressed: _formularReceta,
                 icon: const Text(
                   '℞',

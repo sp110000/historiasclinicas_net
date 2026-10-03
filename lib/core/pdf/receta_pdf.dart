@@ -141,12 +141,11 @@ Future<Uint8List> generarPdfReceta(
           ),
         ),
         pw.Container(
-          padding: const pw.EdgeInsets.symmetric(vertical: 5),
-          margin: const pw.EdgeInsets.only(bottom: 6),
-          decoration: const pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: lineaPdf, width: 0.6),
-            ),
+          padding: const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 9),
+          margin: const pw.EdgeInsets.only(top: 8, bottom: 8),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: lineaPdf, width: 0.8),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
           ),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -226,7 +225,7 @@ Future<Uint8List> generarPdfReceta(
         sangria(
           pw.Text(
             'Cantidad: ${i.textoCantidad}',
-            style: estilo(tamano: 8.5, fuente: f.media),
+            style: estilo(tamano: 8.5, fuente: f.seminegrita),
           ),
         ),
       pw.SizedBox(height: 8),

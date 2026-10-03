@@ -123,7 +123,7 @@ class _DialogoMisMedicamentosState
                 style: TextStyle(
                   color: _mensajeEsError
                       ? ColoresMarca.error
-                      : ColoresMarca.secundario,
+                      : ColoresMarca.estadoOk,
                 ),
               ),
             ],

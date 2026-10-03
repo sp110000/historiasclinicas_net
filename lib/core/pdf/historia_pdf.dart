@@ -9,6 +9,7 @@ import '../models/mapa.dart';
 import '../models/medico.dart';
 import '../models/secciones.dart';
 import '../presentacion/datos_historia.dart';
+import '../receta/receta.dart' show PacienteReceta;
 import '../utils/fechas.dart';
 import 'adjunto_historia.dart';
 import 'fuentes_pdf.dart';
@@ -51,7 +52,6 @@ Future<Uint8List> generarPdfHistoria({
   final imagen = ImagenesPdf(datos.mapa('recursos'));
   const gris = grisPdf;
   const linea = lineaPdf;
-  const fondoSuave = fondoSuavePdf;
   final anchoUtil = PdfPageFormat.a4.width - 2 * 42;
 
   pw.TextStyle estilo({
@@ -66,13 +66,30 @@ Future<Uint8List> generarPdfHistoria({
     lineSpacing: interlineado,
   );
 
+  // 2b: número en petróleo, título en versalitas y filete inferior.
   pw.Widget cabeceraSeccion(SeccionHistoria s) => pw.Container(
-    margin: const pw.EdgeInsets.only(top: 12, bottom: 6),
-    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-    decoration: const pw.BoxDecoration(color: fondoSuave),
-    child: pw.Text(
-      '${s.numero}. ${tituloSeccion(s, historia.perfil).toUpperCase()}',
-      style: pw.TextStyle(font: f.seminegrita, fontSize: 9, letterSpacing: 0.5),
+    margin: const pw.EdgeInsets.only(top: 14, bottom: 6),
+    padding: const pw.EdgeInsets.only(bottom: 3),
+    decoration: const pw.BoxDecoration(
+      border: pw.Border(bottom: pw.BorderSide(color: linea, width: 0.8)),
+    ),
+    child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.end,
+      children: [
+        pw.Text(
+          '${s.numero}',
+          style: pw.TextStyle(font: f.negrita, fontSize: 9.5, color: acentoPdf),
+        ),
+        pw.SizedBox(width: 7),
+        pw.Text(
+          tituloSeccion(s, historia.perfil).toUpperCase(),
+          style: pw.TextStyle(
+            font: f.seminegrita,
+            fontSize: 9,
+            letterSpacing: 0.6,
+          ),
+        ),
+      ],
     ),
   );
 
@@ -84,8 +101,74 @@ Future<Uint8List> generarPdfHistoria({
 
   pw.Widget etiquetaDato(String etiqueta) => pw.Text(
     etiqueta.toUpperCase(),
-    style: pw.TextStyle(font: f.media, fontSize: 6.8, color: gris),
+    style: pw.TextStyle(
+      font: f.media,
+      fontSize: 7,
+      letterSpacing: 0.3,
+      color: gris,
+    ),
   );
+
+  /// Ficha del paciente sobre la sección 1 (solo presentación: usa los
+  /// mismos datos que ya se imprimen).
+  pw.Widget fichaPaciente() {
+    final r = PacienteReceta.deHistoria(historia);
+    final sexo = datosDeSeccion(
+      SeccionHistoria.paciente,
+      historia,
+    ).where((d) => d.etiqueta == 'Sexo').map((d) => d.valor).firstOrNull;
+    final celdas = [
+      ('Paciente', r.nombre, true, 2.2),
+      ('Documento', r.documento, false, 1.4),
+      ('Edad', r.edad, false, 0.8),
+      ('Sexo', sexo ?? '', false, 1.0),
+      ('Alergias', r.alergias, true, 1.4),
+    ].where((c) => c.$2.trim().isNotEmpty).toList();
+    if (celdas.isEmpty) return pw.SizedBox();
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 4, bottom: 2),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: linea, width: 0.8),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          for (final (i, (e, v, fuerte, flex)) in celdas.indexed)
+            pw.Expanded(
+              flex: (flex * 10).round(),
+              child: pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 5,
+                ),
+                decoration: i == 0
+                    ? null
+                    : const pw.BoxDecoration(
+                        border: pw.Border(
+                          left: pw.BorderSide(color: linea, width: 0.5),
+                        ),
+                      ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    etiquetaDato(e),
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      v,
+                      style: estilo(
+                        tamano: 9.5,
+                        fuente: fuerte ? f.seminegrita : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   pw.Widget dato(DatoMostrado d) => pw.SizedBox(
     width: ancho(d.ancho),
@@ -351,6 +434,7 @@ Future<Uint8List> generarPdfHistoria({
         ),
       ),
       build: (context) => [
+        fichaPaciente(),
         for (final s in SeccionHistoria.values.where(
           (s) => s != SeccionHistoria.firma && s != SeccionHistoria.evoluciones,
         ))

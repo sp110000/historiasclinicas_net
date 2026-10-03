@@ -6,7 +6,8 @@ import '../presentacion/datos_historia.dart';
 /// Estado que muestra el chip de la cabecera.
 enum InsigniaSeccion { ninguna, completa, incompleta, soloLectura, activa }
 
-/// Tarjeta de una sección del formulario.
+/// Tarjeta de una sección del formulario (diseño 2b: rótulo «SECCIÓN n»
+/// sobre el título, sin ícono; [icono] lo usan el índice y los tests).
 ///
 /// * Editable: cabecera con número, título y avance.
 /// * Bloqueada (historia abierta): fondo gris azulado, candado y, si está
@@ -26,6 +27,7 @@ class TarjetaSeccion extends StatelessWidget {
     this.plegada = false,
     this.alAlternar,
     this.accion,
+    this.enLista = false,
   });
 
   final int numero;
@@ -40,39 +42,28 @@ class TarjetaSeccion extends StatelessWidget {
   final VoidCallback? alAlternar;
   final Widget? accion;
 
+  /// Fila dentro de la lista compacta de la historia abierta: sin borde ni
+  /// radio propios (los pone la lista).
+  final bool enLista;
+
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.sizeOf(context).width;
     final relleno = ancho < 600 ? 16.0 : 24.0;
     final cabecera = Row(
       children: [
-        Container(
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: (activa ? ColoresMarca.primario : ColoresMarca.primario)
-                .withValues(alpha: activa ? 1 : 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icono,
-            size: 19,
-            color: activa ? Colors.white : ColoresMarca.primario,
-          ),
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              ExcludeSemantics(
+                child: Text('SECCIÓN $numero', style: EstilosMarca.rotulo),
+              ),
+              const SizedBox(height: 2),
               Text(
-                '$numero · $titulo',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  height: 1.25,
-                ),
+                titulo,
+                semanticsLabel: '$numero · $titulo',
+                style: EstilosMarca.titulo.copyWith(height: 1.25),
               ),
               if (plegada && (resumen ?? '').isNotEmpty)
                 Padding(
@@ -102,23 +93,18 @@ class TarjetaSeccion extends StatelessWidget {
     );
 
     return Container(
-      decoration: BoxDecoration(
-        color: bloqueada ? ColoresMarca.bloqueado : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: activa ? ColoresMarca.primario : ColoresMarca.borde,
-          width: activa ? 2 : 1,
-        ),
-        boxShadow: activa
-            ? [
-                BoxShadow(
-                  color: ColoresMarca.primario.withValues(alpha: 0.10),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
+      decoration: enLista
+          ? BoxDecoration(
+              color: plegada ? ColoresMarca.bloqueado : Colors.white,
+            )
+          : BoxDecoration(
+              color: bloqueada ? ColoresMarca.bloqueado : Colors.white,
+              borderRadius: RadiosMarca.tarjeta,
+              border: Border.all(
+                color: activa ? ColoresMarca.primario : ColoresMarca.borde,
+                width: activa ? 1.5 : 1,
+              ),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -126,23 +112,25 @@ class TarjetaSeccion extends StatelessWidget {
             type: MaterialType.transparency,
             child: InkWell(
               onTap: alAlternar,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: enLista ? null : RadiosMarca.tarjeta,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   relleno,
                   relleno * 0.75,
                   relleno * 0.75,
-                  plegada ? relleno * 0.75 : 0,
+                  relleno * 0.75,
                 ),
                 child: cabecera,
               ),
             ),
           ),
-          if (!plegada)
+          if (!plegada) ...[
+            const Divider(height: 1, color: ColoresMarca.separador),
             Padding(
-              padding: EdgeInsets.fromLTRB(relleno, 18, relleno, relleno),
+              padding: EdgeInsets.fromLTRB(relleno, 20, relleno, relleno),
               child: child,
             ),
+          ],
         ],
       ),
     );
@@ -161,7 +149,7 @@ class _Insignia extends StatelessWidget {
       InsigniaSeccion.completa => (
         Icons.check_circle,
         'Completa',
-        ColoresMarca.secundario,
+        ColoresMarca.estadoOk,
       ),
       InsigniaSeccion.incompleta => (
         Icons.pending_outlined,

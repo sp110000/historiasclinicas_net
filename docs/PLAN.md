@@ -214,11 +214,13 @@ Se toman de "Datos del médico": nombre, especialidad y registro. Hay interrupto
 ## (c) Bocetos textuales
 
 ### Paleta y estilo
-- **Primario:** azul petróleo `#1E6A8D`. **Secundario:** verde salvia `#2E9E83`. **Aviso:** ámbar `#C98A1B`. **Error:** `#C2413B`.
-- **Fondo:** `#F4F7F9`. **Tarjetas:** blancas, borde `#DCE4EA` y radio de 16 px.
-- **Tipografía:** Inter (licencia OFL), incluida dentro de la app, la misma en la interfaz y en el PDF. Espaciado sobre una cuadrícula de 8 px.
+Dirección visual 2b «Clínico sobrio», aplicada después de la Fase 4 (detalle en [DISENO.md](DISENO.md)). Los valores viven en `lib/app/tema.dart` (`ColoresMarca`, `RadiosMarca`, `EstilosMarca`).
+- **Primario:** azul petróleo `#1E5A7A` (7,5:1 sobre blanco); el ℞ también lo usa. **Estado correcto:** verde `#2E7D5B`, solo para «Completa», integridad y guardado. **Aviso:** ámbar `#8A5A0B`. **Error:** `#B3362F`. Todos los textos cumplen WCAG AA (4,5:1).
+- **Texto:** tinta `#13212C`, secundario `#556370`, pistas `#6B7782`. **Fondo:** `#F3F6F8`. **Selección:** tinte `#E6EFF4`.
+- **Forma:** radio de 8 px en campos y botones, 12 en tarjetas y avisos, 14 en diálogos; bordes de 1 px (`#D8E1E7`) y sin sombras.
+- **Tipografía:** Inter (licencia OFL), incluida dentro de la app, la misma en la interfaz y en el PDF. Títulos de 19 w600, cuerpo de 15 y 14, etiquetas de campo de 13 w500 siempre visibles sobre el borde y rótulos en versalitas de 11. Espaciado sobre una cuadrícula de 8 px.
 - **Iconos:** Material Symbols, incluidos con la app.
-- **Impresión:** solo negro y grises, sin fondos de color, con líneas finas.
+- **Impresión:** negro y grises, sin fondos de color, con líneas finas. Un único acento, el petróleo de los números de sección, que en una impresora en blanco y negro sale gris oscuro.
 
 ### Pantalla 1: Historia clínica, escritorio (≥ 1200 px)
 ```

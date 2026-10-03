@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/utils/fechas.dart';
+import '../../../core/widgets/recuadro_icono.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/archivo_provider.dart';
 import '../estado/estado_historia.dart';
 import 'dialogos.dart';
 
-/// Franja de aviso con icono, texto y acciones.
+/// Aviso con ícono en recuadro, texto y acciones (borde completo; el de
+/// error, más grueso).
 class Aviso extends StatelessWidget {
   const Aviso({
     super.key,
@@ -30,18 +32,22 @@ class Aviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final esError = color == ColoresMarca.error;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(color.withValues(alpha: 0.08), Colors.white),
-        borderRadius: BorderRadius.circular(14),
-        border: Border(left: BorderSide(color: color, width: 5)),
+        color: Colors.white,
+        borderRadius: RadiosMarca.tarjeta,
+        border: Border.all(
+          color: esError ? color : ColoresMarca.sobreBlanco(color, 0.28),
+          width: esError ? 1.5 : 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, color: color),
-          const SizedBox(width: 12),
+          RecuadroIcono(icono, color: color),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +132,7 @@ class AvisoBorradorRecuperado extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Aviso(
         icono: Icons.restore,
-        color: ColoresMarca.secundario,
+        color: ColoresMarca.primario,
         titulo: 'Se recuperó el borrador del ${formatoFechaHora(guardadoEn)}',
         texto: const Text('Puedes seguir donde lo dejaste o empezar de cero.'),
         acciones: [
@@ -158,7 +164,7 @@ class AvisoHistoriaAbierta extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Aviso(
         icono: correcta ? Icons.folder_open : Icons.gpp_bad_outlined,
-        color: correcta ? ColoresMarca.secundario : ColoresMarca.error,
+        color: correcta ? ColoresMarca.estadoOk : ColoresMarca.error,
         titulo: 'Historia abierta · ${estado.nombreArchivo ?? 'sin nombre'}',
         texto: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +185,7 @@ class AvisoHistoriaAbierta extends StatelessWidget {
                           : Icons.warning_amber_rounded,
                       size: 17,
                       color: correcta
-                          ? ColoresMarca.secundario
+                          ? ColoresMarca.estadoOk
                           : ColoresMarca.error,
                     ),
                     const SizedBox(width: 6),
@@ -189,7 +195,7 @@ class AvisoHistoriaAbierta extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: correcta
-                              ? ColoresMarca.secundario
+                              ? ColoresMarca.estadoOk
                               : ColoresMarca.error,
                         ),
                       ),

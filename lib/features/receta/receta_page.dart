@@ -13,6 +13,7 @@ import '../../core/pdf/receta_pdf.dart';
 import '../../core/receta/alertas.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/campos.dart';
+import '../../core/widgets/titulo_dialogo.dart';
 import '../historia/estado/historia_controller.dart';
 import '../historia/widgets/dialogos.dart';
 import '../medico/medico_provider.dart';
@@ -108,8 +109,13 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
       final accion = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          icon: const Icon(Icons.badge_outlined, color: ColoresMarca.aviso),
-          title: const Text('Aún no configuraste tus datos de médico'),
+          title: const TituloDialogo(
+            'Aún no configuraste tus datos de médico',
+            icono: Icons.badge_outlined,
+            color: ColoresMarca.aviso,
+          ),
+          actionsOverflowDirection: VerticalDirection.up,
+          actionsOverflowButtonSpacing: 8,
           content: const Text(
             'La receta saldrá sin tu nombre, registro, firma ni sello.',
           ),
@@ -146,11 +152,13 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
     final si = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(
-          icono,
+        title: TituloDialogo(
+          titulo,
+          icono: icono,
           color: peligro ? ColoresMarca.error : ColoresMarca.aviso,
         ),
-        title: Text(titulo),
+        actionsOverflowDirection: VerticalDirection.up,
+        actionsOverflowButtonSpacing: 8,
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
           child: SingleChildScrollView(
@@ -247,8 +255,12 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
     final si = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.note_add_outlined, color: ColoresMarca.primario),
-        title: const Text('¿Registrar la receta en la historia?'),
+        title: const TituloDialogo(
+          '¿Registrar la receta en la historia?',
+          icono: Icons.note_add_outlined,
+        ),
+        actionsOverflowDirection: VerticalDirection.up,
+        actionsOverflowButtonSpacing: 8,
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Column(
@@ -612,6 +624,7 @@ class _OpcionesHoja extends ConsumerWidget {
             ),
             DropdownButtonFormField<String>(
               isExpanded: true,
+              style: Theme.of(context).textTheme.bodyLarge,
               initialValue: titulosReceta.contains(opciones.titulo)
                   ? opciones.titulo
                   : titulosReceta.first,

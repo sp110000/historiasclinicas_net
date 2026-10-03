@@ -6,6 +6,7 @@ import '../../core/archivos/archivos.dart' as archivos;
 import '../../core/cie10/catalogo_incluido.dart';
 import '../../core/utils/fechas.dart';
 import '../../core/utils/numeros.dart';
+import '../../core/widgets/titulo_dialogo.dart';
 import 'cie10_provider.dart';
 
 Future<void> mostrarCatalogoCie10(BuildContext context) => showDialog<void>(
@@ -58,8 +59,12 @@ class _DialogoCatalogoCie10State extends ConsumerState<DialogoCatalogoCie10> {
   Widget build(BuildContext context) {
     final info = ref.watch(infoCie10Provider);
     return AlertDialog(
-      icon: const Icon(Icons.menu_book_outlined, color: ColoresMarca.primario),
-      title: const Text('Catálogo CIE-10'),
+      title: const TituloDialogo(
+        'Catálogo CIE-10',
+        icono: Icons.menu_book_outlined,
+      ),
+      actionsOverflowDirection: VerticalDirection.up,
+      actionsOverflowButtonSpacing: 8,
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
         child: SingleChildScrollView(
@@ -109,9 +114,7 @@ class _DialogoCatalogoCie10State extends ConsumerState<DialogoCatalogoCie10> {
                 Text(
                   _mensaje!,
                   style: TextStyle(
-                    color: _error
-                        ? ColoresMarca.error
-                        : ColoresMarca.secundario,
+                    color: _error ? ColoresMarca.error : ColoresMarca.estadoOk,
                   ),
                 ),
               ],

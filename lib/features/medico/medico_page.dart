@@ -32,6 +32,8 @@ class MedicoPage extends ConsumerWidget {
     final pais = ref.watch(paisProvider);
     final ctrl = ref.read(medicoProvider.notifier);
     final movil = MediaQuery.sizeOf(context).width < 700;
+    // En escritorio ancho, la vista previa queda fija a la derecha.
+    final lateral = MediaQuery.sizeOf(context).width >= 1100;
 
     void volver() => context.canPop() ? context.pop() : context.go('/');
 
@@ -50,6 +52,255 @@ class MedicoPage extends ConsumerWidget {
         if (context.mounted) volver();
       }
     }
+
+    final formulario = SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: movil ? 12 : 24, vertical: 20),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Se configuran una sola vez y se guardan solo en este navegador. '
+                'Aparecen en el encabezado y en la firma de tus historias y recetas.',
+                style: TextStyle(color: ColoresMarca.textoSuave),
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                icono: Icons.badge_outlined,
+                titulo: 'Datos profesionales',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilaCampos(
+                      children: [
+                        CampoTexto(
+                          etiqueta: 'Nombre completo',
+                          requerido: true,
+                          pista: 'Dra. Ana Pérez Gómez',
+                          mayusculas: TextCapitalization.words,
+                          valorInicial: m.nombre,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(nombre: v)),
+                        ),
+                        CampoTexto(
+                          etiqueta: 'Especialidad',
+                          pista: 'Medicina interna',
+                          valorInicial: m.especialidad,
+                          alCambiar: (v) => ctrl.actualizar(
+                            (m) => m.copyWith(especialidad: v),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    FilaCampos(
+                      children: [
+                        CampoTexto(
+                          etiqueta: etiquetaRegistro(pais),
+                          requerido: true,
+                          valorInicial: m.registro,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(registro: v)),
+                        ),
+                        CampoTexto(
+                          etiqueta: 'Documento de identidad (opcional)',
+                          valorInicial: m.documento,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(documento: v)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SelectorOpciones(
+                      etiqueta: 'País de ejercicio',
+                      opciones: [
+                        for (final p in Pais.values) Opcion(p.codigo, p.nombre),
+                      ],
+                      valor: pais.codigo,
+                      alCambiar: (codigo) async {
+                        if (codigo == null) return;
+                        final p = Pais.desdeCodigo(codigo);
+                        await ref.read(paisProvider.notifier).cambiar(p);
+                        ref.read(historiaProvider.notifier).cambiarPais(p);
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Define los tipos de documento y las etiquetas de las historias '
+                      'nuevas (VERIFICAR la norma de cada país).',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: ColoresMarca.textoSuave,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                icono: Icons.local_hospital_outlined,
+                titulo: 'Consultorio',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CampoTexto(
+                      etiqueta: 'Nombre del consultorio o institución',
+                      valorInicial: m.consultorio,
+                      alCambiar: (v) =>
+                          ctrl.actualizar((m) => m.copyWith(consultorio: v)),
+                    ),
+                    const SizedBox(height: 14),
+                    FilaCampos(
+                      flex: const [3, 2],
+                      children: [
+                        CampoTexto(
+                          etiqueta: 'Dirección',
+                          valorInicial: m.direccion,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(direccion: v)),
+                        ),
+                        CampoTexto(
+                          etiqueta: 'Ciudad',
+                          valorInicial: m.ciudad,
+                          mayusculas: TextCapitalization.words,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(ciudad: v)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    FilaCampos(
+                      children: [
+                        CampoTexto(
+                          etiqueta: 'Teléfono',
+                          teclado: TextInputType.phone,
+                          valorInicial: m.telefono,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(telefono: v)),
+                        ),
+                        CampoTexto(
+                          etiqueta: 'Correo electrónico',
+                          teclado: TextInputType.emailAddress,
+                          mayusculas: TextCapitalization.none,
+                          valorInicial: m.correo,
+                          alCambiar: (v) =>
+                              ctrl.actualizar((m) => m.copyWith(correo: v)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                icono: Icons.draw_outlined,
+                titulo: 'Firma',
+                child: _EditorImagen(
+                  tipo: TipoImagen.firma,
+                  bytes: m.firma,
+                  permitirDibujar: true,
+                  quitarFondoInicial: true,
+                  ayuda:
+                      'Dibújala aquí mismo o sube una foto o escaneo sobre papel blanco.',
+                  alCambiar: (b) async {
+                    ctrl.actualizar((m) => m.copyWith(firma: b));
+                    await ctrl.guardarAhora();
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                icono: Icons.approval_outlined,
+                titulo: 'Sello',
+                child: _EditorImagen(
+                  tipo: TipoImagen.sello,
+                  bytes: m.sello,
+                  quitarFondoInicial: true,
+                  ayuda:
+                      'Sube una foto o escaneo del sello estampado sobre papel blanco.',
+                  alCambiar: (b) async {
+                    ctrl.actualizar((m) => m.copyWith(sello: b));
+                    await ctrl.guardarAhora();
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                icono: Icons.image_outlined,
+                titulo: 'Logo (opcional)',
+                child: _EditorImagen(
+                  tipo: TipoImagen.logo,
+                  bytes: m.logo,
+                  quitarFondoInicial: false,
+                  ayuda:
+                      'Aparece a la izquierda del encabezado. Mejor en PNG con fondo transparente.',
+                  alCambiar: (b) async {
+                    ctrl.actualizar((m) => m.copyWith(logo: b));
+                    await ctrl.guardarAhora();
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              const _Tarjeta(
+                icono: Icons.menu_book_outlined,
+                titulo: 'Catálogo CIE-10',
+                child: _CatalogoCie10(),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: ColoresMarca.aviso.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: ColoresMarca.aviso.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.gavel_outlined, color: ColoresMarca.aviso),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'La firma y el sello son imágenes: no equivalen a una firma '
+                        'digital certificada. VERIFICAR su validez legal en tu país. '
+                        'Cualquiera con acceso a este navegador podría usarlas: '
+                        'bórralas si el equipo es compartido.',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (!lateral) ...[
+                _Tarjeta(
+                  icono: Icons.visibility_outlined,
+                  titulo: 'Así aparecerá en tus documentos',
+                  child: VistaPreviaMedico(medico: m, pais: pais),
+                ),
+                const SizedBox(height: 20),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ColoresMarca.error,
+                    side: const BorderSide(color: ColoresMarca.error),
+                  ),
+                  onPressed: m.vacio ? null : borrarTodo,
+                  icon: const Icon(Icons.delete_forever_outlined),
+                  label: const Text('Borrar mis datos de este navegador'),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -71,14 +322,14 @@ class MedicoPage extends ConsumerWidget {
                   Icon(
                     Icons.cloud_done_outlined,
                     size: 18,
-                    color: ColoresMarca.secundario,
+                    color: ColoresMarca.estadoOk,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'Guardado en este navegador',
                     style: TextStyle(
                       fontSize: 13,
-                      color: ColoresMarca.secundario,
+                      color: ColoresMarca.estadoOk,
                     ),
                   ),
                 ],
@@ -86,258 +337,35 @@ class MedicoPage extends ConsumerWidget {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: movil ? 12 : 24,
-          vertical: 20,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Column(
+      body: lateral
+          ? Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Se configuran una sola vez y se guardan solo en este navegador. '
-                  'Aparecen en el encabezado y en la firma de tus historias y recetas.',
-                  style: TextStyle(color: ColoresMarca.textoSuave),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.badge_outlined,
-                  titulo: 'Datos profesionales',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      FilaCampos(
-                        children: [
-                          CampoTexto(
-                            etiqueta: 'Nombre completo',
-                            requerido: true,
-                            pista: 'Dra. Ana Pérez Gómez',
-                            mayusculas: TextCapitalization.words,
-                            valorInicial: m.nombre,
-                            alCambiar: (v) =>
-                                ctrl.actualizar((m) => m.copyWith(nombre: v)),
-                          ),
-                          CampoTexto(
-                            etiqueta: 'Especialidad',
-                            pista: 'Medicina interna',
-                            valorInicial: m.especialidad,
-                            alCambiar: (v) => ctrl.actualizar(
-                              (m) => m.copyWith(especialidad: v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      FilaCampos(
-                        children: [
-                          CampoTexto(
-                            etiqueta: etiquetaRegistro(pais),
-                            requerido: true,
-                            valorInicial: m.registro,
-                            alCambiar: (v) =>
-                                ctrl.actualizar((m) => m.copyWith(registro: v)),
-                          ),
-                          CampoTexto(
-                            etiqueta: 'Documento de identidad (opcional)',
-                            valorInicial: m.documento,
-                            alCambiar: (v) => ctrl.actualizar(
-                              (m) => m.copyWith(documento: v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SelectorOpciones(
-                        etiqueta: 'País de ejercicio',
-                        opciones: [
-                          for (final p in Pais.values)
-                            Opcion(p.codigo, p.nombre),
-                        ],
-                        valor: pais.codigo,
-                        alCambiar: (codigo) async {
-                          if (codigo == null) return;
-                          final p = Pais.desdeCodigo(codigo);
-                          await ref.read(paisProvider.notifier).cambiar(p);
-                          ref.read(historiaProvider.notifier).cambiarPais(p);
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Define los tipos de documento y las etiquetas de las historias '
-                        'nuevas (VERIFICAR la norma de cada país).',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: ColoresMarca.textoSuave,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.local_hospital_outlined,
-                  titulo: 'Consultorio',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CampoTexto(
-                        etiqueta: 'Nombre del consultorio o institución',
-                        valorInicial: m.consultorio,
-                        alCambiar: (v) =>
-                            ctrl.actualizar((m) => m.copyWith(consultorio: v)),
-                      ),
-                      const SizedBox(height: 14),
-                      FilaCampos(
-                        flex: const [3, 2],
-                        children: [
-                          CampoTexto(
-                            etiqueta: 'Dirección',
-                            valorInicial: m.direccion,
-                            alCambiar: (v) => ctrl.actualizar(
-                              (m) => m.copyWith(direccion: v),
-                            ),
-                          ),
-                          CampoTexto(
-                            etiqueta: 'Ciudad',
-                            valorInicial: m.ciudad,
-                            mayusculas: TextCapitalization.words,
-                            alCambiar: (v) =>
-                                ctrl.actualizar((m) => m.copyWith(ciudad: v)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      FilaCampos(
-                        children: [
-                          CampoTexto(
-                            etiqueta: 'Teléfono',
-                            teclado: TextInputType.phone,
-                            valorInicial: m.telefono,
-                            alCambiar: (v) =>
-                                ctrl.actualizar((m) => m.copyWith(telefono: v)),
-                          ),
-                          CampoTexto(
-                            etiqueta: 'Correo electrónico',
-                            teclado: TextInputType.emailAddress,
-                            mayusculas: TextCapitalization.none,
-                            valorInicial: m.correo,
-                            alCambiar: (v) =>
-                                ctrl.actualizar((m) => m.copyWith(correo: v)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.draw_outlined,
-                  titulo: 'Firma',
-                  child: _EditorImagen(
-                    tipo: TipoImagen.firma,
-                    bytes: m.firma,
-                    permitirDibujar: true,
-                    quitarFondoInicial: true,
-                    ayuda:
-                        'Dibújala aquí mismo o sube una foto o escaneo sobre papel blanco.',
-                    alCambiar: (b) async {
-                      ctrl.actualizar((m) => m.copyWith(firma: b));
-                      await ctrl.guardarAhora();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.approval_outlined,
-                  titulo: 'Sello',
-                  child: _EditorImagen(
-                    tipo: TipoImagen.sello,
-                    bytes: m.sello,
-                    quitarFondoInicial: true,
-                    ayuda:
-                        'Sube una foto o escaneo del sello estampado sobre papel blanco.',
-                    alCambiar: (b) async {
-                      ctrl.actualizar((m) => m.copyWith(sello: b));
-                      await ctrl.guardarAhora();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.image_outlined,
-                  titulo: 'Logo (opcional)',
-                  child: _EditorImagen(
-                    tipo: TipoImagen.logo,
-                    bytes: m.logo,
-                    quitarFondoInicial: false,
-                    ayuda:
-                        'Aparece a la izquierda del encabezado. Mejor en PNG con fondo transparente.',
-                    alCambiar: (b) async {
-                      ctrl.actualizar((m) => m.copyWith(logo: b));
-                      await ctrl.guardarAhora();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const _Tarjeta(
-                  icono: Icons.menu_book_outlined,
-                  titulo: 'Catálogo CIE-10',
-                  child: _CatalogoCie10(),
-                ),
-                const SizedBox(height: 16),
+                Expanded(child: formulario),
                 Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: ColoresMarca.aviso.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColoresMarca.aviso.withValues(alpha: 0.35),
-                    ),
+                  width: 400,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(left: BorderSide(color: ColoresMarca.borde)),
                   ),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.gavel_outlined, color: ColoresMarca.aviso),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'La firma y el sello son imágenes: no equivalen a una firma '
-                          'digital certificada. VERIFICAR su validez legal en tu país. '
-                          'Cualquiera con acceso a este navegador podría usarlas: '
-                          'bórralas si el equipo es compartido.',
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'ASÍ APARECERÁ EN TUS DOCUMENTOS',
+                          style: EstilosMarca.rotulo,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _Tarjeta(
-                  icono: Icons.visibility_outlined,
-                  titulo: 'Así aparecerá en tus documentos',
-                  child: VistaPreviaMedico(medico: m, pais: pais),
-                ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ColoresMarca.error,
-                      side: const BorderSide(color: ColoresMarca.error),
+                        const SizedBox(height: 14),
+                        VistaPreviaMedico(medico: m, pais: pais),
+                      ],
                     ),
-                    onPressed: m.vacio ? null : borrarTodo,
-                    icon: const Icon(Icons.delete_forever_outlined),
-                    label: const Text('Borrar mis datos de este navegador'),
                   ),
                 ),
-                const SizedBox(height: 32),
               ],
-            ),
-          ),
-        ),
-      ),
+            )
+          : formulario,
     );
   }
 }

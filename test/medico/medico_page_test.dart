@@ -98,6 +98,22 @@ void main() {
     await terminar(t);
   });
 
+  testWidgets('desde 1100 px la vista previa queda fija a la derecha', (
+    t,
+  ) async {
+    await montar(t, medico: medicoEjemplo());
+    await pulsar(t, find.byTooltip('Más opciones'));
+    await pulsar(t, find.text('Datos del médico'));
+    expect(find.text('ASÍ APARECERÁ EN TUS DOCUMENTOS'), findsOneWidget);
+    expect(find.text('Así aparecerá en tus documentos'), findsNothing);
+    // Al estrechar la ventana vuelve a ir al final del formulario.
+    t.view.physicalSize = const Size(1000, 1400);
+    await t.pumpAndSettle();
+    expect(find.text('ASÍ APARECERÁ EN TUS DOCUMENTOS'), findsNothing);
+    expect(find.text('Así aparecerá en tus documentos'), findsOneWidget);
+    await terminar(t);
+  });
+
   testWidgets('borrar los datos pide confirmación y los elimina', (t) async {
     final c = await montar(t, medico: medicoEjemplo());
     await pulsar(t, find.byTooltip('Más opciones'));
