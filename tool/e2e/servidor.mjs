@@ -18,6 +18,7 @@ const tipos = {
   '.json': 'application/json',
   '.wasm': 'application/wasm',
   '.png': 'image/png',
+  '.ico': 'image/x-icon',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.woff2': 'font/woff2',

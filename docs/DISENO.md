@@ -62,6 +62,19 @@ Salieron al compilarlo y compararlo en pantalla:
 - **Radios.** Las tarjetas propias de *Datos del médico* y de la *Receta*, y los ítems de la receta, conservan su radio de 14–16 px y su ícono. El diseño no las tocó.
 - **Índice horizontal** (de 700 a 1180 px). Sigue con candados y sin círculos numerados; el diseño no lo cubría.
 
+## Logo
+
+El logo es una cruz con un trazo de electrocardiograma y un documento. Se recortó de la imagen original con fondo transparente, y el original de 496 px está en `docs/marca/logo.png`. De ahí salen todos los íconos de `web/`:
+
+| Uso | Archivo | Fondo |
+|---|---|---|
+| Pestaña | `favicon.ico` (16, 32 y 48), `icons/logo-16/32/48/96/192.png` | Transparente |
+| App instalada | `icons/logo-192.png`, `icons/logo-512.png` | Transparente |
+| Android (máscara redonda) | `icons/logo-maskable-192/512.png` | Blanco; logo dentro de la zona segura |
+| iPhone y iPad | `icons/logo-apple-180.png` | Blanco (iOS no admite transparencia) |
+
+Los nombres cambiaron junto con el logo. Los móviles guardan el ícono por su dirección, aparte de los datos del sitio, y con el nombre anterior seguían mostrando el logo viejo. `test/tool/iconos_test.dart` comprueba que cada ícono declarado existe, que tiene su tamaño y que ninguno usa los nombres anteriores. El color de la barra del sistema (`theme-color`) pasó al petróleo 2b.
+
 ## Capturas
 
 Antes y después, con los mismos datos.
