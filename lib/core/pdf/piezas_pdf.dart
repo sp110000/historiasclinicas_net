@@ -11,13 +11,14 @@ import '../models/medico.dart';
 import 'fuentes_pdf.dart';
 
 /// Gris de los textos secundarios (se imprime bien en blanco y negro).
-const grisPdf = PdfColor.fromInt(0xFF5A6670);
+const grisPdf = PdfColor.fromInt(0xFF4A5763);
+
+/// Acento petróleo de los números de sección, el único color del PDF: en
+/// una impresora en blanco y negro sale gris oscuro.
+const acentoPdf = PdfColor.fromInt(0xFF1E5A7A);
 
 /// Líneas finas.
 const lineaPdf = PdfColor.fromInt(0xFFB9C3CA);
-
-/// Fondo muy suave de los títulos de sección.
-const fondoSuavePdf = PdfColor.fromInt(0xFFF1F4F6);
 
 /// Imágenes de `recursos` (SHA-256 → PNG en base64). Cada una se carga una
 /// sola vez, así el PDF la guarda una vez aunque se dibuje en varias
