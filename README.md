@@ -2,7 +2,7 @@
 
 Historia clínica y receta en el navegador. Sin servidor, sin base de datos y sin conexión tras la primera carga. El único registro es el PDF que descarga el médico: lleva los datos incrustados (`historia.json`) y una cadena de huellas SHA-256, para reabrirlo otro día y añadir evoluciones al final.
 
-**Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
+**Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
