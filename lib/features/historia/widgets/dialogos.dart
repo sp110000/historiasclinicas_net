@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/tema.dart';
+import '../../../core/widgets/titulo_dialogo.dart';
 import '../estado/validacion.dart';
 
 Future<bool> confirmar(
@@ -14,13 +15,13 @@ Future<bool> confirmar(
   final si = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      icon: icono == null
-          ? null
-          : Icon(
-              icono,
-              color: peligro ? ColoresMarca.error : ColoresMarca.primario,
-            ),
-      title: Text(titulo),
+      title: TituloDialogo(
+        titulo,
+        icono: icono,
+        color: peligro ? ColoresMarca.error : ColoresMarca.primario,
+      ),
+      actionsOverflowDirection: VerticalDirection.up,
+      actionsOverflowButtonSpacing: 8,
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
         child: Text(texto),
@@ -55,8 +56,11 @@ Future<SeccionHistoria?> mostrarPendientes(
   return showDialog<SeccionHistoria>(
     context: context,
     builder: (context) => AlertDialog(
-      icon: const Icon(Icons.fact_check_outlined, color: ColoresMarca.aviso),
-      title: const Text('Faltan datos para finalizar'),
+      title: const TituloDialogo(
+        'Faltan datos para finalizar',
+        icono: Icons.fact_check_outlined,
+        color: ColoresMarca.aviso,
+      ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: SingleChildScrollView(
@@ -95,8 +99,13 @@ Future<String?> mostrarErrorApertura(BuildContext context, String mensaje) {
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      icon: const Icon(Icons.error_outline, color: ColoresMarca.error),
-      title: const Text('No se pudo abrir la historia'),
+      title: const TituloDialogo(
+        'No se pudo abrir la historia',
+        icono: Icons.error_outline,
+        color: ColoresMarca.error,
+      ),
+      actionsOverflowDirection: VerticalDirection.up,
+      actionsOverflowButtonSpacing: 8,
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Text(mensaje),
@@ -134,11 +143,10 @@ Future<void> mostrarAcercaDe(BuildContext context) {
   return showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      icon: const Icon(
-        Icons.health_and_safety_outlined,
-        color: ColoresMarca.primario,
+      title: const TituloDialogo(
+        'historiasclinicas.net',
+        icono: Icons.health_and_safety_outlined,
       ),
-      title: const Text('historiasclinicas.net'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: SingleChildScrollView(

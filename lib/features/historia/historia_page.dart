@@ -14,6 +14,7 @@ import '../../core/pdf/lector_adjunto.dart';
 import '../../core/presentacion/datos_historia.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
+import '../../core/widgets/titulo_dialogo.dart';
 import '../medico/medico_provider.dart';
 import 'estado/archivo_provider.dart';
 import 'estado/borrador_provider.dart';
@@ -313,8 +314,13 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
     final accion = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.badge_outlined, color: ColoresMarca.aviso),
-        title: const Text('Aún no configuraste tus datos de médico'),
+        title: const TituloDialogo(
+          'Aún no configuraste tus datos de médico',
+          icono: Icons.badge_outlined,
+          color: ColoresMarca.aviso,
+        ),
+        actionsOverflowDirection: VerticalDirection.up,
+        actionsOverflowButtonSpacing: 8,
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: Text(
