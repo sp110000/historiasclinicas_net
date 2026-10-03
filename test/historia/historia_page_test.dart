@@ -47,6 +47,11 @@ Future<void> pulsar(WidgetTester t, Finder f) async {
   await t.tap(f);
 }
 
+/// Título de una tarjeta de sección: «SECCIÓN n» y el título van en dos
+/// textos, y la etiqueta semántica del título conserva «n · título».
+Finder tituloDeSeccion(String etiqueta) =>
+    find.byWidgetPredicate((w) => w is Text && w.semanticsLabel == etiqueta);
+
 Finder campo(String etiqueta) =>
     find.ancestor(of: find.text(etiqueta), matching: find.byType(TextField));
 
@@ -71,7 +76,7 @@ void main() {
       '10 · Firma y sello',
       '11 · Evoluciones',
     ]) {
-      expect(find.text(titulo), findsOneWidget, reason: titulo);
+      expect(tituloDeSeccion(titulo), findsOneWidget, reason: titulo);
     }
     expect(find.text('Abrir historia existente'), findsOneWidget);
     expect(find.text('Limpiar formulario'), findsOneWidget);
@@ -173,7 +178,7 @@ void main() {
         .abrir(sellarBase(historiaCompleta().aMapa()), revision: 1);
     await t.pumpAndSettle();
     expect(find.text('Hipotiroidismo'), findsNothing);
-    await pulsar(t, find.text('3 · Antecedentes'));
+    await pulsar(t, tituloDeSeccion('3 · Antecedentes'));
     await t.pumpAndSettle();
     expect(find.text('Hipotiroidismo'), findsOneWidget);
   });

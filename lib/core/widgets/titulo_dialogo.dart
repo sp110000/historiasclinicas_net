@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/tema.dart';
+import 'recuadro_icono.dart';
 
 /// Título de diálogo 2b: alineado a la izquierda, con el ícono en un
 /// recuadro con tinte. Sustituye a `AlertDialog(icon: …)`, que centra el
@@ -23,16 +24,7 @@ class TituloDialogo extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: ColoresMarca.sobreBlanco(color, 0.10),
-            borderRadius: RadiosMarca.recuadro,
-          ),
-          child: Icon(icono, color: color, size: 22),
-        ),
+        RecuadroIcono(icono!, color: color, lado: 40, tamanoIcono: 22),
         const SizedBox(width: 14),
         Expanded(
           child: Padding(

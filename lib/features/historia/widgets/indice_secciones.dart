@@ -6,7 +6,6 @@ import '../../../core/models/historia.dart';
 import '../estado/borrador_provider.dart';
 import '../estado/historia_controller.dart';
 import '../estado/validacion.dart';
-import 'iconos.dart';
 
 /// Índice lateral (escritorio) con el avance de cada sección.
 class IndiceLateral extends ConsumerWidget {
@@ -171,28 +170,25 @@ class _ElementoIndice extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
-        color: activa
-            ? ColoresMarca.primario.withValues(alpha: 0.08)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        color: activa ? ColoresMarca.tinte : Colors.transparent,
+        borderRadius: RadiosMarca.control,
         child: InkWell(
           onTap: alPulsar,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: RadiosMarca.control,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
               children: [
-                Icon(
-                  iconoSeccion(seccion),
-                  size: 19,
-                  color: activa
-                      ? ColoresMarca.primario
-                      : ColoresMarca.textoSuave,
+                _NumeroIndice(
+                  numero: seccion.numero,
+                  estado: estado.estado,
+                  activa: activa,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${seccion.numero}. $titulo',
+                    titulo,
+                    semanticsLabel: '${seccion.numero}. $titulo',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
@@ -231,6 +227,73 @@ class _ElementoIndice extends StatelessWidget {
   }
 }
 
+/// Círculo numerado del índice: se rellena según el estado de la sección.
+class _NumeroIndice extends StatelessWidget {
+  const _NumeroIndice({
+    required this.numero,
+    required this.estado,
+    required this.activa,
+  });
+
+  final int numero;
+  final _EstadoElemento estado;
+  final bool activa;
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color fondo, Color borde, Color texto) = activa
+        ? (ColoresMarca.primario, ColoresMarca.primario, Colors.white)
+        : switch (estado) {
+            _EstadoElemento.completa => (
+              ColoresMarca.estadoOk,
+              ColoresMarca.estadoOk,
+              Colors.white,
+            ),
+            _EstadoElemento.parcial => (
+              ColoresMarca.avisoFondo,
+              ColoresMarca.aviso,
+              ColoresMarca.aviso,
+            ),
+            _EstadoElemento.bloqueada => (
+              ColoresMarca.bloqueado,
+              ColoresMarca.borde,
+              ColoresMarca.textoSuave,
+            ),
+            _EstadoElemento.activa => (
+              ColoresMarca.tinte,
+              ColoresMarca.primario,
+              ColoresMarca.primario,
+            ),
+            _EstadoElemento.vacia => (
+              Colors.white,
+              ColoresMarca.bordeCampo,
+              ColoresMarca.textoSuave,
+            ),
+          };
+    return ExcludeSemantics(
+      child: Container(
+        width: 24,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: fondo,
+          shape: BoxShape.circle,
+          border: Border.all(color: borde, width: 1.5),
+        ),
+        child: Text(
+          '$numero',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: texto,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _IconoEstado extends StatelessWidget {
   const _IconoEstado(this.info, {this.pequeno = false});
 
@@ -253,7 +316,7 @@ class _IconoEstado extends StatelessWidget {
       ),
       _EstadoElemento.completa => (
         Icons.check_circle,
-        ColoresMarca.secundario,
+        ColoresMarca.estadoOk,
         'Completa',
       ),
       _EstadoElemento.bloqueada => (

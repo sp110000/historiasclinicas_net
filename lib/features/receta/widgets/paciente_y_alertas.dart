@@ -6,6 +6,7 @@ import '../../../core/pais/perfil_pais.dart';
 import '../../../core/receta/alertas.dart';
 import '../../../core/receta/receta.dart';
 import '../../../core/widgets/campos.dart';
+import '../../../core/widgets/recuadro_icono.dart';
 import '../../historia/estado/historia_controller.dart';
 import '../estado/receta_controller.dart';
 
@@ -196,15 +197,20 @@ class _Alerta extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: color, width: 4)),
+        color: Colors.white,
+        borderRadius: RadiosMarca.tarjeta,
+        border: Border.all(
+          color: color == ColoresMarca.error
+              ? color
+              : ColoresMarca.sobreBlanco(color, 0.30),
+          width: color == ColoresMarca.error ? 1.5 : 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, color: color),
-          const SizedBox(width: 10),
+          RecuadroIcono(icono, color: color),
+          const SizedBox(width: 12),
           Expanded(
             child: Semantics(
               container: true,

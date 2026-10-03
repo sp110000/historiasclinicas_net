@@ -770,9 +770,7 @@ class ValorCalculado extends StatelessWidget {
       decoration: InputDecoration(
         labelText: etiqueta,
         filled: true,
-        fillColor: destacado
-            ? ColoresMarca.secundario.withValues(alpha: 0.08)
-            : ColoresMarca.fondo,
+        fillColor: destacado ? ColoresMarca.tinte : ColoresMarca.fondo,
         prefixIcon: const Icon(Icons.calculate_outlined, size: 20),
       ),
       child: Text(
