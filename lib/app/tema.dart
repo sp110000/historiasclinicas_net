@@ -88,9 +88,11 @@ ThemeData temaClaro() {
   // Los estilos de los temas de componentes no heredan la familia del
   // TextTheme: sin [fuente] saldrían con la fuente de respaldo del motor.
   const fuente = 'Inter';
+  // La etiqueta va siempre sobre el borde y Flutter la dibuja al 75 %: con
+  // 13 / 0,75 se ve a los 13 px del diseño.
   const etiqueta = TextStyle(
     fontFamily: fuente,
-    fontSize: 13,
+    fontSize: 13 / 0.75,
     fontWeight: FontWeight.w500,
     color: ColoresMarca.tintaSuave,
   );

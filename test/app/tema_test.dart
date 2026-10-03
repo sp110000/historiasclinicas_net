@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/tema.dart';
+import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
+import 'package:historiasclinicas_net/core/widgets/campos.dart';
 
 void main() {
   // Un estilo sin familia sale con la fuente de respaldo del motor (Roboto),
@@ -59,6 +61,38 @@ void main() {
     ]) {
       expect(textos[texto], 'Inter', reason: texto);
     }
+  });
+
+  testWidgets('el desplegable usa el mismo texto que los campos', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        theme: temaClaro(),
+        home: Scaffold(
+          body: CampoDesplegable(
+            etiqueta: 'Tipo de documento',
+            opciones: const [Opcion('CC', 'Cédula de ciudadanía')],
+            valor: 'CC',
+            mostrarCodigo: true,
+            alCambiar: (_) {},
+          ),
+        ),
+      ),
+    );
+    final valor = t
+        .renderObject<RenderParagraph>(
+          find.text('CC · Cédula de ciudadanía').first,
+        )
+        .text
+        .style!;
+    expect(valor.fontSize, 15);
+    expect(valor.fontWeight, isNot(FontWeight.w600));
+  });
+
+  test('la etiqueta de los campos se ve a 13 px sobre el borde', () {
+    final campos = temaClaro().inputDecorationTheme;
+    expect(campos.floatingLabelBehavior, FloatingLabelBehavior.always);
+    // Flutter dibuja la etiqueta flotante al 75 % de su tamaño.
+    expect(campos.floatingLabelStyle!.fontSize! * 0.75, closeTo(13, 0.01));
   });
 
   test('los textos de la paleta cumplen el contraste AA sobre blanco', () {

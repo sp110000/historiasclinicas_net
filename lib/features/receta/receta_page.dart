@@ -624,6 +624,7 @@ class _OpcionesHoja extends ConsumerWidget {
             ),
             DropdownButtonFormField<String>(
               isExpanded: true,
+              style: Theme.of(context).textTheme.bodyLarge,
               initialValue: titulosReceta.contains(opciones.titulo)
                   ? opciones.titulo
                   : titulosReceta.first,

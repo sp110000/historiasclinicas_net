@@ -545,6 +545,8 @@ class CampoDesplegable extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: valido,
       isExpanded: true,
+      // Por defecto usaría titleMedium (17 w600): mismo texto que los campos.
+      style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(labelText: _etiqueta(etiqueta, requerido)),
       items: [
         for (final o in opciones)
