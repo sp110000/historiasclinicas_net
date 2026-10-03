@@ -51,7 +51,7 @@
   - Cada archivo lleva su huella SHA-256, y una versión nueva solo descarga lo que cambió.
   - Si el servidor entrega un archivo que no coincide con su huella (por ejemplo, un CDN con caché vieja), la versión nueva **se rechaza** y la instalada sigue funcionando.
 - **Un solo comando para compilar:** `./tool/construir_web.sh` compila y genera `sw.js`.
-- **Iconos propios:** una hoja clínica con la cruz, en los colores de la app. Hay versiones normal, *maskable* (Android), para iPhone (apple-touch) y favicon. El manifest tiene `id` y `scope`, y la app se puede instalar desde el navegador.
+- **Iconos propios:** una hoja clínica con la cruz, en los colores de la app (reemplazados después por el logo nuevo, ver [DISENO.md](DISENO.md#logo)). Hay versiones normal, *maskable* (Android), para iPhone (apple-touch) y favicon. El manifest tiene `id` y `scope`, y la app se puede instalar desde el navegador.
 - **Funciona en subcarpetas** (`--base-href /historias/`), comprobado sin conexión.
 
 ### 4. Seguridad

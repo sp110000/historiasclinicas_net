@@ -10,23 +10,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="historiasclinicas.net: historia clínica y receta en el navegador, sin servidor y sin conexión.">
-  <meta name="theme-color" content="#1E6A8D">
+  <meta name="theme-color" content="#1E5A7A">
 
   <!-- iOS -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="historiasclinicas.net">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/logo-apple-180.png">
 
-  <!-- Logo de la pestaña: el navegador elige el tamaño que necesita. -->
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
-  <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96.png">
+  <!-- Logo de la pestaña: el navegador elige el tamaño que necesita. Los
+       nombres cambian con el logo para que los móviles no usen el anterior,
+       que guardan aparte aunque se borren los datos. -->
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/logo-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/logo-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icons/logo-48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="icons/logo-96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/logo-192.png">
   <title>historiasclinicas.net</title>
   <link rel="manifest" href="manifest.json">
 </head>
-<body style="background:#F4F7F9">
+<body style="background:#F3F6F8">
   <!-- Vista previa de la receta (pdf.js local, sin CDN). -->
   <script src="pdfjs/pdf.min.js" defer></script>
   <script src="pdfjs/iniciar.js" defer></script>

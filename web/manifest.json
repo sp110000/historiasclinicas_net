@@ -5,30 +5,32 @@
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#F4F7F9",
-    "theme_color": "#1E6A8D",
+    "background_color": "#F3F6F8",
+    "theme_color": "#1E5A7A",
     "description": "Historia clínica y receta en el navegador, sin servidor y sin conexión.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/Icon-192.png",
+            "src": "icons/logo-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
-            "src": "icons/Icon-512.png",
+            "src": "icons/logo-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
-            "src": "icons/Icon-maskable-192.png",
+            "src": "icons/logo-maskable-192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "maskable"
         },
         {
-            "src": "icons/Icon-maskable-512.png",
+            "src": "icons/logo-maskable-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
