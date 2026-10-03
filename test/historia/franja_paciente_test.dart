@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/tema.dart';
-import 'package:historiasclinicas_net/core/models/antecedentes.dart';
 import 'package:historiasclinicas_net/core/models/historia.dart';
 import 'package:historiasclinicas_net/features/historia/widgets/franja_paciente.dart';
 
