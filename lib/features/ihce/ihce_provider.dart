@@ -15,6 +15,7 @@ import '../../core/ihce/modelo/prestador_ihce.dart';
 import '../../core/ihce/outbox/servicio_ihce.dart';
 import '../../core/ihce/secretos/almacen_secretos.dart';
 import '../../core/ihce/terminologia/catalogo_terminologia.dart';
+import '../../core/ihce/terminologia/importacion.dart';
 import '../../core/ihce/validacion/esquema_fhir.dart';
 import '../../core/storage/preferencias.dart';
 import '../cie10/cie10_provider.dart';
@@ -99,6 +100,8 @@ final servicioIhceProvider = Provider<ServicioIhce?>((ref) {
         await ref.read(catalogoCie10Provider.future),
         config.fuenteDisplayCie10,
       );
+      // Catálogos `fragment` completados por importación (tablas SISPRO).
+      await ImportadorCatalogo(repositorio).cargarGuardados(c);
       return catalogo = c;
     },
     cargarEsquema: () async => esquema ??= ValidadorEsquemaFhir.desdeTexto(
@@ -128,4 +131,24 @@ final estadoRdaProvider = Provider.family<EstadoRdaAtencion?, String>((
 ) {
   ref.watch(cambiosIhceProvider);
   return ref.watch(servicioIhceProvider)?.estadoDe(atencionId);
+});
+
+/// Catálogo de la guía (sin CIE-10) para los campos codificados de la
+/// interfaz.
+final catalogoGuiaProvider = FutureProvider<CatalogoTerminologia>(
+  (ref) async => CatalogoTerminologia.desdeGuia(
+    await _leerAsset('assets/ihce/catalogos_guia.json'),
+  ),
+);
+
+/// ¿Se muestran los campos del módulo IHCE?
+final ihceHabilitadoProvider = Provider<bool>(
+  (ref) => ref.watch(configIhceProvider).habilitado,
+);
+
+/// ¿Hay credenciales de MinSalud guardadas para el ambiente activo?
+final credencialesGuardadasProvider = FutureProvider<bool>((ref) async {
+  ref.watch(cambiosIhceProvider);
+  if (!ref.watch(ihceHabilitadoProvider)) return false;
+  return ref.watch(credencialesIhceProvider).configuradas();
 });

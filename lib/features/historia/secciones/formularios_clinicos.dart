@@ -9,6 +9,7 @@ import '../../../core/models/medico.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/presentacion/datos_historia.dart';
 import '../../../core/widgets/campos.dart';
+import '../../ihce/campos_ihce.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
@@ -195,6 +196,7 @@ class _BloqueAlergias extends ConsumerWidget {
                 campo.didChange(true);
               },
             ),
+            TiposAlergiaIhce(antecedentes: a),
             CheckboxListTile(
               value: a.niegaAlergias,
               contentPadding: EdgeInsets.zero,

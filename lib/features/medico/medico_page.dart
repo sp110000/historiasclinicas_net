@@ -19,6 +19,7 @@ import '../cie10/cie10_provider.dart';
 import '../cie10/dialogo_cie10.dart';
 import '../historia/estado/historia_controller.dart';
 import '../historia/widgets/dialogos.dart';
+import '../ihce/campos_ihce.dart';
 import 'medico_provider.dart';
 
 /// Panel "Datos del médico": se configura una vez y se guarda solo en este
@@ -135,6 +136,7 @@ class MedicoPage extends ConsumerWidget {
                         color: ColoresMarca.textoSuave,
                       ),
                     ),
+                    const CamposIhceProfesional(),
                   ],
                 ),
               ),
@@ -190,6 +192,7 @@ class MedicoPage extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    const CamposIhcePrestador(),
                   ],
                 ),
               ),

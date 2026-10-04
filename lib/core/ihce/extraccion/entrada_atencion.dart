@@ -137,10 +137,24 @@ class ExtractorAtencion {
             caracter: d.caracter,
           ),
       ],
+      // Alergias con tipo codificado → AllergyIntoleranceRDA; las que solo
+      // son texto quedan como texto (y bloquean el RDA, ver ensamblador).
+      alergias: [
+        for (final a in h.antecedentes.alergias)
+          if (a.trim().isNotEmpty &&
+              (h.antecedentes.tiposAlergia[a] ?? '').isNotEmpty)
+            AlergiaDto(
+              origen: Origen('datos.antecedentes.alergias', a),
+              tipo: h.antecedentes.tiposAlergia[a]!,
+              texto: normalizarTexto(a),
+            ),
+      ],
       textos: TextosLibresDto(
         alergias: [
           for (final a in h.antecedentes.alergias)
-            if (a.trim().isNotEmpty) normalizarTexto(a),
+            if (a.trim().isNotEmpty &&
+                (h.antecedentes.tiposAlergia[a] ?? '').isEmpty)
+              normalizarTexto(a),
         ],
         niegaAlergias: h.antecedentes.niegaAlergias,
         ocupacion: normalizarTexto(p.ocupacion),

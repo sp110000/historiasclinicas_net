@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/tema.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/widgets/campos.dart';
+import '../../ihce/campos_ihce.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
 
@@ -83,6 +84,7 @@ class _FormularioPacienteState extends ConsumerState<FormularioPaciente> {
             ),
           ],
         ),
+        const CampoCausaExterna(),
         const _Separador('Identificación'),
         FilaCampos(
           flex: const [4, 4, 5],
@@ -220,6 +222,7 @@ class _FormularioPacienteState extends ConsumerState<FormularioPaciente> {
             ),
           ],
         ),
+        const CamposIhcePaciente(),
         const SizedBox(height: 10),
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
