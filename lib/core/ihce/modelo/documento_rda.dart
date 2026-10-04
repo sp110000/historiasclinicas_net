@@ -63,6 +63,8 @@ enum EstadoDocumento {
       agotado,
     },
     reintentoProgramado: {enviando, sinTransporte},
+    // Solo al guardar credenciales nuevas (ServicioIhce.reactivarErrorAuth).
+    errorAuth: {reintentoProgramado},
   };
 
   static const _locales = {
@@ -92,7 +94,9 @@ enum EstadoDocumento {
   }.contains(this);
 
   /// Estados que una persona puede corregir y reintentar (regla 10, c).
-  bool get corregible => this == rechazado || this == invalidoLocal;
+  /// `AGOTADO` también: sin el botón quedaría sin salida.
+  bool get corregible =>
+      this == rechazado || this == invalidoLocal || this == agotado;
 }
 
 /// Una `issue` de un `OperationOutcome` (o un hallazgo local con la misma

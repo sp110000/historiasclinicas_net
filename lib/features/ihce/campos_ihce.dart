@@ -241,7 +241,8 @@ class _CredencialesMinSaludState extends ConsumerState<CredencialesMinSalud> {
       _secreto.clear();
       _clave.clear();
       ref.invalidate(credencialesGuardadasProvider);
-      unawaited(ref.read(servicioIhceProvider)?.procesarPendientes());
+      // Lo rechazado por credenciales vuelve a la cola y se envía.
+      unawaited(ref.read(servicioIhceProvider)?.reactivarErrorAuth());
     } finally {
       if (mounted) setState(() => _guardando = false);
     }

@@ -137,6 +137,26 @@ void main() {
     expect(b2.servicio.hayErrorAuth, isTrue);
   });
 
+  test('T04 tras corregir las credenciales, ERROR_AUTH se reenvía sin '
+      'reconstruir', () async {
+    final b = Banco();
+    b.servidor.respuestasApi
+      ..add(responder(403, operationOutcome('forbidden', 'sin permiso')))
+      ..add(responder(201, bundleAceptado()));
+    final d = await b.cerrarYProcesar();
+    expect(d.estado, EstadoDocumento.errorAuth);
+    expect(b.servicio.hayErrorAuth, isTrue);
+
+    await b.credenciales.guardar(clientSecret: 'secreto-sintetico-corregido');
+    expect(await b.servicio.reactivarErrorAuth(), 1);
+    final enviado = b.documento(d.id);
+    expect(enviado.estado, EstadoDocumento.aceptado);
+    expect(enviado.bundleSha256, d.bundleSha256);
+    expect(b.pdf.generados, 1, reason: 'sin reconstruir');
+    expect(b.servicio.hayErrorAuth, isFalse);
+    expect(b.servidor.peticionesApi, hasLength(2));
+  });
+
   test(
     'T05 400 estructural: SINTACTICO, ubicación resuelta al origen',
     () async {
@@ -366,6 +386,18 @@ void main() {
       expect(d.estado, EstadoDocumento.agotado);
       expect(b.servidor.peticionesApi, hasLength(3));
       expect(b.repositorio.intentos(d.id), hasLength(3));
+
+      // AGOTADO se puede reintentar a mano (nueva version_doc).
+      expect(d.estado.corregible, isTrue);
+      b.servidor.respuestasApi.add(responder(201, bundleAceptado()));
+      final nuevo = await b.servicio.reintentar(
+        d.id,
+        medico: medicoSintetico,
+        prestador: prestadorSintetico,
+      );
+      final v2 = b.documento(nuevo!);
+      expect(v2.versionDoc, 2);
+      expect(v2.estado, EstadoDocumento.aceptado);
     });
 
     test('cortacircuitos tras fallos consecutivos', () async {

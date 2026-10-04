@@ -889,6 +889,34 @@ class ServicioIhce {
     );
   }
 
+  /// Tras guardar credenciales nuevas: los documentos en `ERROR_AUTH`
+  /// vuelven a la cola con sus mismos bytes (sin reconstruirse) y se lanza
+  /// un barrido. Devuelve cuántos se reactivaron.
+  Future<int> reactivarErrorAuth() async {
+    if (!habilitado) return 0;
+    var n = 0;
+    try {
+      await repositorio.abrir();
+      for (final d in repositorio.enEstados({EstadoDocumento.errorAuth})) {
+        await _cambiar(
+          d,
+          EstadoDocumento.reintentoProgramado,
+          motivo: null,
+          categoria: null,
+          proximoIntentoEn: reloj.ahora(),
+        );
+        n++;
+      }
+      if (n > 0) registro.info('reactivados_error_auth', {'documentos': n});
+    } on Object catch (e) {
+      registro.error('reactivacion_fallida', {
+        'error': e.runtimeType.toString(),
+      });
+    }
+    await procesarPendientes();
+    return n;
+  }
+
   /// `true` si algún documento quedó en `ERROR_AUTH`.
   bool get hayErrorAuth =>
       repositorio.enEstados({EstadoDocumento.errorAuth}).isNotEmpty;
