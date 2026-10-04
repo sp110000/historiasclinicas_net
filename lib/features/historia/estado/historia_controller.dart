@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/integridad/cadena_hash.dart';
@@ -7,6 +9,8 @@ import '../../../core/models/medico.dart';
 import '../../../core/pais/pais_provider.dart';
 import '../../../core/pais/perfil_pais.dart';
 import '../../../core/utils/ids.dart';
+import '../../ihce/ihce_provider.dart';
+import '../../medico/medico_provider.dart';
 import 'borrador_provider.dart';
 import 'estado_historia.dart';
 
@@ -43,6 +47,9 @@ class HistoriaController extends Notifier<EstadoHistoria> {
         ref.read(borradorProvider.notifier).programar(siguiente);
       }
     });
+    // RDA (módulo IHCE): al iniciar la app se procesa la cola pendiente.
+    // Con el módulo deshabilitado no hay servicio y no pasa nada.
+    unawaited(ref.read(servicioIhceProvider)?.procesarPendientes());
     return inicial;
   }
 
@@ -160,6 +167,19 @@ class HistoriaController extends Notifier<EstadoHistoria> {
       nombreArchivo: nombreArchivo,
       versionFormulario: state.versionFormulario + 1,
     );
+    // Cierre de la atención → outbox del RDA (módulo IHCE). No construye ni
+    // envía nada aquí, no espera y nunca lanza: la atención ya está guardada.
+    final ihce = ref.read(servicioIhceProvider);
+    if (ihce != null) {
+      unawaited(
+        ihce.alCerrarAtencion(
+          datos: guardado.datos,
+          revision: guardado.revision,
+          medico: ref.read(medicoProvider),
+          prestador: ref.read(prestadorIhceProvider),
+        ),
+      );
+    }
   }
 
   /// Registra lo formulado en una receta ([texto]): al final del plan
