@@ -153,3 +153,19 @@ ConfigIhce configDePrueba({
   encounterComoEntrada: encounterComoEntrada,
   identificadorBundle: identificador,
 );
+
+final _guiaCatalogos =
+    (jsonDecode(File('assets/ihce/catalogos_guia.json').readAsStringSync())
+            as Map)
+        .cast<String, Object?>();
+
+/// Primer código del CodeSystem [system] de la guía (con [largo], el
+/// primero de esa longitud: CIUO-88 tiene códigos de agrupación).
+String codigoGuia(String system, {int? largo}) {
+  final cs = (_guiaCatalogos['codeSystems']! as Map)[system] as Map?;
+  if (cs == null) throw StateError('$system no está en la guía');
+  final codigos = (cs['conceptos']! as Map).keys.cast<String>();
+  return largo == null
+      ? codigos.first
+      : codigos.firstWhere((c) => c.length == largo);
+}

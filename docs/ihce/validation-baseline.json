@@ -1,0 +1,652 @@
+{
+  "descripcion": "Línea base de la capa 2 (validador HL7). Cada exclusión se reproduce en un artefacto oficial con el mismo comando o la causa -tx n/a. Generado por tool/ihce/linea_base.dart generar; ver docs/ihce/DESVIACIONES.md.",
+  "normalizacion": "Índices de entry → tipo de recurso; otros índices → [*]; sin comentarios /*Tipo/id*/; ids de referencias → <ref>.",
+  "exclusiones": [
+    {
+      "ruta": "Bundle.entry[?]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[16]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance].resource.encounter",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5].resource.encounter",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Encounter-0; ids: ) (log:  (url: Encounter-0; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance].resource.encounter",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5].resource/*AllergyIntolerance/AllergyIntolerance-0*/.encounter",
+        "mensaje": "Unable to resolve resource with reference '#Encounter-0'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance].resource.patient",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5].resource.patient",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-00000000; ids: ) (log:  (url: CC-00000000; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance].resource.patient",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5].resource/*AllergyIntolerance/AllergyIntolerance-0*/.patient",
+        "mensaje": "Unable to resolve resource with reference '#CC-00000000'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[AllergyIntolerance]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[5]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.attester[*].party",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.attester[0].party",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-1111111; ids: ) (log:  (url: CC-1111111; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.attester[*].party",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.attester[0].party",
+        "mensaje": "Unable to resolve resource with reference '#CC-1111111'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.author[*]",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.author[0]",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Códigohabilitaciónprestador; ids: ) (log:  (url: Códigohabilitaciónprestador; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.author[*]",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.author[0]",
+        "mensaje": "Unable to resolve resource with reference '#Códigohabilitaciónprestador'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.custodian",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.custodian",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Códigohabilitaciónprestador; ids: ) (log:  (url: Códigohabilitaciónprestador; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.custodian",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.custodian",
+        "mensaje": "Unable to resolve resource with reference '#Códigohabilitaciónprestador'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.encounter",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.encounter",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Encounter-0; ids: ) (log:  (url: Encounter-0; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.encounter",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.encounter",
+        "mensaje": "Unable to resolve resource with reference '#Encounter-0'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.section[*].entry[*]",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.section[0].entry[0]",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CCFC33; ids: ) (log:  (url: CCFC33; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.section[*].entry[*]",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.section[0].entry[0]",
+        "mensaje": "Unable to resolve resource with reference '#CCFC33'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.subject",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource.subject",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-00000000; ids: ) (log:  (url: CC-00000000; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition].resource.subject",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0].resource/*Composition/null*/.subject",
+        "mensaje": "Unable to resolve resource with reference '#CC-00000000'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Composition]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[0]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Condition].resource.subject",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[4].resource.subject",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-00000000; ids: ) (log:  (url: CC-00000000; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Condition].resource.subject",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[4].resource/*Condition/Condition-0*/.subject",
+        "mensaje": "Unable to resolve resource with reference '#CC-00000000'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Condition]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[4]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Condition]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[4]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.author[*]",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource.author[0]",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Códigohabilitaciónprestador; ids: ) (log:  (url: Códigohabilitaciónprestador; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.author[*]",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource/*DocumentReference/DocumentReference-0*/.author[0]",
+        "mensaje": "Unable to resolve resource with reference '#Códigohabilitaciónprestador'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.content[*].attachment",
+      "mensaje": "Constraint failed: att-1: 'If the Attachment has data, it SHALL have a contentType'",
+      "causa": "artefacto-oficial",
+      "clase": "D7",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource.content[0].attachment",
+        "mensaje": "Constraint failed: att-1: 'If the Attachment has data, it SHALL have a contentType'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.context.encounter[*]",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource.context.encounter[0]",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Encounter-0; ids: ) (log:  (url: Encounter-0; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.context.encounter[*]",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource/*DocumentReference/DocumentReference-0*/.context.encounter[0]",
+        "mensaje": "Unable to resolve resource with reference '#Encounter-0'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.custodian",
+      "mensaje": "Relative Reference appears inside Bundle whose entry is missing a fullUrl",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource/*DocumentReference/DocumentReference-0*/.custodian",
+        "mensaje": "Relative Reference appears inside Bundle whose entry is missing a fullUrl"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.subject",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource.subject",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-00000000; ids: ) (log:  (url: CC-00000000; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference].resource.subject",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15].resource/*DocumentReference/DocumentReference-0*/.subject",
+        "mensaje": "Unable to resolve resource with reference '#CC-00000000'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference]",
+      "mensaje": "Bundle entry missing fullUrl",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15]",
+        "mensaje": "Bundle entry missing fullUrl"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[DocumentReference]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[15]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.diagnosis[*].condition",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.diagnosis[0].condition",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Condition-0; ids: ) (log:  (url: Condition-0; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.diagnosis[*].condition",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.diagnosis[0].condition",
+        "mensaje": "Unable to resolve resource with reference '#Condition-0'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.diagnosis[*]",
+      "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDiagnosisType v1.0.0 is not allowed to be used at this point (this element is [BackboneElement, Bundle.entry.resource.diagnosis, Bundle.entry.resource.diagnosis, Encounter.diagnosis]; allowed for this version = e:Procedure)",
+      "causa": "artefacto-oficial",
+      "clase": "G-CONTEXTO-EXTENSION",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.diagnosis[0]",
+        "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDiagnosisType v1.0.0 is not allowed to be used at this point (this element is [BackboneElement, Bundle.entry.resource.diagnosis, Bundle.entry.resource/*Encounter/Encounter-0*/.diagnosis, Encounter.diagnosis]; allowed for this version = e:Procedure)"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.participant[*].individual",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.participant[0].individual",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-1111111; ids: ) (log:  (url: CC-1111111; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.participant[*].individual",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.participant[0].individual",
+        "mensaje": "Unable to resolve resource with reference '#CC-1111111'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.participant[*]",
+      "mensaje": "Slicing cannot be evaluated: Could not match discriminator (type) for slice Encounter.participant:AttenderPhysician in profile https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA|1.0.0 - the discriminator [type] does not have fixed value, binding or existence assertions",
+      "causa": "artefacto-oficial",
+      "clase": "G-SLICE-PARTICIPANT",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.participant[0]",
+        "mensaje": "Slicing cannot be evaluated: Could not match discriminator (type) for slice Encounter.participant:AttenderPhysician in profile https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA|1.0.0 - the discriminator [type] does not have fixed value, binding or existence assertions"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.period",
+      "mensaje": "Problem processing expression 'start.toDate() >= today() - 1 year and end.toDate() >= today() - 1 year' in profile 'https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA|1.0.0' at path 'Bundle.entry[Encounter].resource.period': Error @1, 14: The name toDate is not a known function name",
+      "causa": "artefacto-oficial",
+      "clase": "G-FHIRPATH-TODATE",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.period",
+        "mensaje": "Problem processing expression 'start.toDate() >= today() - 1 year and end.toDate() >= today() - 1 year' in profile 'https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA|1.0.0' at path 'Bundle.entry[7].resource/*Encounter/Encounter-0*/.period': Error @1, 14: The name toDate is not a known function name"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.serviceProvider",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.serviceProvider",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: Códigohabilitaciónprestador; ids: ) (log:  (url: Códigohabilitaciónprestador; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.serviceProvider",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.serviceProvider",
+        "mensaje": "Unable to resolve resource with reference '#Códigohabilitaciónprestador'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.subject",
+      "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: <ref>; ids: <ids>) (log:  (url: <ref>; ids: <ids>))",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.subject",
+        "mensaje": "Constraint failed: ref-1: 'SHALL have a contained resource if a local reference is provided' (url: CC-00000000; ids: ) (log:  (url: CC-00000000; ids: ))"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter].resource.subject",
+      "mensaje": "Unable to resolve resource with reference '<ref>'",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7].resource/*Encounter/Encounter-0*/.subject",
+        "mensaje": "Unable to resolve resource with reference '#CC-00000000'"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Encounter]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[7]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Patient].resource.gender",
+      "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender v1.0.0 is not allowed to be used at this point (this element is [Bundle.entry.resource.gender, Bundle.entry.resource.gender, Patient.gender, code]; allowed for this version = e:Patient)",
+      "causa": "artefacto-oficial",
+      "clase": "G-CONTEXTO-EXTENSION",
+      "evidencia": {
+        "artefacto": "Bundle-Output-ConsultarInmunizacion.json",
+        "ruta": "Bundle.entry[2].resource/*Patient/92a8e277-af20-4854-a3fb-02cbe9fb8d49*/.gender",
+        "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender v1.0.0 is not allowed to be used at this point (this element is [Bundle.entry.resource.gender, Bundle.entry.resource/*Patient/92a8e277-af20-4854-a3fb-02cbe9fb8d49*/.gender, Patient.gender, code]; allowed for this version = e:Patient)"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Patient].resource.gender",
+      "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender v1.0.0 is not allowed to be used at this point (this element is [Bundle.entry.resource.gender, Patient.gender, code]; allowed for this version = e:Patient)",
+      "causa": "artefacto-oficial",
+      "clase": "G-CONTEXTO-EXTENSION",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[1].resource.gender",
+        "mensaje": "The extension https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender v1.0.0 is not allowed to be used at this point (this element is [Bundle.entry.resource.gender, Patient.gender, code]; allowed for this version = e:Patient)"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Patient]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "Bundle-Output-ConsultarInmunizacion.json",
+        "ruta": "Bundle.entry[2]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Practitioner]",
+      "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[3]",
+        "mensaje": "Entry  isn't reachable by traversing links (forward or backward) from the Composition"
+      }
+    },
+    {
+      "ruta": "Bundle.entry[Practitioner]",
+      "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle.entry[3]",
+        "mensaje": "Except for transactions and batches, each entry in a Bundle must have a fullUrl which is the identity of the resource in the entry"
+      }
+    },
+    {
+      "ruta": "Bundle",
+      "mensaje": "Constraint failed: bdl-9: 'A document must have an identifier with a system and a value' (defined in http://hl7.org/fhir/StructureDefinition/Bundle)",
+      "causa": "artefacto-oficial",
+      "clase": "D3",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle",
+        "mensaje": "Constraint failed: bdl-9: 'A document must have an identifier with a system and a value' (defined in http://hl7.org/fhir/StructureDefinition/Bundle)"
+      }
+    },
+    {
+      "ruta": "Bundle",
+      "mensaje": "Found <n> matches for 'Organization/MinSalud' in the bundle (Bundle.entry[DocumentReference].resource.custodian)",
+      "causa": "artefacto-oficial",
+      "clase": "G-MINSALUD-REF",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle",
+        "mensaje": "Found 16 matches for 'Organization/MinSalud' in the bundle (Bundle.entry[15].resource.custodian)"
+      }
+    },
+    {
+      "ruta": "Bundle",
+      "mensaje": "Slice 'Bundle.entry:CompositionResource': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle",
+        "mensaje": "Slice 'Bundle.entry:CompositionResource': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice"
+      }
+    },
+    {
+      "ruta": "Bundle",
+      "mensaje": "Slice 'Bundle.entry:DocumentReferenceResources': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle",
+        "mensaje": "Slice 'Bundle.entry:DocumentReferenceResources': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice"
+      }
+    },
+    {
+      "ruta": "Bundle",
+      "mensaje": "Slice 'Bundle.entry:PatientResource': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice",
+      "causa": "artefacto-oficial",
+      "clase": "D1",
+      "evidencia": {
+        "artefacto": "postman-enviar-rda-consulta-externa.json",
+        "ruta": "Bundle",
+        "mensaje": "Slice 'Bundle.entry:PatientResource': a matching slice is required, but not found (from https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0). Note that other slices are allowed in addition to this required slice"
+      }
+    }
+  ],
+  "sinEvidencia": [
+    {
+      "ruta": "Bundle.entry[Practitioner]",
+      "mensaje": "Profile https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0, Element matches more than one slice - PractitionerResource, ProcedureResources",
+      "clase": "G-SLICE-RESOURCE"
+    }
+  ],
+  "decisionesPropietario": []
+}
