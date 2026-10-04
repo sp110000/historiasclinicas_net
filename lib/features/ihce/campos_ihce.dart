@@ -216,12 +216,14 @@ class _CredencialesMinSaludState extends ConsumerState<CredencialesMinSalud> {
   // Solo en memoria mientras se escribe; se borran al guardar.
   final _clientId = TextEditingController();
   final _secreto = TextEditingController();
+  final _clave = TextEditingController();
   var _guardando = false;
 
   @override
   void dispose() {
     _clientId.dispose();
     _secreto.dispose();
+    _clave.dispose();
     super.dispose();
   }
 
@@ -233,9 +235,11 @@ class _CredencialesMinSaludState extends ConsumerState<CredencialesMinSalud> {
           .guardar(
             clientId: _clientId.text.trim().isEmpty ? null : _clientId.text,
             clientSecret: _secreto.text.trim().isEmpty ? null : _secreto.text,
+            subscriptionKey: _clave.text.trim().isEmpty ? null : _clave.text,
           );
       _clientId.clear();
       _secreto.clear();
+      _clave.clear();
       ref.invalidate(credencialesGuardadasProvider);
       unawaited(ref.read(servicioIhceProvider)?.procesarPendientes());
     } finally {
@@ -269,6 +273,15 @@ class _CredencialesMinSaludState extends ConsumerState<CredencialesMinSalud> {
               oculto: true,
               mayusculas: TextCapitalization.none,
               ayuda: guardadas ? 'Configurado' : null,
+              alCambiar: (_) {},
+            ),
+            // La colección Postman v1.5 envía `Ocp-Apim-Subscription-Key`
+            // en todas las peticiones al API (CAMBIOS_UI.md).
+            CampoTexto(
+              etiqueta: 'Clave de suscripción de MinSalud',
+              controller: _clave,
+              oculto: true,
+              mayusculas: TextCapitalization.none,
               alCambiar: (_) {},
             ),
           ],

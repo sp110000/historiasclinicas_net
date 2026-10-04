@@ -176,6 +176,7 @@ class Banco {
     bool conCredenciales = true,
     RepositorioIhce? repositorio,
     this.crearCliente,
+    void Function()? alCambiar,
   }) : config = config ?? configDePrueba(),
        servidor = servidor ?? ServidorSimulado() {
     this.repositorio = repositorio ?? RepositorioIhce(AlmacenKvMemoria());
@@ -201,6 +202,7 @@ class Banco {
       registro: registro,
       azar: Random(7),
       crearCliente: crearCliente,
+      alCambiar: alCambiar,
     );
   }
 
