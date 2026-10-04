@@ -101,23 +101,23 @@ La entrada es `0..1` en `BundleAmbulatoryRDA`; `custodian` y `serviceProvider` s
 | Elemento | Card. | Origen | Transformación | Estado |
 | --- | --- | --- | --- | --- |
 | `content.attachment.data` | 1..1 | `generarPdfHistoria` (`historia_pdf.dart:34`) | PDF con capa de texto y sin contraseña, generado una vez por versión del documento y persistido cifrado; ≤ `IHCE_ATTACHMENT_MAX_BYTES` | DERIVABLE |
-| `content.attachment.contentType` | — | — | `application/pdf` (Manual §5.4.7) | OK |
+| `content.attachment.contentType` | **0..0** | — | **no se envía**: el perfil lo prohíbe; el tipo va en `content.format` (fijo). El Manual §5.4.7 y `att-1` dicen lo contrario: manda la estructura ([DESVIACIONES.md](DESVIACIONES.md) D7) | OK |
 | `type`, `category`, `description`, `securityLabel`, `custodian`, `content.format`, `status` | 1..1 | — | fijos/patrones del perfil (`custodian = Organization/MinSalud`) | OK |
 | `subject`, `author`, `date`, `context.encounter` | 1..1 | paciente, prestador, `finalizadaEn`, atención | referencias; `date` instante con zona | DERIVABLE |
 
 ## 3. Secciones sin entradas codificables
 
-El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no justifican campos (regla 10). Se envía `emptyReason` (CodeSystem `list-empty-reason` de FHIR R4, fijado) con `text` narrativo (Manual §5.4.3b). Para no afirmar algo falso, el código depende de lo que haya en la historia:
+El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no justifican campos (regla 10). Sin entradas codificadas, la sección va con `emptyReason` y `text` narrativo (Manual §5.4.3b). `CompositionAmbulatoryRDA` **fija** `emptyReason = nilknown` en todas ellas (corrección de esta matriz tras la capa 2; [DESVIACIONES.md](DESVIACIONES.md) D8): no se puede enviar `notasked` ni `unavailable`. Para no perder ni falsear lo registrado:
 
-| Sección | Dato en la historia | `emptyReason` |
+| Sección | Dato en la historia | Sección enviada |
 | --- | --- | --- |
-| `sectionPayers` (EAPB) | `aseguradora` texto sin código ADRES | con texto: `unavailable` + narrativa con el texto; vacío: `notasked` |
+| `sectionPayers` (EAPB) | `aseguradora` texto sin código ADRES | `nilknown` + texto estándar del Manual; si hay texto, se añade a la narrativa («Registrado solo como texto libre, sin codificación: …») |
 | `sectionHistoryOfOccupation` | `ocupacion` texto sin código CIUO | ídem |
-| `sectionAttendanceAllowance` (incapacidad) | no se captura | `notasked` |
-| `sectionMedications` | receta de texto libre (fuera de la historia) | `notasked` |
-| `sectionAllergies` | `niegaAlergias` / etiquetas de texto | niega: `nilknown` + texto estándar del Manual (Anexo 47.1: «cuando no presente alergias conocidas, este dato debe venir vacío»); etiquetas: `unavailable` + narrativa con las etiquetas (**nunca** `nilknown` si hay alergias); sin dato: `notasked` |
-| `sectionRiskFactors` | `habitos` texto | con texto: `unavailable` + narrativa; vacío: `notasked` |
-| `sectionServiceRequests` | `examenesSolicitados`, `interconsultas` texto sin CUPS | con texto: `unavailable` + narrativa; vacío: `notasked` |
+| `sectionAttendanceAllowance` (incapacidad) | no se captura | `nilknown` + texto estándar |
+| `sectionMedications` | receta de texto libre (fuera de la historia) | `nilknown` + texto estándar |
+| `sectionAllergies` | `niegaAlergias` / etiquetas de texto con su tipo | niega o sin alergias: `nilknown` + texto estándar (Anexo 47.1: «cuando no presente alergias conocidas, este dato debe venir vacío»). Alergias con **tipo** (campo «Tipo: ‹alergia›», [CAMBIOS_UI.md](CAMBIOS_UI.md)) → `AllergyIntoleranceRDA` en `entry`. Alergias **sin tipo** → **bloquea** (`INVALIDO_LOCAL`): `nilknown` afirmaría «sin alergias conocidas» |
+| `sectionRiskFactors` | `habitos` texto | `nilknown` + texto estándar + texto libre en la narrativa |
+| `sectionServiceRequests` | `examenesSolicitados`, `interconsultas` texto sin CUPS | ídem |
 | `sectionClarificationNotes` | — | se omite (`0..1`) |
 | `sectionProblems` | diagnósticos | **entradas obligatorias** (`1..*`): sin Condition codificado bloquea |
 | `sectionAddendumDocuments` | PDF | entrada obligatoria; `emptyReason` prohibido |
@@ -133,6 +133,7 @@ El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no jus
 | Fecha de nacimiento cuando solo hay edad aproximada | campo existente | **bloquea** hasta registrar la fecha |
 | CIE-10 del diagnóstico principal sin código | campo existente | **bloquea** hasta codificar |
 | Tipo de consulta sin elegir o «urgencia» | campo existente | bloquea; «urgencia» es RDA de urgencias (P1) |
-| Alergias, ocupación, EAPB, factores de riesgo, órdenes y medicamentos codificados | — | **abierta**: viajan como narrativa con `emptyReason`; mappers listos para cuando existan datos codificados |
+| Tipo de cada alergia registrada (`AllergyIntoleranceRDA.code`) | (3) campo «Tipo: ‹alergia›» en Antecedentes | cerrada; sin tipo **bloquea** (D8) |
+| Ocupación, EAPB, factores de riesgo, órdenes y medicamentos codificados | — | **abierta**: el texto libre viaja en la narrativa con `emptyReason = nilknown`; mappers listos (T17) para cuando existan datos codificados |
 | Evoluciones como RDA propios | — | **abierta**: sin diagnóstico por evolución (P1) |
 | Urgencias, hospitalización, resumen del paciente | — | **abierta**: el producto no captura esos datos (P1, puntos de extensión) |
