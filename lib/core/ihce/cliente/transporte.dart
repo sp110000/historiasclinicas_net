@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -118,8 +119,14 @@ class TransporteHttp implements TransporteIhce {
       final r = await _cliente
           .send(peticion)
           .timeout(timeoutConexion + timeoutLectura);
-      final cuerpo = await r.stream.bytesToString().timeout(timeoutLectura);
-      return RespuestaHttp(r.statusCode, cuerpo, r.headers);
+      // FHIR exige UTF-8; un byte inválido no debe tumbar la clasificación
+      // de la respuesta (se reemplaza por U+FFFD).
+      final bytes = await r.stream.toBytes().timeout(timeoutLectura);
+      return RespuestaHttp(
+        r.statusCode,
+        utf8.decode(bytes, allowMalformed: true),
+        r.headers,
+      );
     } on TimeoutException catch (e) {
       throw FalloRed('timeout', '$e');
     } on http.ClientException catch (e) {

@@ -59,9 +59,11 @@ class GestorToken {
       return Future.value(vigente);
     }
     final clave = _clave;
-    return _enCurso[clave] ??= _pedir(
-      credenciales,
-    ).whenComplete(() => _enCurso.remove(clave));
+    // El callback no devuelve nada: si devolviera el Future quitado del
+    // mapa, whenComplete lo esperaría y el Future se esperaría a sí mismo.
+    return _enCurso[clave] ??= _pedir(credenciales).whenComplete(() {
+      _enCurso.remove(clave);
+    });
   }
 
   Future<Object> _pedir(CredencialesIhce c) async {
