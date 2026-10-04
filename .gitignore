@@ -47,3 +47,12 @@ app.*.map.json
 # Pruebas e2e
 /tool/e2e/node_modules
 /tool/e2e/package-lock.json
+
+# IHCE: artefactos de la guía (CC BY-NC-SA 4.0), documentos de MinSalud y
+# validador. Se bajan con tool/ihce/fetch_fhir_tooling.sh y se fijan por
+# huella en vendor/fhir/VERSIONS.lock (que sí se versiona).
+/vendor/fhir/minsalud.fhir.co.rda/
+/vendor/fhir/ejemplos/
+/vendor/fhir/hl7.fhir.r4.core/
+/vendor/fhir/fuentes/
+/tools/fhir/
