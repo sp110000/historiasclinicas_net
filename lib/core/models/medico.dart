@@ -22,6 +22,11 @@ class Medico {
     this.logo,
     this.firma,
     this.sello,
+    this.tipoDocumento = '',
+    this.primerApellido = '',
+    this.segundoApellido = '',
+    this.nombres = '',
+    this.codigoRethus = '',
   });
 
   /// Lee el formato de almacenamiento local (imágenes en base64).
@@ -44,6 +49,11 @@ class Medico {
       logo: imagen('logo'),
       firma: imagen('firma'),
       sello: imagen('sello'),
+      tipoDocumento: m.texto('tipoDocumento'),
+      primerApellido: m.texto('primerApellido'),
+      segundoApellido: m.texto('segundoApellido'),
+      nombres: m.texto('nombres'),
+      codigoRethus: m.texto('codigoRethus'),
     );
   }
 
@@ -66,6 +76,18 @@ class Medico {
   final Uint8List? firma;
   final Uint8List? sello;
 
+  // Identificación para el RDA (módulo IHCE): el perfil exige el tipo de
+  // documento, los apellidos y nombres por separado y la profesión RETHUS.
+
+  /// Código local de tipo de documento (como el del paciente).
+  final String tipoDocumento;
+  final String primerApellido;
+  final String segundoApellido;
+  final String nombres;
+
+  /// Código `RETHUSqualification` de la profesión.
+  final String codigoRethus;
+
   /// Con nombre y registro ya puede figurar en los documentos.
   bool get configurado =>
       nombre.trim().isNotEmpty && registro.trim().isNotEmpty;
@@ -85,6 +107,11 @@ class Medico {
     Object? logo = sin,
     Object? firma = sin,
     Object? sello = sin,
+    String? tipoDocumento,
+    String? primerApellido,
+    String? segundoApellido,
+    String? nombres,
+    String? codigoRethus,
   }) => Medico(
     nombre: nombre ?? this.nombre,
     especialidad: especialidad ?? this.especialidad,
@@ -98,6 +125,11 @@ class Medico {
     logo: cambio(logo, this.logo),
     firma: cambio(firma, this.firma),
     sello: cambio(sello, this.sello),
+    tipoDocumento: tipoDocumento ?? this.tipoDocumento,
+    primerApellido: primerApellido ?? this.primerApellido,
+    segundoApellido: segundoApellido ?? this.segundoApellido,
+    nombres: nombres ?? this.nombres,
+    codigoRethus: codigoRethus ?? this.codigoRethus,
   );
 
   Map<String, Object?> aAlmacen() => compacto({
@@ -113,6 +145,11 @@ class Medico {
     'logo': logo == null ? null : base64Encode(logo!),
     'firma': firma == null ? null : base64Encode(firma!),
     'sello': sello == null ? null : base64Encode(sello!),
+    'tipoDocumento': tipoDocumento,
+    'primerApellido': primerApellido,
+    'segundoApellido': segundoApellido,
+    'nombres': nombres,
+    'codigoRethus': codigoRethus,
   });
 }
 

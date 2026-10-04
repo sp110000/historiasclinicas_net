@@ -19,6 +19,11 @@ class Paciente {
     this.acompananteNombre = '',
     this.acompananteParentesco = '',
     this.acompananteTelefono = '',
+    this.nacionalidad = '',
+    this.paisResidencia = '',
+    this.etnia = '',
+    this.discapacidad = '',
+    this.zonaResidencia = '',
   });
 
   factory Paciente.desdeMapa(Map<String, Object?> m) => Paciente(
@@ -39,6 +44,11 @@ class Paciente {
     acompananteNombre: m.texto('acompananteNombre'),
     acompananteParentesco: m.texto('acompananteParentesco'),
     acompananteTelefono: m.texto('acompananteTelefono'),
+    nacionalidad: m.texto('nacionalidad'),
+    paisResidencia: m.texto('paisResidencia'),
+    etnia: m.texto('etnia'),
+    discapacidad: m.texto('discapacidad'),
+    zonaResidencia: m.texto('zonaResidencia'),
   );
 
   final String primerApellido;
@@ -62,6 +72,24 @@ class Paciente {
   final String acompananteNombre;
   final String acompananteParentesco;
   final String acompananteTelefono;
+
+  // Datos del RDA (Resolución 1888 de 2025). Solo se capturan con el módulo
+  // IHCE habilitado; son códigos de los catálogos de la guía.
+
+  /// Código ISO 3166-1 numérico (`ExtensionPatientNationality`).
+  final String nacionalidad;
+
+  /// Código ISO 3166-1 numérico del país de residencia.
+  final String paisResidencia;
+
+  /// Código `ColombianEthnicGroup`.
+  final String etnia;
+
+  /// Código `ColombianDisabilityClassification`.
+  final String discapacidad;
+
+  /// Código `ColombianResidenceZone`.
+  final String zonaResidencia;
 
   String get apellidos => [
     primerApellido.trim(),
@@ -103,6 +131,11 @@ class Paciente {
     String? acompananteNombre,
     String? acompananteParentesco,
     String? acompananteTelefono,
+    String? nacionalidad,
+    String? paisResidencia,
+    String? etnia,
+    String? discapacidad,
+    String? zonaResidencia,
   }) => Paciente(
     primerApellido: primerApellido ?? this.primerApellido,
     segundoApellido: segundoApellido ?? this.segundoApellido,
@@ -121,6 +154,11 @@ class Paciente {
     acompananteNombre: acompananteNombre ?? this.acompananteNombre,
     acompananteParentesco: acompananteParentesco ?? this.acompananteParentesco,
     acompananteTelefono: acompananteTelefono ?? this.acompananteTelefono,
+    nacionalidad: nacionalidad ?? this.nacionalidad,
+    paisResidencia: paisResidencia ?? this.paisResidencia,
+    etnia: etnia ?? this.etnia,
+    discapacidad: discapacidad ?? this.discapacidad,
+    zonaResidencia: zonaResidencia ?? this.zonaResidencia,
   );
 
   Map<String, Object?> aMapa() => compacto({
@@ -143,5 +181,10 @@ class Paciente {
     'acompananteNombre': acompananteNombre,
     'acompananteParentesco': acompananteParentesco,
     'acompananteTelefono': acompananteTelefono,
+    'nacionalidad': nacionalidad,
+    'paisResidencia': paisResidencia,
+    'etnia': etnia,
+    'discapacidad': discapacidad,
+    'zonaResidencia': zonaResidencia,
   });
 }
