@@ -49,6 +49,14 @@ Map<String, Object?> datosSinteticos({
   String? sexo = 'F',
   DateTime? fechaNacimiento,
   String etnia = '99',
+  // Texto libre sin codificar: vacío por defecto, porque con contenido la
+  // sección del RDA no puede ir con «nada conocido» y el RDA se bloquea.
+  String ocupacion = '',
+  String aseguradora = '',
+  String habitos = '',
+  String planTerapeutico = '',
+  String examenesSolicitados = '',
+  String interconsultas = '',
 }) {
   final i = inicio ?? DateTime(2026, 1, 15, 10, 30);
   final f = fin ?? i.add(const Duration(minutes: 25));
@@ -72,13 +80,20 @@ Map<String, Object?> datosSinteticos({
       etnia: etnia,
       discapacidad: '08',
       zonaResidencia: '01',
-      ocupacion: 'Oficio de prueba',
+      ocupacion: ocupacion,
+      aseguradora: aseguradora,
     ),
     motivoConsulta: 'Motivo sintético',
     enfermedadActual: 'Relato sintético',
     antecedentes: Antecedentes(
       alergias: alergias,
       niegaAlergias: niegaAlergias,
+      habitos: habitos,
+    ),
+    plan: PlanTratamiento(
+      planTerapeutico: planTerapeutico,
+      examenesSolicitados: examenesSolicitados,
+      interconsultas: interconsultas,
     ),
     diagnosticos: [
       Diagnostico(

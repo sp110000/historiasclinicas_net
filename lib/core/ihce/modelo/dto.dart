@@ -268,8 +268,9 @@ class MedicamentoDto {
   final String? instrucciones;
 }
 
-/// Texto libre que no se codifica: viaja como narrativa de la sección con
-/// `emptyReason` (MATRIZ_RDA §3).
+/// Texto libre sin codificar. Si una sección del RDA tiene texto aquí y no
+/// tiene entradas codificadas, el RDA no puede declarar «nada conocido»
+/// (`emptyReason = nilknown`) en ella: se bloquea (MATRIZ_RDA §3).
 class TextosLibresDto {
   const TextosLibresDto({
     this.alergias = const [],
@@ -279,6 +280,7 @@ class TextosLibresDto {
     this.habitos = '',
     this.examenes = '',
     this.interconsultas = '',
+    this.planTerapeutico = '',
   });
 
   final List<String> alergias;
@@ -288,6 +290,10 @@ class TextosLibresDto {
   final String habitos;
   final String examenes;
   final String interconsultas;
+
+  /// Plan terapéutico: donde queda la fórmula («Se formuló…», ver
+  /// `Receta.textoParaHistoria`) y cualquier medicamento escrito a mano.
+  final String planTerapeutico;
 }
 
 /// Todo lo que necesita el ensamblador para una atención.

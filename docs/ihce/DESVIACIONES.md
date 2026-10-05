@@ -46,9 +46,29 @@ El CodeSystem `http://hl7.org/fhir/sid/icd-10` de la guía es un `fragment` de 3
 
 `DocumentReferenceEPIRDA` declara `content.attachment.contentType` **0..0**; el Manual §5.4.7 menciona `application/pdf` y la invariante `att-1` de FHIR R4 exige `contentType` cuando hay `data`. **Resolución:** manda la estructura (StructureDefinition): se omite y el tipo va en `content.format` (fijo del perfil). El hallazgo `att-1` se reproduce en el cuerpo oficial (línea base, clase D7). La matriz se corrigió en este sentido.
 
-## D8. `emptyReason` fijo en las secciones de consulta
+## D8. `emptyReason` fijo y secciones con contenido sin codificar
 
-`CompositionAmbulatoryRDA` fija `emptyReason = nilknown` («nada conocido») en las secciones opcionales. **Resolución:** las secciones sin entradas codificadas van con `nilknown` y el texto estándar del Manual §5.4.3b; el texto libre que la historia tenga para esa sección (aseguradora, ocupación, hábitos, órdenes) se conserva en la narrativa `section.text`. Con alergias registradas **sin tipo codificado** el RDA se bloquea (`INVALIDO_LOCAL`): enviar `nilknown` afirmaría «sin alergias conocidas». Por eso existe el campo «Tipo» por alergia ([CAMBIOS_UI.md](CAMBIOS_UI.md)).
+`CompositionAmbulatoryRDA` declara las 8 secciones clínicas 1..1, con `emptyReason` 0..1 cuyo código está **fijo** en `nilknown` («nada conocido»), y el Manual §5.4.3b (regla que valida el servidor) exige `emptyReason` con el texto estándar en toda sección sin entradas. Una sección con contenido no puede, entonces, ir vacía sin afirmar algo falso.
+
+**Regla (cierre 1.2, instrucción del propietario):** ningún RDA declara «nada conocido» en una sección para la que la atención tiene contenido. Opciones, en el orden pedido:
+
+1. **Recurso estructurado sin código.** Se analizó cada perfil de entrada construyendo el candidato más conforme posible solo con texto y datos estructurados (sin inventar códigos ni deducirlos del texto) y validándolo con el validador oficial de HL7 (`-tx n/a`); los candidatos y reportes quedan en `build/ihce/analisis-secciones/`. Ninguno es posible:
+
+| Sección | Perfil de entrada | Código obligatorio que la app no tiene | Error del validador con solo texto |
+| --- | --- | --- | --- |
+| `sectionMedications` | `MedicationRequestRDA` | `medication[x].coding` 1..* (DCI de MipresINN o IUM, slicing cerrado); `reasonCode` 1..1 (finalidad RIPS, binding required); `doseAndRate` 1..* (UMM o MipresDoseForm); `timing.repeat.duration`/`durationUnit` 1..1 | «medication[x].coding: minimum required = 1, but only found 0», «No code provided, and a code is required…», «doseAndRate: minimum required = 1…» |
+| `sectionServiceRequests` | `ServiceRequestRDA` | `reasonCode` 1..1, binding required a `RIPSFinalidadConsultaVersion2Codigos` (`code` sí admite solo texto) | «No code provided, and a code is required from the value set 'Colombian Encounter ReasonCode'» |
+| `sectionServiceRequests` | `OtherTechnologyServiceRequestRDA` | ídem (`reasonCode` 1..1, binding required) | ídem |
+| `sectionHistoryOfOccupation` | `PatientOccupationAtEncounterRDA` | `value[x].coding` 1..1 (CIUO-88 A.C.); `value[x].text`, `note` y `dataAbsentReason` son 0..0 | «value[x].coding: minimum required = 1», «value[x].text: max allowed = 0» |
+| `sectionPayers` | `HealthBenefitPlanAdminOrganizationRDA` | en análisis (se completa en el siguiente commit) | — |
+| `sectionRiskFactors` | `RiskFactorRDA` | en análisis (se completa en el siguiente commit) | — |
+
+2. **Otro código de `emptyReason`:** imposible; el perfil fija `nilknown` en todas las secciones.
+3. **Bloqueo:** si la sección tiene texto libre sin codificar (fórmula o cualquier texto del plan terapéutico, exámenes, interconsultas, ocupación, aseguradora, hábitos, alergias sin tipo), el RDA queda `INVALIDO_LOCAL` con un motivo en lenguaje llano que nombra la sección y el dato codificado que falta (`contenidoSinCodificar`, `ensamblador.dart`). También bloquea cuando la sección tiene algunas entradas codificadas y otro contenido sin codificar (p. ej. alergias con y sin tipo), para no enviar una lista incompleta como si fuera completa. Prueba: `test/ihce/secciones_contenido_test.dart`.
+
+La narrativa de una sección vacía es solo el texto estándar del Manual: ya no se le añade texto libre, porque una sección con texto libre ya no se envía.
+
+**Consecuencia:** con la captura actual, una consulta con fórmula, órdenes, ocupación, aseguradora o hábitos escritos no genera RDA. Para enviarlos hace falta capturar esos datos codificados (CIUO-88, código EAPB, CUPS y finalidad RIPS, DCI/IUM con dosis UMM, factores de riesgo), una decisión de producto que implica campos nuevos (regla 10).
 
 ## Otras decisiones de formato de transmisión
 

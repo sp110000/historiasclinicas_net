@@ -107,20 +107,28 @@ La entrada es `0..1` en `BundleAmbulatoryRDA`; `custodian` y `serviceProvider` s
 
 ## 3. Secciones sin entradas codificables
 
-El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no justifican campos (regla 10). Sin entradas codificadas, la sección va con `emptyReason` y `text` narrativo (Manual §5.4.3b). `CompositionAmbulatoryRDA` **fija** `emptyReason = nilknown` en todas ellas (corrección de esta matriz tras la capa 2; [DESVIACIONES.md](DESVIACIONES.md) D8): no se puede enviar `notasked` ni `unavailable`. Para no perder ni falsear lo registrado:
+El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no justifican campos (regla 10). Sin entradas, la sección debe llevar `emptyReason` y `text` narrativo (Manual §5.4.3b, regla que valida el servidor). `CompositionAmbulatoryRDA` **fija** el código de `emptyReason` en `nilknown` («nada conocido») en todas ellas: no se puede enviar `notasked` ni `unavailable` ([DESVIACIONES.md](DESVIACIONES.md) D8).
 
-| Sección | Dato en la historia | Sección enviada |
+**Regla (cierre 1.2):** ningún RDA declara «nada conocido» en una sección para la que la atención tiene contenido. Se aplicó en este orden:
+
+1. **Recurso estructurado sin código:** ningún perfil de entrada lo admite (análisis por perfil con el validador de HL7 en [DESVIACIONES.md](DESVIACIONES.md) D8).
+2. **Otro código de `emptyReason`:** imposible; el código es fijo.
+3. **Bloqueo:** si la sección tiene texto libre sin codificar, el RDA queda `INVALIDO_LOCAL` y el motivo dice qué sección y qué dato codificado falta (`contenidoSinCodificar`, `ensamblador.dart`; prueba `test/ihce/secciones_contenido_test.dart`).
+
+| Sección | Contenido en la historia | Sección enviada |
 | --- | --- | --- |
-| `sectionPayers` (EAPB) | `aseguradora` texto sin código ADRES | `nilknown` + texto estándar del Manual; si hay texto, se añade a la narrativa («Registrado solo como texto libre, sin codificación: …») |
-| `sectionHistoryOfOccupation` | `ocupacion` texto sin código CIUO | ídem |
+| `sectionPayers` (EAPB) | `paciente.aseguradora` (texto, sin código EAPB) | vacío: `nilknown` + texto estándar. Con texto: **bloquea** |
+| `sectionHistoryOfOccupation` | `paciente.ocupacion` (texto, sin código CIUO-88) | vacío: `nilknown`. Con texto: **bloquea** |
 | `sectionAttendanceAllowance` (incapacidad) | no se captura | `nilknown` + texto estándar |
-| `sectionMedications` | receta de texto libre (fuera de la historia) | `nilknown` + texto estándar |
-| `sectionAllergies` | `niegaAlergias` / etiquetas de texto con su tipo | niega o sin alergias: `nilknown` + texto estándar (Anexo 47.1: «cuando no presente alergias conocidas, este dato debe venir vacío»). Alergias con **tipo** (campo «Tipo: ‹alergia›», [CAMBIOS_UI.md](CAMBIOS_UI.md)) → `AllergyIntoleranceRDA` en `entry`. Alergias **sin tipo** → **bloquea** (`INVALIDO_LOCAL`): `nilknown` afirmaría «sin alergias conocidas» |
-| `sectionRiskFactors` | `habitos` texto | `nilknown` + texto estándar + texto libre en la narrativa |
-| `sectionServiceRequests` | `examenesSolicitados`, `interconsultas` texto sin CUPS | ídem |
+| `sectionMedications` | `plan.planTerapeutico`: ahí queda la fórmula («Se formuló…», `Receta.textoParaHistoria`) y cualquier medicamento escrito a mano | vacío: `nilknown`. Con texto: **bloquea** (el texto puede incluir medicamentos y no se puede distinguir sin inventar) |
+| `sectionAllergies` | `niegaAlergias` / etiquetas con su tipo | niega o sin alergias: `nilknown` + texto estándar (Anexo 47.1: «cuando no presente alergias conocidas, este dato debe venir vacío»). Con **tipo** (campo «Tipo: ‹alergia›», [CAMBIOS_UI.md](CAMBIOS_UI.md)) → `AllergyIntoleranceRDA` en `entry`. **Sin tipo** → **bloquea** |
+| `sectionRiskFactors` | `antecedentes.habitos` (texto) | vacío: `nilknown`. Con texto: **bloquea** |
+| `sectionServiceRequests` | `plan.examenesSolicitados`, `plan.interconsultas` (texto, sin CUPS) | vacíos: `nilknown`. Con texto: **bloquea** |
 | `sectionClarificationNotes` | — | se omite (`0..1`) |
 | `sectionProblems` | diagnósticos | **entradas obligatorias** (`1..*`): sin Condition codificado bloquea |
 | `sectionAddendumDocuments` | PDF | entrada obligatoria; `emptyReason` prohibido |
+
+La narrativa de una sección vacía es solo el texto estándar del Manual; ya no se le añade texto libre.
 
 ## 4. Resumen de brechas
 
@@ -134,6 +142,6 @@ El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no jus
 | CIE-10 del diagnóstico principal sin código | campo existente | **bloquea** hasta codificar |
 | Tipo de consulta sin elegir o «urgencia» | campo existente | bloquea; «urgencia» es RDA de urgencias (P1) |
 | Tipo de cada alergia registrada (`AllergyIntoleranceRDA.code`) | (3) campo «Tipo: ‹alergia›» en Antecedentes | cerrada; sin tipo **bloquea** (D8) |
-| Ocupación, EAPB, factores de riesgo, órdenes y medicamentos codificados | — | **abierta**: el texto libre viaja en la narrativa con `emptyReason = nilknown`; mappers listos (T17) para cuando existan datos codificados |
+| Ocupación, EAPB, factores de riesgo, órdenes y medicamentos codificados | — | **abierta y bloqueante**: con texto libre en cualquiera de esas secciones el RDA queda `INVALIDO_LOCAL` (§3). Se cierra capturando el dato codificado (CIUO-88, código EAPB, CUPS, DCI/IUM con dosis UMM, factores de riesgo), decisión de producto. Mappers listos (T17) |
 | Evoluciones como RDA propios | — | **abierta**: sin diagnóstico por evolución (P1) |
 | Urgencias, hospitalización, resumen del paciente | — | **abierta**: el producto no captura esos datos (P1, puntos de extensión) |

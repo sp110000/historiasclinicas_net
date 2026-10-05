@@ -162,6 +162,7 @@ class ExtractorAtencion {
         habitos: h.antecedentes.habitos.trim(),
         examenes: h.plan.examenesSolicitados.trim(),
         interconsultas: h.plan.interconsultas.trim(),
+        planTerapeutico: h.plan.planTerapeutico.trim(),
       ),
       pdf: pdf,
     );

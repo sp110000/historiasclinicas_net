@@ -393,8 +393,13 @@ class EstrategiaConsulta implements EstrategiaRda {
       ..cabeza = idComposition
       ..raiz = idEncuentro;
 
-    for (final e in grafo.verificarIntegridad()) {
-      c.falta('Bundle', e);
+    // Con datos faltantes el RDA ya no se envía y los errores de integridad
+    // serían su consecuencia (p. ej. una entrada que su sección bloqueada no
+    // referencia): no se suman al motivo.
+    if (c.faltantes.isEmpty) {
+      for (final e in grafo.verificarIntegridad()) {
+        c.falta('Bundle', e);
+      }
     }
 
     final enBundle = [
@@ -493,6 +498,16 @@ class EstrategiaConsulta implements EstrategiaRda {
         ],
       },
     };
+    // Contenido sin codificar para la sección: sin entradas, el perfil solo
+    // admite `emptyReason = nilknown` («nada conocido»), que sería falso; con
+    // algunas entradas codificadas, la lista quedaría incompleta sin
+    // decirlo. Ningún perfil de entrada admite ese contenido sin inventar
+    // códigos (DESVIACIONES.md D8): el RDA no se envía.
+    final motivo = contenidoSinCodificar(s.slice, t);
+    if (motivo != null) {
+      c.falta('Composition.section:${s.slice}', motivo);
+      return base;
+    }
     if (entradas.isNotEmpty) {
       return {
         ...base,
@@ -506,18 +521,6 @@ class EstrategiaConsulta implements EstrategiaRda {
       );
       return base;
     }
-    if (s.slice == 'sectionAllergies' &&
-        !t.niegaAlergias &&
-        t.alergias.isNotEmpty) {
-      // El perfil fija `emptyReason = nilknown` («nada conocido»): con
-      // alergias registradas sería falso. Sin tipo codificado no se envía.
-      c.falta(
-        'Composition.section:sectionAllergies',
-        'Las alergias registradas no tienen tipo de alergia codificado; '
-            'no se envía el RDA para no declarar «sin alergias conocidas»',
-      );
-      return base;
-    }
     // Código y display de `emptyReason`: fijos del perfil (nilknown en todas
     // las secciones de consulta); si un perfil no los fijara, el del ejemplo
     // del Manual §5.4.3b.
@@ -526,7 +529,7 @@ class EstrategiaConsulta implements EstrategiaRda {
     final codigo = f.valor('$pre.code') as String? ?? 'nilknown';
     return {
       ...base,
-      'text': ContextoMapeo.narrativa(narrativaSeccionVacia(s.slice, t)),
+      'text': ContextoMapeo.narrativa(textoNadaConocido),
       'emptyReason': {
         'coding': [
           c.coding(
@@ -546,24 +549,35 @@ const textoNadaConocido =
     'No existen elementos conocidos para esta lista y/o el paciente no '
     'declara información';
 
-/// Narrativa de una sección sin entradas (MATRIZ_RDA §3): el texto
-/// estándar del Manual y, si la historia trae texto libre para la sección,
-/// ese texto (para no perder lo que el profesional registró).
-String narrativaSeccionVacia(String slice, TextosLibresDto t) {
-  final libre = switch (slice) {
-    'sectionPayers' => t.aseguradora,
-    'sectionHistoryOfOccupation' => t.ocupacion,
-    'sectionRiskFactors' => t.habitos,
-    'sectionServiceRequests' => [
-      t.examenes,
-      t.interconsultas,
-    ].where((x) => x.trim().isNotEmpty).join('; '),
-    _ => '',
+/// Motivo, en lenguaje llano y sin datos del paciente, por el que la
+/// sección [slice] no puede ir vacía: la atención tiene texto sin codificar
+/// para ella. `null` si de verdad no hay nada (MATRIZ_RDA §3).
+String? contenidoSinCodificar(String slice, TextosLibresDto t) {
+  bool hay(String x) => x.trim().isNotEmpty;
+  return switch (slice) {
+    'sectionAllergies' when !t.niegaAlergias && t.alergias.isNotEmpty =>
+      'Las alergias registradas no tienen tipo de alergia codificado; '
+          'el RDA no puede declarar «sin alergias conocidas»',
+    'sectionPayers' when hay(t.aseguradora) =>
+      'La aseguradora (EAPB) está registrada solo como texto; el RDA exige '
+          'su código y no puede declarar «sin aseguradora conocida»',
+    'sectionHistoryOfOccupation' when hay(t.ocupacion) =>
+      'La ocupación está registrada solo como texto; el RDA exige su código '
+          'CIUO-88 y no puede declarar «sin ocupación conocida»',
+    'sectionMedications' when hay(t.planTerapeutico) =>
+      'El plan terapéutico tiene texto que puede incluir medicamentos '
+          '(fórmula); el RDA exige medicamentos codificados y no puede '
+          'declarar «sin medicamentos conocidos»',
+    'sectionRiskFactors' when hay(t.habitos) =>
+      'Los hábitos están registrados solo como texto; el RDA exige factores '
+          'de riesgo codificados y no puede declarar «sin factores de riesgo '
+          'conocidos»',
+    'sectionServiceRequests' when hay(t.examenes) || hay(t.interconsultas) =>
+      'Los exámenes o interconsultas están registrados solo como texto; el '
+          'RDA exige su código CUPS y no puede declarar «sin órdenes '
+          'conocidas»',
+    _ => null,
   };
-  return libre.trim().isEmpty
-      ? textoNadaConocido
-      : '$textoNadaConocido. Registrado solo como texto libre, sin '
-            'codificación: ${libre.trim()}';
 }
 
 /// UUID v5 (RFC 4122, espacio de nombres URL) de la identidad del
