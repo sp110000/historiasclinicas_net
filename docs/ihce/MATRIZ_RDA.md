@@ -92,7 +92,7 @@ La entrada es `0..1` en `BundleAmbulatoryRDA`; `custodian` y `serviceProvider` s
 
 | Elemento | Card. | Origen | Transformación | Estado |
 | --- | --- | --- | --- | --- |
-| `code.coding:ICD10` (`system`, `code`, `display`) | 1..1 | `Diagnostico.codigo` (opcional) | `system` fijo; `display` del catálogo SISPRO cargado (D6), **nunca** de `descripcion`; código ausente o inexistente **bloquea** (principal) o se omite con advertencia (relacionado) | OK / FALTA si sin código |
+| `code.coding:ICD10` (`system`, `code`, `display`) | 1..1 | `Diagnostico.codigo` (opcional) | `system` fijo; `display` del catálogo SISPRO cargado (D6), **nunca** de `descripcion`; código ausente o inexistente **bloquea**, sea principal o relacionado (omitir un relacionado dejaría la lista de problemas incompleta sin decirlo; cierre 1.2) | OK / FALTA si sin código |
 | `clinicalStatus`, `verificationStatus` | — | — | fijos del perfil | OK |
 | `subject` | 1..1 | paciente | referencia | OK |
 
@@ -120,7 +120,7 @@ El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no jus
 | `sectionPayers` (EAPB) | `paciente.aseguradora` (texto, sin código EAPB) | vacío: `nilknown` + texto estándar. Con texto: **bloquea** |
 | `sectionHistoryOfOccupation` | `paciente.ocupacion` (texto, sin código CIUO-88) | vacío: `nilknown`. Con texto: **bloquea** |
 | `sectionAttendanceAllowance` (incapacidad) | no se captura | `nilknown` + texto estándar |
-| `sectionMedications` | `plan.planTerapeutico`: ahí queda la fórmula («Se formuló…», `Receta.textoParaHistoria`) y cualquier medicamento escrito a mano | vacío: `nilknown`. Con texto: **bloquea** (el texto puede incluir medicamentos y no se puede distinguir sin inventar) |
+| `sectionMedications` | `antecedentes.medicacionActual` («Medicación actual») y `plan.planTerapeutico`, donde queda la fórmula («Se formuló…», `Receta.textoParaHistoria`) y cualquier medicamento escrito a mano | ambos vacíos: `nilknown`. Con texto en cualquiera: **bloquea** (el texto puede incluir medicamentos y no se puede distinguir sin inventar) |
 | `sectionAllergies` | `niegaAlergias` / etiquetas con su tipo | niega o sin alergias: `nilknown` + texto estándar (Anexo 47.1: «cuando no presente alergias conocidas, este dato debe venir vacío»). Con **tipo** (campo «Tipo: ‹alergia›», [CAMBIOS_UI.md](CAMBIOS_UI.md)) → `AllergyIntoleranceRDA` en `entry`. **Sin tipo** → **bloquea** |
 | `sectionRiskFactors` | `antecedentes.habitos` (texto) | vacío: `nilknown`. Con texto: **bloquea** |
 | `sectionServiceRequests` | `plan.examenesSolicitados`, `plan.interconsultas` (texto, sin CUPS) | vacíos: `nilknown`. Con texto: **bloquea** |

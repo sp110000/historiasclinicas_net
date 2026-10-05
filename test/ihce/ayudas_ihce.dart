@@ -57,6 +57,7 @@ Map<String, Object?> datosSinteticos({
   String planTerapeutico = '',
   String examenesSolicitados = '',
   String interconsultas = '',
+  String medicacionActual = '',
 }) {
   final i = inicio ?? DateTime(2026, 1, 15, 10, 30);
   final f = fin ?? i.add(const Duration(minutes: 25));
@@ -89,6 +90,7 @@ Map<String, Object?> datosSinteticos({
       alergias: alergias,
       niegaAlergias: niegaAlergias,
       habitos: habitos,
+      medicacionActual: medicacionActual,
     ),
     plan: PlanTratamiento(
       planTerapeutico: planTerapeutico,

@@ -163,6 +163,7 @@ class ExtractorAtencion {
         examenes: h.plan.examenesSolicitados.trim(),
         interconsultas: h.plan.interconsultas.trim(),
         planTerapeutico: h.plan.planTerapeutico.trim(),
+        medicacionActual: h.antecedentes.medicacionActual.trim(),
       ),
       pdf: pdf,
     );

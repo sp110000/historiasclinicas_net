@@ -9,6 +9,7 @@ import 'package:historiasclinicas_net/core/ihce/extraccion/entrada_atencion.dart
 import 'package:historiasclinicas_net/core/ihce/mappers/contexto.dart';
 import 'package:historiasclinicas_net/core/ihce/modelo/documento_rda.dart';
 import 'package:historiasclinicas_net/core/ihce/perfiles/perfiles_rda.g.dart';
+import 'package:historiasclinicas_net/core/models/diagnostico.dart';
 
 import 'ayudas_ihce.dart';
 import 'banco_ihce.dart';
@@ -109,6 +110,12 @@ void main() {
       'sectionPayers': datosSinteticos(aseguradora: 'EPS sintética'),
       'sectionRiskFactors': datosSinteticos(habitos: 'Fuma'),
     };
+    final medicacion = _ensamblar(
+      datosSinteticos(medicacionActual: 'Levotiroxina 50 µg/día'),
+    );
+    expect(medicacion.faltantes.map((f) => f.elemento), [
+      'Composition.section:sectionMedications',
+    ], reason: 'medicación actual');
     final interconsulta = _ensamblar(
       datosSinteticos(interconsultas: 'Medicina interna'),
     );
@@ -121,6 +128,23 @@ void main() {
         'Composition.section:${c.key}',
       ], reason: c.key);
     }
+  });
+
+  test('diagnóstico relacionado sin CIE-10: no se envía una lista de '
+      'problemas incompleta', () {
+    final datos = datosSinteticos();
+    (datos['diagnosticos']! as List).add(
+      const Diagnostico(
+        id: 'd-2',
+        tipo: 'relacionado',
+        descripcion: 'diagnóstico sintético escrito sin código',
+        caracter: 'confirmado_nuevo',
+      ).aMapa(),
+    );
+    final r = _ensamblar(datos);
+    expect(r.valido, isFalse);
+    expect(r.faltantes.single.elemento, 'Condition.code.coding:ICD10');
+    expect(r.faltantes.single.mensaje, contains('relacionado'));
   });
 
   test('alergias con y sin tipo: no se envía una lista incompleta', () {

@@ -281,6 +281,7 @@ class TextosLibresDto {
     this.examenes = '',
     this.interconsultas = '',
     this.planTerapeutico = '',
+    this.medicacionActual = '',
   });
 
   final List<String> alergias;
@@ -294,6 +295,9 @@ class TextosLibresDto {
   /// Plan terapéutico: donde queda la fórmula («Se formuló…», ver
   /// `Receta.textoParaHistoria`) y cualquier medicamento escrito a mano.
   final String planTerapeutico;
+
+  /// «Medicación actual» de los antecedentes (lo que el paciente ya toma).
+  final String medicacionActual;
 }
 
 /// Todo lo que necesita el ensamblador para una atención.

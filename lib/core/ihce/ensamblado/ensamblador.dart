@@ -191,9 +191,14 @@ class EstrategiaConsulta implements EstrategiaRda {
             categoria: d.codigoCie10.isEmpty ? 'DATO' : 'SEMANTICO',
           );
         } else {
-          c.advertir(
+          // Omitirlo dejaría la lista de problemas incompleta sin decirlo
+          // (DESVIACIONES.md D8): el RDA no se envía.
+          c.falta(
             'Condition.code.coding:ICD10',
-            'Diagnóstico relacionado sin código CIE-10 del catálogo: no se envía',
+            d.codigoCie10.isEmpty
+                ? 'Un diagnóstico relacionado no tiene código CIE-10'
+                : 'El código CIE-10 de un diagnóstico relacionado no está en el catálogo',
+            categoria: d.codigoCie10.isEmpty ? 'DATO' : 'SEMANTICO',
           );
         }
         continue;
@@ -564,10 +569,11 @@ String? contenidoSinCodificar(String slice, TextosLibresDto t) {
     'sectionHistoryOfOccupation' when hay(t.ocupacion) =>
       'La ocupación está registrada solo como texto; el RDA exige su código '
           'CIUO-88 y no puede declarar «sin ocupación conocida»',
-    'sectionMedications' when hay(t.planTerapeutico) =>
-      'El plan terapéutico tiene texto que puede incluir medicamentos '
-          '(fórmula); el RDA exige medicamentos codificados y no puede '
-          'declarar «sin medicamentos conocidos»',
+    'sectionMedications'
+        when hay(t.planTerapeutico) || hay(t.medicacionActual) =>
+      'La medicación actual o el plan terapéutico (fórmula) tienen texto que '
+          'puede incluir medicamentos; el RDA exige medicamentos codificados '
+          'y no puede declarar «sin medicamentos conocidos»',
     'sectionRiskFactors' when hay(t.habitos) =>
       'Los hábitos están registrados solo como texto; el RDA exige factores '
           'de riesgo codificados y no puede declarar «sin factores de riesgo '
