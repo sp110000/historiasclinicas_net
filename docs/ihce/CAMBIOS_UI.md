@@ -69,6 +69,20 @@ Al reabrir la pantalla los secretos **no** se muestran: el ClientID y el secreto
 | ídem | Pertenencia étnica, Discapacidad, Zona de residencia | `CampoDesplegable` ×3 (ValueSets de la guía) | etnia y discapacidad: extensiones de `PatientRDA`; zona: extensión `ExtensionResidenceZone` de `Patient.address` (1..1) |
 | Antecedentes (`formularios_clinicos.dart:199`) | «Tipo: ‹alergia›» por cada alergia registrada | `CampoDesplegable` (ValueSet de tipo de alergia de la guía) | `AllergyIntoleranceRDA.code` (1..1). Solo aparece si hay alergias y no se marcó «niega alergias». Sin tipo, la sección de alergias solo admite `emptyReason = nilknown` (fijo en el perfil), que con alergias registradas sería falso (D8) |
 
+### Campos eliminados en el cierre
+
+Ninguno (instrucción de cierre del propietario: «CAMPOS A ELIMINAR: ninguno»). Todos los campos de esta lista siguen vigentes.
+
+### Captura única de los datos del paciente
+
+Nacionalidad, país y zona de residencia, pertenencia étnica y discapacidad están en la sección «Datos del paciente» (`CamposIhcePaciente`, `formulario_paciente.dart:225`) y se capturan **una sola vez por paciente**, con el resto de su identificación:
+
+- La app no tiene registro maestro de pacientes ([MAPEO_REPOSITORIO.md](MAPEO_REPOSITORIO.md)): la historia es el expediente del paciente. Se crea una vez (modo «nueva») y después se **reabre** para añadir evoluciones.
+- `FormularioPaciente` solo se muestra editable en la historia nueva (`historia_page.dart:628`). En una historia abierta las secciones selladas, incluida la del paciente, son de solo lectura (`historia_page.dart:534` y `:596–616`), y las evoluciones no piden estos datos.
+- La causa externa (`CampoCausaExterna`, `formulario_paciente.dart:87`) sí es de cada atención: va con los datos de la atención, no con los del paciente.
+
+No hubo que mover ningún campo. Crear una ficha de paciente separada de la historia sería un registro maestro nuevo (almacenamiento e interfaz), fuera del alcance de la regla 10.
+
 ## 4. Línea de estado y reintento (`historia_page.dart:501–502`) — `AvisoRdaAtencion`
 
 | Elemento | Componente | Cuándo aparece |

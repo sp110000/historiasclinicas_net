@@ -126,7 +126,7 @@ El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no jus
 
 | Dato | Vía | Estado |
 | --- | --- | --- |
-| Nacionalidad, país de residencia, pertenencia étnica, discapacidad, zona de residencia | (3) campos en «Datos del paciente» | cerrada |
+| Nacionalidad, país de residencia, pertenencia étnica, discapacidad, zona de residencia | (3) campos en «Datos del paciente», capturados una vez por paciente (la historia se reabre para evolucionar; ver [CAMBIOS_UI.md](CAMBIOS_UI.md)) | cerrada |
 | Causa externa | (3) campo en el encabezado de la atención | cerrada |
 | Tipo de documento, apellidos y nombres separados, profesión RETHUS del médico | (3) campos en «Datos profesionales» | cerrada |
 | Código de habilitación, modalidad, entorno, CUPS por tipo de consulta | (2)+(3) configuración del prestador en «Consultorio» | cerrada |
