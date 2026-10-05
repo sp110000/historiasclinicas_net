@@ -67,7 +67,17 @@ Notas del análisis:
 
 - **EAPB.** El validador acepta `identifier.value` ausente con la extensión `data-absent-reason = unknown`. Se descartó: la entrada no identificaría a la EAPB y no podría tener el `id` que exige el Manual §5.3e. El slice `PayorResources` también admite `PatientRDA` (el paciente como pagador particular), pero eso solo vale si se sabe que la atención es particular, y el texto libre no lo dice.
 - **Factores de riesgo.** El candidato solo da cero errores con un código elegido (p. ej. «06 Otro»). Eso sería deducir una categoría del texto, prohibido.
-- Un segundo agente intentó refutar cada conclusión con el StructureDefinition y el validador. En `MedicationRequestRDA` y `ServiceRequestRDA` no pudo (conclusión confirmada); las demás refutaciones estaban en curso al hacer este commit.
+- Un segundo agente intentó refutar cada conclusión con el StructureDefinition y el validador. En `MedicationRequestRDA`, `ServiceRequestRDA` y `OtherTechnologyServiceRequestRDA` no pudo: la conclusión se confirma. En `PatientOccupationAtEncounterRDA` y `RiskFactorRDA` sí la refutó, con el patrón que sigue.
+
+**Patrón de datos faltantes de R4 (validado, no adoptado).** En FHIR R4 un primitivo obligatorio (p. ej. `coding.code` 1..1) se cumple aunque no tenga valor si lleva una extensión (invariante `ele-1`): es el mecanismo estándar de datos faltantes, que R5 cierra con `mustHaveValue` y que esta guía no usa. Con `coding.system` en su valor fijo y `_code`/`_display` solo con la extensión `originalText` (el texto de la app), el validador da **0 errores** en `PatientOccupationAtEncounterRDA` y `RiskFactorRDA` (solo el aviso «No code provided for CodeSystem…»). Candidatos y reportes: `build/ihce/analisis-secciones/*.refutacion.*`.
+
+No se adoptó, y el comportamiento sigue siendo el bloqueo, porque:
+
+1. va contra la intención explícita del perfil: en ocupación `value.text`, `note` y `dataAbsentReason` son 0..0, y `code`/`display` son mustSupport con binding required;
+2. no hay evidencia de que IHCE acepte entradas «codificadas» sin código (su validación de terminología y sus reglas de negocio no están publicadas), y enviarlas a la plataforma nacional sin probarlas en sandbox es una decisión del propietario;
+3. el RDA enviaría como dato estructurado algo que no lo es.
+
+Si el propietario lo decide tras confirmarlo con MinSalud (pregunta en [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md)), el cambio queda acotado: un mapper «sin código» por sección que emita la entrada con el patrón y deje de bloquear esa sección en `contenidoSinCodificar`.
 
 2. **Otro código de `emptyReason`:** imposible; el perfil fija `nilknown` en todas las secciones.
 3. **Bloqueo:** si la sección tiene texto libre sin codificar (fórmula o cualquier texto del plan terapéutico, exámenes, interconsultas, ocupación, aseguradora, hábitos, alergias sin tipo), el RDA queda `INVALIDO_LOCAL` con un motivo en lenguaje llano que nombra la sección y el dato codificado que falta (`contenidoSinCodificar`, `ensamblador.dart`). También bloquea cuando la sección tiene algunas entradas codificadas y otro contenido sin codificar (p. ej. alergias con y sin tipo), para no enviar una lista incompleta como si fuera completa. Prueba: `test/ihce/secciones_contenido_test.dart`.
