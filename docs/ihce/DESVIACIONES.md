@@ -80,7 +80,7 @@ Normalización para «mismo mensaje y ruta equivalente»: los índices de `entry
 
 Total en la última corrida: 5 Bundles del gate, 269 hallazgos `error`, 264 cubiertos por la línea base con evidencia vigente, 60 advertencias (listadas en `build/ihce/validation-report.json`).
 
-### Hallazgo sin evidencia oficial: G-SLICE-RESOURCE (el gate queda en rojo)
+### Hallazgo sin evidencia oficial: G-SLICE-RESOURCE (aceptado por decisión del propietario)
 
 `Bundle.entry[Practitioner]`: «Profile …/BundleAmbulatoryRDA|1.0.0, Element matches more than one slice - PractitionerResource, ProcedureResources» (1 por Bundle, 5 en total).
 
@@ -88,7 +88,8 @@ Total en la última corrida: 5 Bundles del gate, 269 hallazgos `error`, 264 cubi
 - **Por qué no se reproduce en los artefactos oficiales:** el `Practitioner` del cuerpo oficial de consulta **no cumple** `PractitionerRDA` (le faltan `active` y `qualification`, ambos 1..1), así que nunca coincide con su slice. Ningún cuerpo de Postman, ningún ejemplo de la guía y el reporte de calidad publicado de la guía (`qa.html`, 308 errores) contienen el mensaje.
 - **Demostración (no es evidencia de línea base):** `tool/ihce/demostrar_slice.sh` toma el cuerpo oficial, le completa **solo** `active` y `qualification` del `Practitioner` y lo valida con el mismo comando: aparece exactamente el mismo mensaje en `Bundle.entry[3]` (el `Practitioner`).
 - **Qué no se hizo:** no se quitó el `Practitioner` (la plataforma lo exige, 1..1) ni se degradó para que deje de cumplir su perfil.
-- **Decisión del propietario:** reportarlo a MinSalud con la demostración y, si decide aceptarlo mientras tanto, agregarlo a `decisionesPropietario` en `validation-baseline.json` con `aprobadoPor`, `fecha` y `motivo` (la herramienta solo acepta entradas con los tres campos; `generar` nunca las crea).
+- **Evidencia en la propia guía:** en `BundleEmergencyRDA` y `BundleHospitalizationRDA` el mismo slice `ProcedureResources` está tipado `Procedure` con perfil `ProcedureRDA`; solo `BundleAmbulatoryRDA` lo deja como `Resource` sin perfil.
+- **Decisión del propietario (2026-10-05):** excepción aceptada en `decisionesPropietario` de `validation-baseline.json` (`aprobadoPor` = `git config user.name` de la sesión, como pidió el propietario; motivo: «defecto del perfil BundleAmbulatoryRDA: el slice ProcedureResources no tiene perfil; demostrado con tool/ihce/demostrar_slice.sh»). La herramienta solo acepta decisiones con `aprobadoPor`, `fecha` y `motivo`, `generar` nunca las crea y el hallazgo sigue listado en `sinEvidencia`. El mensaje para la mesa de ayuda de IHCE está en [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md) (sin enviar).
 
 ## Defectos observados en artefactos oficiales (documentados, no corregidos)
 

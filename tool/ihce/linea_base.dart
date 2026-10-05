@@ -333,16 +333,30 @@ int _generar() {
     })}\n',
   );
   stdout.writeln('${ordenadas.length} exclusiones con evidencia → $_lineaBase');
+  // Sin evidencia oficial pero aceptados por decisión del propietario: no
+  // rompen el gate (comparar los acepta), pero se siguen listando.
+  final decididos = {
+    for (final e
+        in ((anterior['decisionesPropietario'] as List?) ?? const [])
+            .cast<Map>())
+      if (_decisionValida(e)) '${e['ruta']} | ${e['mensaje']}',
+  };
+  final abiertos = {
+    for (final h in sinEvidencia)
+      if (!decididos.contains(h.clave)) h.clave: h,
+  };
   if (pendientes.isNotEmpty) {
     stdout.writeln(
-      '${pendientes.length} hallazgos SIN evidencia (no se excluyen):',
+      '${pendientes.length} hallazgos SIN evidencia oficial '
+      '(${pendientes.length - abiertos.length} aceptados por decisión del '
+      'propietario):',
     );
     for (final h in {for (final h in sinEvidencia) h.clave: h}.values) {
-      stdout.writeln('  ${h.archivo}: ${h.ruta} | ${h.mensaje}');
+      final marca = decididos.contains(h.clave) ? '[decisión] ' : '';
+      stdout.writeln('  $marca${h.archivo}: ${h.ruta} | ${h.mensaje}');
     }
-    return 1;
   }
-  return 0;
+  return abiertos.isEmpty ? 0 : 1;
 }
 
 int _porRuta(Map<String, Object?> a, Map<String, Object?> b) =>

@@ -648,5 +648,15 @@
       "clase": "G-SLICE-RESOURCE"
     }
   ],
-  "decisionesPropietario": []
+  "decisionesPropietario": [
+    {
+      "ruta": "Bundle.entry[Practitioner]",
+      "mensaje": "Profile https://fhir.minsalud.gov.co/rda/StructureDefinition/BundleAmbulatoryRDA|1.0.0, Element matches more than one slice - PractitionerResource, ProcedureResources",
+      "clase": "G-SLICE-RESOURCE",
+      "aprobadoPor": "Claude",
+      "fecha": "2026-10-05",
+      "motivo": "defecto del perfil BundleAmbulatoryRDA: el slice ProcedureResources no tiene perfil; demostrado con tool/ihce/demostrar_slice.sh",
+      "origen": "Instrucción de cierre del propietario del 2026-10-05; aprobadoPor es el git config user.name de la sesión, como pidió el propietario. Reporte a MinSalud: docs/ihce/REPORTE_MINSALUD.md"
+    }
+  ]
 }

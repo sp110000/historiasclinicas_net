@@ -4,7 +4,7 @@ Generación, validación y transmisión del **Resumen Digital de Atención (RDA)
 
 **Bandera:** `IHCE_ENABLED` (apagada por defecto). Apagada, la app se comporta exactamente como antes: no se crea el servicio, no se lee el almacén de secretos y ningún widget del módulo se muestra (T13, T23).
 
-Documentos: [MAPEO_REPOSITORIO.md](MAPEO_REPOSITORIO.md) · [MATRIZ_RDA.md](MATRIZ_RDA.md) · [PERFILES_RDA.md](PERFILES_RDA.md) · [DESVIACIONES.md](DESVIACIONES.md) · [CAMBIOS_UI.md](CAMBIOS_UI.md) · [validation-baseline.json](validation-baseline.json) · plantilla [`config/ihce.env.example`](../../config/ihce.env.example).
+Documentos: [MAPEO_REPOSITORIO.md](MAPEO_REPOSITORIO.md) · [MATRIZ_RDA.md](MATRIZ_RDA.md) · [PERFILES_RDA.md](PERFILES_RDA.md) · [DESVIACIONES.md](DESVIACIONES.md) · [CAMBIOS_UI.md](CAMBIOS_UI.md) · [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md) · [validation-baseline.json](validation-baseline.json) · plantilla [`config/ihce.env.example`](../../config/ihce.env.example).
 
 ## Alcance
 
@@ -144,7 +144,7 @@ tool/ihce/verificar.sh
 4. Capa 2: validador oficial de HL7 (`tools/fhir/validator_cli.jar`, `-tx n/a`, perfil `BundleAmbulatoryRDA`) y comparación con la línea base. Criterio: cero `error`/`fatal` fuera de [validation-baseline.json](validation-baseline.json). Sin JRE queda **pendiente** (sale con 3).
 5. Regla 10 (`tool/ihce/regla10.dart`).
 
-Estado actual: pruebas, capa 1 y regla 10 en verde; **capa 2 en rojo por un único hallazgo sin evidencia oficial** (G-SLICE-RESOURCE, defecto del perfil `BundleAmbulatoryRDA`, ver [DESVIACIONES.md](DESVIACIONES.md)), pendiente de decisión del propietario.
+Estado actual: pruebas, capa 1, capa 2 y regla 10 en verde. La capa 2 excluye solo hallazgos reproducidos en artefactos oficiales, más una excepción aceptada por el propietario (G-SLICE-RESOURCE, defecto del perfil `BundleAmbulatoryRDA`, reportado en [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md); ver [DESVIACIONES.md](DESVIACIONES.md)).
 
 ## Dependencias
 
@@ -167,6 +167,7 @@ Los artefactos de la guía están bajo **CC BY-NC-SA 4.0**. No se versionan (`ve
 - [ ] `IHCE_BASE_URL`, `IHCE_TENANT_ID` y `IHCE_SCOPE` entregados por MinSalud y configurados (sin secretos) en el archivo de `--dart-define`.
 - [ ] Relevo de servidor para la PWA (o build nativo) registrado como transporte; credenciales en su gestor de secretos.
 - [ ] Pruebas en el sandbox de preproducción: aceptación con VIDA, cada tipo de rechazo, `401/403`, `409`, `429`; confirmar los `TODO(IHCE-VERIFICAR)` (forma de la respuesta y ubicación del VIDA, `Content-Type`, display CIE-10, clave de suscripción, `x-functions-key`, firma).
-- [ ] Decisión sobre G-SLICE-RESOURCE (reporte a MinSalud con `tool/ihce/demostrar_slice.sh`) y `tool/ihce/verificar.sh` en verde.
+- [x] Decisión sobre G-SLICE-RESOURCE: aceptada como excepción (2026-10-05).
+- [ ] Enviar [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md) a la mesa de ayuda de IHCE y retirar la excepción cuando la guía se corrija.
 - [ ] Revisión de los campos añadidos ([CAMBIOS_UI.md](CAMBIOS_UI.md)) y de la licencia de la guía.
 - [ ] Validación con MinSalud del RDA de consulta externa; luego `IHCE_ENABLED=true` en el ambiente correspondiente.
