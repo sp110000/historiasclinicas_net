@@ -404,9 +404,13 @@ int _comparar() {
   var porDecision = 0;
   for (final h in errores) {
     final e = base[h.clave];
+    // Una exclusión vale si su evidencia oficial se reproduce en esta
+    // corrida o, para la causa -tx n/a, si el mensaje es de verdad de
+    // terminología (no basta con que el archivo lo diga).
     final vigente =
         e != null &&
-        (e['causa'] == 'tx-n/a' || evidencias.containsKey(h.clave));
+        ((e['causa'] == 'tx-n/a' && _esTxNa(h.mensaje)) ||
+            evidencias.containsKey(h.clave));
     if (vigente) {
       excluidos++;
     } else if (decisiones.containsKey(h.clave)) {
