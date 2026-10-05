@@ -60,8 +60,14 @@ El CodeSystem `http://hl7.org/fhir/sid/icd-10` de la guía es un `fragment` de 3
 | `sectionServiceRequests` | `ServiceRequestRDA` | `reasonCode` 1..1, binding required a `RIPSFinalidadConsultaVersion2Codigos` (`code` sí admite solo texto) | «No code provided, and a code is required from the value set 'Colombian Encounter ReasonCode'» |
 | `sectionServiceRequests` | `OtherTechnologyServiceRequestRDA` | ídem (`reasonCode` 1..1, binding required) | ídem |
 | `sectionHistoryOfOccupation` | `PatientOccupationAtEncounterRDA` | `value[x].coding` 1..1 (CIUO-88 A.C.); `value[x].text`, `note` y `dataAbsentReason` son 0..0 | «value[x].coding: minimum required = 1», «value[x].text: max allowed = 0» |
-| `sectionPayers` | `HealthBenefitPlanAdminOrganizationRDA` | en análisis (se completa en el siguiente commit) | — |
-| `sectionRiskFactors` | `RiskFactorRDA` | en análisis (se completa en el siguiente commit) | — |
+| `sectionPayers` | `HealthBenefitPlanAdminOrganizationRDA` | `identifier:EAPBIdentifier.value` 1..1 (código EAPB del SGSSS); además el Manual §5.3e exige que el `id` sea ese código (`#CodigoEAPB`) | «identifier:EAPBIdentifier.value: minimum required = 1, but only found 0»; sin `identifier`, «a matching slice is required, but not found» |
+| `sectionRiskFactors` | `RiskFactorRDA` | `code.coding` 1..1 con `code` y `display` 1..1, binding required a `FactorRiesgoCodigos` (categorías 01–06); `note` es 0..0 | «RiskAssessment.code.coding: minimum required = 1, but only found 0» |
+
+Notas del análisis:
+
+- **EAPB.** El validador acepta `identifier.value` ausente con la extensión `data-absent-reason = unknown`. Se descartó: la entrada no identificaría a la EAPB y no podría tener el `id` que exige el Manual §5.3e. El slice `PayorResources` también admite `PatientRDA` (el paciente como pagador particular), pero eso solo vale si se sabe que la atención es particular, y el texto libre no lo dice.
+- **Factores de riesgo.** El candidato solo da cero errores con un código elegido (p. ej. «06 Otro»). Eso sería deducir una categoría del texto, prohibido.
+- Un segundo agente intentó refutar cada conclusión con el StructureDefinition y el validador. En `MedicationRequestRDA` y `ServiceRequestRDA` no pudo (conclusión confirmada); las demás refutaciones estaban en curso al hacer este commit.
 
 2. **Otro código de `emptyReason`:** imposible; el perfil fija `nilknown` en todas las secciones.
 3. **Bloqueo:** si la sección tiene texto libre sin codificar (fórmula o cualquier texto del plan terapéutico, exámenes, interconsultas, ocupación, aseguradora, hábitos, alergias sin tipo), el RDA queda `INVALIDO_LOCAL` con un motivo en lenguaje llano que nombra la sección y el dato codificado que falta (`contenidoSinCodificar`, `ensamblador.dart`). También bloquea cuando la sección tiene algunas entradas codificadas y otro contenido sin codificar (p. ej. alergias con y sin tipo), para no enviar una lista incompleta como si fuera completa. Prueba: `test/ihce/secciones_contenido_test.dart`.
