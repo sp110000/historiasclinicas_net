@@ -132,6 +132,25 @@ En la web, `flutter_secure_storage` usa WebCrypto sobre `localStorage` (solo HTT
 | Nativo / escritorio / servidor | `TransporteDirectoIo` | TLS 1.3 mínimo y verificación de certificados (T14); hoy el producto no compila para esas plataformas |
 | Relevo de servidor (propuesto) | cualquier `TransporteIhce` registrado con `registrarTransporte` | Es la vía para la PWA: un servicio del propietario que reciba el Bundle ya validado, guarde las credenciales en su gestor de secretos y llame a IHCE |
 
+### Relevo de servidor: no construido (cierre 1.4)
+
+El relevo solo se construye si se cumplen **dos** condiciones, y hoy no se cumple ninguna:
+
+1. **Una plataforma con funciones de servidor.** El repositorio publica en GitHub Pages (`.github/workflows/pages.yml`), que solo sirve archivos estáticos. Las configuraciones de Cloudflare Pages (`web/_headers`), Firebase Hosting (`firebase.json`) y Vercel (`vercel.json`) son también de hosting estático: no hay `functions/`, `api/` ni `rewrites` ([DESPLIEGUE.md](../DESPLIEGUE.md)).
+2. **Autenticación de usuarios.** La app no tiene cuentas ni sesiones: «No hay servidor propio, base de datos ni cuentas» ([DESPLIEGUE.md](../DESPLIEGUE.md)). Sin sesión, el relevo no sabría qué prestador llama ni con qué credenciales.
+
+Decisiones que necesita el propietario:
+
+- **Plataforma:** p. ej. Cloudflare Pages Functions/Workers (ya hay configuración de Pages), Firebase Cloud Functions, Vercel Functions o un servidor propio. Debe guardar las credenciales de IHCE por prestador en su gestor de secretos.
+- **Cuentas:** cómo se autentica el profesional y cómo se asocia a su prestador (código REPS) y a sus llaves de Hércules.
+- **Datos clínicos en tránsito por el servidor:** el Bundle contiene datos de salud. Hay que decidir dónde se aloja, qué se registra y la base legal (Ley 1581 de 2012 y Resolución 1888 de 2025).
+
+Con esas decisiones, el relevo es un `TransporteIhce` más: la app lo registra con `registrarTransporte` y la cola sale sin reconstruirse (T21).
+
+### Build de producción con el módulo apagado
+
+`pages.yml` compila sin `--dart-define`, así que `IHCE_ENABLED` queda vacío y el módulo apagado. Además, `tool/construir_web.sh` quita de la compilación los datos del módulo (`assets/assets/ihce/`: JSON Schema de FHIR, 3,4 MB, y catálogos derivados de la guía) cuando la bandera no es `true` (`tool/pwa/datos_ihce.dart`, `test/tool/datos_ihce_test.dart`). Así no se publican, el service worker no los precarga y la app apagada descarga lo mismo que antes. Ningún código los pide con la bandera apagada. Lo que sí queda compilado en `main.dart.js` es el código del módulo, con las constantes de perfil generadas de la guía (`perfiles_rda.g.dart`).
+
 ## Gate de verificación (`ihce:verify`)
 
 ```bash
@@ -159,7 +178,7 @@ Ninguna es de interfaz. Herramientas fuera de `pubspec.yaml` (no se empaquetan):
 
 ## Licencia de la guía
 
-Los artefactos de la guía están bajo **CC BY-NC-SA 4.0**. No se versionan (`vendor/fhir/` está en `.gitignore`, salvo `VERSIONS.lock`), pero sí se versionan y se empaquetan en la PWA derivados de ellos: `lib/core/ihce/perfiles/perfiles_rda.g.dart`, `assets/ihce/catalogos_guia.json` y `docs/ihce/PERFILES_RDA.md`. La cláusula «NC» (no comercial) debe evaluarla el propietario para un SaaS. El JSON Schema de FHIR (`assets/ihce/fhir.schema.json`) es CC0.
+Los artefactos de la guía están bajo **CC BY-NC-SA 4.0**. No se versionan (`vendor/fhir/` está en `.gitignore`, salvo `VERSIONS.lock`), pero sí se versionan derivados de ellos: `lib/core/ihce/perfiles/perfiles_rda.g.dart`, `assets/ihce/catalogos_guia.json` y `docs/ihce/PERFILES_RDA.md`. Con el módulo apagado, la PWA publicada **no** incluye `catalogos_guia.json` (ver «Build de producción con el módulo apagado»), pero sí el código compilado con las constantes de `perfiles_rda.g.dart`; con el módulo encendido se publican ambos. La cláusula «NC» (no comercial) debe evaluarla el propietario antes de encender el módulo en un SaaS. El JSON Schema de FHIR (`assets/ihce/fhir.schema.json`) es CC0.
 
 ## Salida a producción
 
