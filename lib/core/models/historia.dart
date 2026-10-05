@@ -119,6 +119,7 @@ class HistoriaClinica {
     required this.pais,
     required this.fechaAtencion,
     this.tipoConsulta,
+    this.causaExterna,
     this.paciente = const Paciente(),
     this.motivoConsulta = '',
     this.enfermedadActual = '',
@@ -154,6 +155,7 @@ class HistoriaClinica {
       pais: Pais.desdeCodigo(m.textoONulo('pais')),
       fechaAtencion: atencion.fecha('fechaHora')!,
       tipoConsulta: atencion.textoONulo('tipoConsulta'),
+      causaExterna: atencion.textoONulo('causaExterna'),
       paciente: Paciente.desdeMapa(m.mapa('paciente')),
       motivoConsulta: motivo.texto('motivoConsulta'),
       enfermedadActual: motivo.texto('enfermedadActual'),
@@ -176,6 +178,9 @@ class HistoriaClinica {
   final Pais pais;
   final DateTime fechaAtencion;
   final String? tipoConsulta;
+
+  /// Código `RIPSCausaExternaVersion2` (RDA, módulo IHCE).
+  final String? causaExterna;
   final Paciente paciente;
   final String motivoConsulta;
   final String enfermedadActual;
@@ -215,6 +220,7 @@ class HistoriaClinica {
     Pais? pais,
     DateTime? fechaAtencion,
     Object? tipoConsulta = sin,
+    Object? causaExterna = sin,
     Paciente? paciente,
     String? motivoConsulta,
     String? enfermedadActual,
@@ -231,6 +237,7 @@ class HistoriaClinica {
     pais: pais ?? this.pais,
     fechaAtencion: fechaAtencion ?? this.fechaAtencion,
     tipoConsulta: cambio(tipoConsulta, this.tipoConsulta),
+    causaExterna: cambio(causaExterna, this.causaExterna),
     paciente: paciente ?? this.paciente,
     motivoConsulta: motivoConsulta ?? this.motivoConsulta,
     enfermedadActual: enfermedadActual ?? this.enfermedadActual,
@@ -251,6 +258,7 @@ class HistoriaClinica {
     'atencion': compacto({
       'fechaHora': fechaHoraIso(fechaAtencion),
       'tipoConsulta': tipoConsulta,
+      'causaExterna': causaExterna,
     }),
     'paciente': paciente.aMapa(),
     'motivo': compacto({
@@ -277,6 +285,8 @@ class HistoriaClinica {
     );
     final a = Map.of(aMapa())..remove('atencion');
     final b = Map.of(vacia.aMapa())..remove('atencion');
-    return jsonCanonico(a) == jsonCanonico(b) && tipoConsulta == null;
+    return jsonCanonico(a) == jsonCanonico(b) &&
+        tipoConsulta == null &&
+        causaExterna == null;
   }
 }

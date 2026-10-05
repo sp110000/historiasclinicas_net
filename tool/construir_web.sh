@@ -12,6 +12,8 @@ for a in "$@"; do
   if [ "$a" = "--csp-en-html" ]; then csp_en_html=1; else argumentos+=("$a"); fi
 done
 flutter build web --release --no-web-resources-cdn ${argumentos[@]+"${argumentos[@]}"}
+# Módulo IHCE/RDA apagado (por defecto): sus datos no se publican.
+dart run tool/pwa/datos_ihce.dart build/web ${argumentos[@]+"${argumentos[@]}"}
 if [ "$csp_en_html" = 1 ]; then
   dart run tool/pwa/csp_en_html.dart build/web
 fi

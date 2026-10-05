@@ -27,6 +27,8 @@ class CampoTexto extends StatelessWidget {
     this.ayuda,
     this.teclado,
     this.mayusculas = TextCapitalization.sentences,
+    this.oculto = false,
+    this.validador,
   });
 
   final String etiqueta;
@@ -41,6 +43,13 @@ class CampoTexto extends StatelessWidget {
   final String? ayuda;
   final TextInputType? teclado;
   final TextCapitalization mayusculas;
+
+  /// Entrada oculta (secretos).
+  final bool oculto;
+
+  /// Validación propia (p. ej. un código contra su catálogo); se muestra al
+  /// escribir, con el mismo mecanismo que `requerido`.
+  final FormFieldValidator<String>? validador;
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +70,13 @@ class CampoTexto extends StatelessWidget {
           ? TextInputAction.newline
           : TextInputAction.next,
       textCapitalization: mayusculas,
-      validator: requerido ? _obligatorio : null,
+      obscureText: oculto,
+      enableSuggestions: !oculto,
+      autocorrect: !oculto,
+      autovalidateMode: validador == null
+          ? null
+          : AutovalidateMode.onUserInteraction,
+      validator: validador ?? (requerido ? _obligatorio : null),
       onChanged: alCambiar,
     );
   }

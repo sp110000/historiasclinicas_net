@@ -20,4 +20,7 @@ abstract final class Claves {
   static const recetaTitulo = 'hc.receta.titulo';
   static const medicamentos = 'hc.medicamentos.v1';
   static const cie10 = 'hc.cie10.info';
+
+  /// Configuración del prestador para el RDA (módulo IHCE).
+  static const ihcePrestador = 'hc.ihce.prestador.v1';
 }

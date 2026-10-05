@@ -90,6 +90,7 @@ class GinecoObstetricos {
 class Antecedentes {
   const Antecedentes({
     this.alergias = const [],
+    this.tiposAlergia = const {},
     this.niegaAlergias = false,
     this.personales = '',
     this.medicacionActual = '',
@@ -102,6 +103,7 @@ class Antecedentes {
 
   factory Antecedentes.desdeMapa(Map<String, Object?> m) => Antecedentes(
     alergias: m.listaTextos('alergias'),
+    tiposAlergia: m.mapa('tiposAlergia').cast<String, String>(),
     niegaAlergias: m.booleano('niegaAlergias'),
     personales: m.texto('personales'),
     medicacionActual: m.texto('medicacionActual'),
@@ -115,6 +117,10 @@ class Antecedentes {
   /// Cada alergia es una etiqueta ("penicilina", "AINEs"): alimenta la
   /// alerta de la receta.
   final List<String> alergias;
+
+  /// Tipo de cada alergia (código `TipoAlergia` del RDA, módulo IHCE):
+  /// etiqueta → código. Solo se captura con el módulo habilitado.
+  final Map<String, String> tiposAlergia;
 
   /// Distingue "niega alergias" de "no se preguntó".
   final bool niegaAlergias;
@@ -130,6 +136,7 @@ class Antecedentes {
 
   Antecedentes copyWith({
     List<String>? alergias,
+    Map<String, String>? tiposAlergia,
     bool? niegaAlergias,
     String? personales,
     String? medicacionActual,
@@ -140,6 +147,7 @@ class Antecedentes {
     GinecoObstetricos? gineco,
   }) => Antecedentes(
     alergias: alergias ?? this.alergias,
+    tiposAlergia: tiposAlergia ?? this.tiposAlergia,
     niegaAlergias: niegaAlergias ?? this.niegaAlergias,
     personales: personales ?? this.personales,
     medicacionActual: medicacionActual ?? this.medicacionActual,
@@ -152,6 +160,7 @@ class Antecedentes {
 
   Map<String, Object?> aMapa() => compacto({
     'alergias': alergias.isEmpty ? null : alergias,
+    'tiposAlergia': tiposAlergia.isEmpty ? null : tiposAlergia,
     'niegaAlergias': niegaAlergias ? true : null,
     'personales': personales,
     'medicacionActual': medicacionActual,

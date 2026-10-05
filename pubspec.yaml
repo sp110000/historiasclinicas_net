@@ -14,8 +14,12 @@ dependencies:
   archive: ^4.0.9
   cupertino_icons: ^1.0.8
   crypto: ^3.0.7
+  cryptography: ^2.9.0
   flutter_riverpod: ^3.3.2
+  flutter_secure_storage: ^11.2.0
   go_router: ^17.5.0
+  http: ^1.6.0
+  json_schema: ^5.2.2
   pdf: ^3.12.0
   printing: ^5.14.3
   shared_preferences: ^2.5.5
@@ -31,6 +35,8 @@ flutter:
 
   assets:
     - assets/cie10/cie10_sispro.txt
+    - assets/ihce/catalogos_guia.json
+    - assets/ihce/fhir.schema.json
 
   fonts:
     - family: Inter

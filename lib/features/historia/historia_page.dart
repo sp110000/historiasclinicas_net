@@ -16,6 +16,7 @@ import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
 import '../../core/widgets/titulo_dialogo.dart';
 import '../medico/medico_provider.dart';
+import '../ihce/campos_ihce.dart';
 import 'estado/archivo_provider.dart';
 import 'estado/borrador_provider.dart';
 import 'estado/estado_historia.dart';
@@ -497,6 +498,8 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
                     const AvisoPrivacidad(),
                     if (!estado.abierta) const AvisoMedicoSinConfigurar(),
                     if (estado.abierta) AvisoHistoriaAbierta(estado: estado),
+                    if (estado.abierta)
+                      AvisoRdaAtencion(atencionId: estado.historia.id),
                     // En una historia abierta, las secciones selladas (1 a
                     // 10) van en una sola tarjeta con filas desplegables; las
                     // evoluciones siguen aparte.
