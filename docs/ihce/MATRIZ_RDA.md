@@ -111,7 +111,7 @@ El perfil admite `entry 0..*` en estas secciones: **no son necesarias** y no jus
 
 **Regla (cierre 1.2):** ningún RDA declara «nada conocido» en una sección para la que la atención tiene contenido. Se aplicó en este orden:
 
-1. **Recurso estructurado sin código:** ningún perfil de entrada admite el texto libre como dato normal. En ocupación y factores de riesgo, el patrón de datos faltantes de R4 (código sin valor, solo con la extensión `originalText`) pasa el validador de HL7, pero no se adoptó: va contra el perfil y falta confirmarlo con IHCE (análisis y decisión en [DESVIACIONES.md](DESVIACIONES.md) D8).
+1. **Recurso estructurado sin código:** ningún perfil de entrada admite el texto libre como dato normal. En ocupación, factores de riesgo y EAPB, el patrón de datos faltantes de R4 (código sin valor, solo con la extensión `originalText`) pasa el validador de HL7, pero no se adoptó: va contra el perfil y falta confirmarlo con IHCE (análisis y decisión en [DESVIACIONES.md](DESVIACIONES.md) D8).
 2. **Otro código de `emptyReason`:** imposible; el código es fijo.
 3. **Bloqueo:** si la sección tiene texto libre sin codificar, el RDA queda `INVALIDO_LOCAL` y el motivo dice qué sección y qué dato codificado falta (`contenidoSinCodificar`, `ensamblador.dart`; prueba `test/ihce/secciones_contenido_test.dart`).
 

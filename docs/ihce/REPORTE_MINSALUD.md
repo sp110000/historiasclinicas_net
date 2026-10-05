@@ -79,7 +79,7 @@ Encontradas con el mismo validador sobre el cuerpo oficial de Postman y los ejem
 Las secciones de `CompositionAmbulatoryRDA` fijan `emptyReason = nilknown`. Cuando la atención tiene información que el software solo guarda como texto (ocupación, aseguradora, hábitos, órdenes, fórmula), enviar la sección vacía con «nada conocido» sería falso. Hoy no enviamos esos RDA. Dos preguntas:
 
 1. ¿Cómo esperan recibir una sección con información no codificada? ¿Hay un `emptyReason` distinto de `nilknown` admisible, o alguna otra vía?
-2. ¿Acepta la plataforma una entrada con el `coding.system` fijo y `coding.code`/`display` sin valor, solo con la extensión estándar `originalText` (patrón de datos faltantes de FHIR R4)? El validador de HL7 la acepta para `PatientOccupationAtEncounterRDA` y `RiskFactorRDA`.
+2. ¿Acepta la plataforma una entrada con el `coding.system` fijo y `coding.code`/`display` sin valor, solo con la extensión estándar `originalText` (patrón de datos faltantes de FHIR R4)? El validador de HL7 la acepta para `PatientOccupationAtEncounterRDA`, `RiskFactorRDA` y (en `identifier.value`) `HealthBenefitPlanAdminOrganizationRDA`.
 
 Quedamos atentos.
 

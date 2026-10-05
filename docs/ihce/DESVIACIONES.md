@@ -67,15 +67,16 @@ Notas del análisis:
 
 - **EAPB.** El validador acepta `identifier.value` ausente con la extensión `data-absent-reason = unknown`. Se descartó: la entrada no identificaría a la EAPB y no podría tener el `id` que exige el Manual §5.3e. El slice `PayorResources` también admite `PatientRDA` (el paciente como pagador particular), pero eso solo vale si se sabe que la atención es particular, y el texto libre no lo dice.
 - **Factores de riesgo.** El candidato solo da cero errores con un código elegido (p. ej. «06 Otro»). Eso sería deducir una categoría del texto, prohibido.
-- Un segundo agente intentó refutar cada conclusión con el StructureDefinition y el validador. En `MedicationRequestRDA`, `ServiceRequestRDA` y `OtherTechnologyServiceRequestRDA` no pudo: la conclusión se confirma. En `PatientOccupationAtEncounterRDA` y `RiskFactorRDA` sí la refutó, con el patrón que sigue.
+- Un segundo agente intentó refutar cada conclusión con el StructureDefinition y el validador. En `MedicationRequestRDA`, `ServiceRequestRDA` y `OtherTechnologyServiceRequestRDA` no pudo: la conclusión se confirma. En `PatientOccupationAtEncounterRDA`, `RiskFactorRDA` y `HealthBenefitPlanAdminOrganizationRDA` sí la refutó, con el patrón que sigue. En `MedicationRequestRDA` el patrón resuelve `medication[x].coding`, pero quedan `reasonCode`, `doseAndRate` y `timing.repeat.duration`.
 
-**Patrón de datos faltantes de R4 (validado, no adoptado).** En FHIR R4 un primitivo obligatorio (p. ej. `coding.code` 1..1) se cumple aunque no tenga valor si lleva una extensión (invariante `ele-1`): es el mecanismo estándar de datos faltantes, que R5 cierra con `mustHaveValue` y que esta guía no usa. Con `coding.system` en su valor fijo y `_code`/`_display` solo con la extensión `originalText` (el texto de la app), el validador da **0 errores** en `PatientOccupationAtEncounterRDA` y `RiskFactorRDA` (solo el aviso «No code provided for CodeSystem…»). Candidatos y reportes: `build/ihce/analisis-secciones/*.refutacion.*`.
+**Patrón de datos faltantes de R4 (validado, no adoptado).** En FHIR R4 un primitivo obligatorio (p. ej. `coding.code` 1..1) se cumple aunque no tenga valor si lleva una extensión (invariante `ele-1`): es el mecanismo estándar de datos faltantes, que R5 cierra con `mustHaveValue` y que esta guía no usa. Con `coding.system` en su valor fijo y `_code`/`_display` solo con la extensión `originalText` (el texto de la app), el validador da **0 errores** en `PatientOccupationAtEncounterRDA` y `RiskFactorRDA` (solo el aviso «No code provided for CodeSystem…»). En `HealthBenefitPlanAdminOrganizationRDA`, con `identifier.value` solo con `originalText` (el nombre escrito), queda únicamente el error de display NIIP, que es un defecto de la guía (se reproduce en el ejemplo `Organization-77a0c776…`). Candidatos y reportes: `build/ihce/analisis-secciones/*.refutacion.*`.
 
 No se adoptó, y el comportamiento sigue siendo el bloqueo, porque:
 
 1. va contra la intención explícita del perfil: en ocupación `value.text`, `note` y `dataAbsentReason` son 0..0, y `code`/`display` son mustSupport con binding required;
 2. no hay evidencia de que IHCE acepte entradas «codificadas» sin código (su validación de terminología y sus reglas de negocio no están publicadas), y enviarlas a la plataforma nacional sin probarlas en sandbox es una decisión del propietario;
-3. el RDA enviaría como dato estructurado algo que no lo es.
+3. el RDA enviaría como dato estructurado algo que no lo es;
+4. en EAPB, además, el Manual §5.3e exige que el `id` de la Organization sea el código EAPB (`#CodigoEAPB`), que la app no tiene.
 
 Si el propietario lo decide tras confirmarlo con MinSalud (pregunta en [REPORTE_MINSALUD.md](REPORTE_MINSALUD.md)), el cambio queda acotado: un mapper «sin código» por sección que emita la entrada con el patrón y deje de bloquear esa sección en `contenidoSinCodificar`.
 
