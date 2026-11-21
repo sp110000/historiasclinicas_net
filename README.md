@@ -4,7 +4,7 @@ Historia clínica y receta en el navegador. Sin servidor, sin base de datos y si
 
 **Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
-**Fase 5, el consultorio (en curso):** índice de pacientes y datos de gestión en un almacén local cifrado, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público no cambia). Terminada la 5.0 «Cimientos»: frase de acceso, código de recuperación, bloqueo, respaldo cifrado y Ajustes. Plan y avance en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
+**Fase 5, el consultorio (en curso):** índice de pacientes y datos de gestión en un almacén local cifrado, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público no cambia). Terminadas la 5.0 «Cimientos» (frase de acceso, código de recuperación, bloqueo, respaldo cifrado y Ajustes) y la 5.1 «Pacientes» (índice de pacientes con búsqueda, importación de PDF, ficha longitudinal, autorización de tratamiento de datos firmada en pantalla, política de privacidad, recetas con `receta.json`, y borrador y receta en curso cifrados). Plan y avance en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
@@ -31,7 +31,7 @@ node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) 
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
 # Consultorio (bandera encendida):
 node tool/e2e/servidor.mjs 8766 build/web-consultorio &
-node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración sin conexión
+node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta (sin conexión)
 ```
 GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
@@ -44,7 +44,8 @@ lib/
     cie10/          catálogo CIE-10: el incluido (SISPRO) y el importado (Excel, CSV, JSON; IndexedDB)
     clinica/        edad, IMC, gestación, rangos de signos vitales
     consultorio/    Fase 5 (bandera CONSULTORIO_ENABLED): almacén cifrado en IndexedDB, llavero y
-                    AES-256-GCM, repositorio, migraciones, respaldo .hcrespaldo, hoja de recuperación
+                    AES-256-GCM, repositorio, migraciones, respaldo .hcrespaldo, hoja de recuperación;
+                    índice de pacientes (fichas, historias, recetas), plantillas y documentos firmados
     imagenes/       firma, sello y logo: quitar fondo, recortar, reducir
     integridad/     JSON canónico y cadena SHA-256
     models/         historia, paciente, antecedentes, revisión por sistemas, signos, diagnósticos, evoluciones, médico
@@ -56,7 +57,8 @@ lib/
     storage/        preferencias, borrador, médico, receta y "Mis medicamentos" (localStorage)
     widgets/        campos de formulario (con sugerencias), tarjeta de sección, lienzo de firma
   features/
-    consultorio/    Fase 5: contenedor (riel y menú), desbloqueo, Ajustes, respaldo
+    consultorio/    Fase 5: contenedor (riel y menú), desbloqueo, Ajustes, respaldo, pacientes y ficha,
+                    documentos (plantillas, autorización), enganches con la historia y la receta
     historia/       pantalla, estado (Riverpod), formularios, evoluciones
     cie10/          estado del catálogo e importación
     medico/         datos del médico, firma (dibujada o subida), sello y logo
@@ -71,6 +73,7 @@ tool/consultorio/   comprueba si el módulo del consultorio quedó en main.dart.
 tool/pwa/           plantilla y generador del service worker; CSP dentro del HTML (GitHub Pages)
 tool/cie10/         genera el catálogo incluido desde el Excel de SISPRO
 tool/e2e/           servidor con cabeceras, pruebas en Chromium (también la del consultorio), inspección y alteración de PDF
+tool/e2e/fixtures/  PDF sintéticos para la e2e del consultorio (los genera test/tool/fixtures_e2e_test.dart)
 firebase.json, vercel.json, .vercelignore   configuración de esos proveedores
 .github/workflows/  CI (análisis, tests, compilación, pruebas en Chromium) y publicación en GitHub Pages
 ```

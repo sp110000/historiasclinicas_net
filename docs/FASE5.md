@@ -25,12 +25,77 @@
 | 7 | Respaldo | Aviso a los 7 días; restaurar reemplaza todo. Ofrecer respaldo al cerrar la caja: en la 5.6 |
 | 8 | Regla 10 | Acepta el inventario de este documento y la carpeta `lib/features/consultorio/` |
 | 9 | Subfases | 5.0 «Cimientos» primero; el consentimiento informado pasa a la 5.3 |
+| 10–51 | Todas las demás | Aprobadas con su opción *por defecto* («ok a todo», 21/11/2026). La 5.0 quedó aprobada el mismo día |
 
 ---
 
 ## Avance
 
-### 5.0 Cimientos ✅ (pendiente de tu visto bueno)
+### 5.1 Pacientes ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Índice de pacientes** cifrado (`lib/core/consultorio/indice/`):
+  - una **ficha** por documento (tipo y número sin puntos ni espacios). Un paciente sin identificar (AS/MS) tiene una ficha por historia hasta que las unas;
+  - cada historia se registra al **guardarla** o al **abrirla**, con sus datos sellados y su **PDF exacto**. Resultado: nueva, versión más nueva (la reemplaza), ya estaba, versión más vieja (no la reemplaza) o **versiones divergentes** (misma revisión, otro contenido; se marca en la ficha);
+  - con el consultorio **bloqueado**, lo que se guarda queda pendiente en memoria y se registra al desbloquear (la pantalla de desbloqueo lo avisa);
+  - si abres un PDF **más viejo** que el del índice, la historia ofrece abrir la versión más nueva;
+  - un registro dañado o alterado **no impide abrir** el consultorio: se cuenta y la lista lo avisa.
+- **Lista de pacientes** (`/pacientes`):
+  - búsqueda sin tildes ni mayúsculas, por nombre o documento (con o sin puntos); Enter abre la primera ficha;
+  - filtros por línea, última atención, etiquetas y **controles vencidos** (la fecha pasó y no volvió);
+  - **importación en lote** de PDF (elegidos o soltados) con informe por archivo: importada, ya estaba, más nueva, más vieja, divergente, **con alteraciones (se indexa marcada)**, dañada, ajena;
+  - paciente nuevo a mano; en móvil, botón flotante.
+- **Ficha** (`/pacientes/:id`):
+  - datos, líneas, etiquetas, notas internas, alergias vigentes y antecedentes **con su fuente** («de la historia del 02/10/2026»; «actualizadas el …» solo si una evolución las actualizó);
+  - **línea de tiempo** con historias (integridad, revisión, evoluciones con su huella y próximo control), documentos y recetas, con «Abrir en la historia», «Ver PDF» y «Descargar PDF»;
+  - acciones: historia nueva y evolución **prellenadas**, receta, **actualizar alergias** (agrega «Alergias actualizadas: …» a la evolución en curso, que se sella al descargarla), autorización de datos, editar datos y **unir fichas** (la otra queda marcada, no se borra; queda en la bitácora). En móvil, un menú «Acciones».
+- **Historia con la bandera:** franja «← Ficha» sobre la historia que vino de una ficha, y campo **«Próximo control» en la evolución** (pregunta 15a).
+- **Documentos** (`lib/core/consultorio/documentos/`):
+  - **plantillas versionadas** de autorización de tratamiento de datos y de política de privacidad, con textos base según la Ley 1581 de 2012 y el Decreto 1377 de 2013 (**VERIFICAR con tu abogado**). No se usan hasta aprobarlas; editar una aprobada crea la versión siguiente en borrador;
+  - **autorización firmada en pantalla** por el paciente: consecutivo AD-, `documento.json` sellado dentro del PDF (con la versión de la plantilla y la huella de la firma), firma y PDF cifrados, ligada a la ficha. Se puede registrar su **revocación** o **anularla**, con motivo; el número no se reutiliza. Sin autorización, la ficha avisa pero **no bloquea la atención** (pregunta 12);
+  - **política de privacidad en PDF** para imprimir y exhibir (Ajustes → Plantillas).
+- **Recetas con `receta.json`** (solo con la bandera) registradas en la ficha con su PDF exacto. Sin la bandera, la receta es el PDF de siempre.
+- **Borrador de la historia y receta en curso cifrados** (pregunta 6): con el consultorio abierto van al almacén; bloqueado, solo en memoria y se cifran al desbloquear; lo que había en claro se migra. Tras recargar, el borrador vuelve al desbloquear.
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **440 en verde** (eran 383: **+57**). 3 omitidas, las mismas de la 5.0 |
+| Bandera apagada | La prueba ahora admite una **lista cerrada** de archivos compartidos (historia, evoluciones, receta, borrador) y exige que cada enganche esté dentro de `if (consultorioHabilitado …)`. `main.dart.js` público sin el módulo. Comparado con `main`: **+0,7 KB** (5.333.404 bytes frente a 5.332.699), por el «próximo control» de la evolución (pregunta 15a, aceptada) y el parámetro de adjuntos de la receta; la fuente de íconos pasa de 18 a 22 KB (mismo motivo que en la 5.0) |
+| Bandera encendida | Rutas `/pacientes` y `/pacientes/:id`. El módulo pesa **+375 KB** en `main.dart.js` (5.709 KB) |
+| Rendimiento con **5.000 pacientes sintéticos** | Descifrar y cargar el índice (10.000 registros): **0,8 a 0,95 s**; búsqueda: **15 a 17 ms por consulta** (máquina virtual de Dart con AES en Dart; en el navegador el cifrado lo hace WebCrypto). Antes de indexar las historias por paciente, la búsqueda tardaba 67 ms |
+| Contraste | Píldoras de estado (fondo al 6 %), franja y avisos ≥ 4,5:1, con prueba |
+| 320 px | Lista, ficha, menú «Acciones» y diálogo de firma sin desbordes, con prueba |
+| e2e en Chromium, **sin conexión y con la CSP** | **23 de 23 pasos** (16 de la 5.0 y 7 nuevos): importar 4 PDF sintéticos (1 alterado, 1 ajeno) con su informe, buscar «pena jose» y abrir la ficha con Enter, aprobar la plantilla y **firmar la autorización** (PDF con `documento.json`), **evolución desde la ficha** con la franja y el próximo control (v3 descargada), receta con `receta.json`, **nada de los pacientes en claro en IndexedDB ni en `localStorage`**, ficha en móvil. 0 peticiones externas, 0 fallidas, 0 errores de consola y, desde ahora, **0 excepciones de Flutter** (antes no se vigilaban) |
+
+**Problemas encontrados y corregidos en la 5.1**
+1. **Accesibilidad rota al cruzar los 1100 px** (de escritorio a móvil o al girar la tableta) con un lector de pantalla: el motor web lanzaba «Null check operator…» y el árbol de accesibilidad dejaba de actualizarse. El contenedor construía dos árboles distintos a cada lado del corte; ahora conserva el cuerpo con una llave global. La e2e lo encontró y ahora falla si Flutter registra una excepción.
+2. **Chromium descarta el nombre de una descarga con tildes o «ñ»** (quedaba «download»). Los PDF de documentos usan nombres solo ASCII, como la historia y la receta.
+3. **Un registro ilegible impedía desbloquear** el consultorio. Ahora se cuenta como ilegible y la lista lo avisa.
+4. La ficha decía «actualizadas el …» también cuando las alergias venían de la historia inicial.
+5. El verde de «Íntegra» quedaba en 4,39:1 sobre su píldora; con el fondo al 6 % pasa a 4,62:1.
+
+**Desviaciones del plan**
+- **Receta prellenada:** la receta toma el paciente y las alergias de la historia en curso, así que «Receta» en la ficha continúa la historia más reciente del paciente (o empieza una prellenada) y abre la receta. No hizo falta otro mecanismo.
+- **Pregunta 15a:** el campo se escribe solo con la bandera, pero el modelo, la vista sellada y el PDF de la evolución son compartidos; por eso el sitio público cambia en 0,7 KB (lo esperado al aprobar la opción a). Una evolución sin próximo control sella exactamente el mismo mapa que hoy, con prueba.
+- **`documento.json` y `receta.json` llevan otra marca** (`aplicacion` en lugar de `app`): la historia de siempre no los confunde con una historia, y abrir esos PDF en ella se comporta como con cualquier PDF ajeno. Importarlos en el índice llega en la 5.4, como estaba previsto.
+- **Lo pendiente con el consultorio bloqueado vive solo en memoria:** si se cierra la pestaña antes de desbloquear, la historia sigue en su PDF y se puede importar.
+- **Firma en papel** (fotografía o escaneo del documento firmado, pregunta 38) y **consentimiento de uso de imagen**: llegan con los documentos (5.4) y las fotos (5.2).
+- **Rendimiento medido en la máquina virtual de Dart**, no en tus equipos. Conviene repetirlo en tu portátil y en tu celular cuando tengas datos.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):**
+  - [informe de importación](fase5/escritorio_importacion_informe.png)
+  - [lista de pacientes](fase5/escritorio_pacientes_lista.png) · [búsqueda sin tildes](fase5/escritorio_pacientes_busqueda.png)
+  - [ficha](fase5/escritorio_ficha.png) · [ficha con la línea de tiempo](fase5/escritorio_ficha_linea_de_tiempo.png)
+  - [plantillas en Ajustes](fase5/escritorio_ajustes_plantillas.png) · [firma de la autorización](fase5/escritorio_autorizacion_firma.png)
+  - [evolución desde la ficha, con la franja](fase5/escritorio_evolucion_desde_ficha.png)
+- **Móvil (390 px):** [ficha](fase5/movil_ficha.png) · [menú «Acciones»](fase5/movil_ficha_acciones.png)
+- **PDF:** [autorización de tratamiento de datos](fase5/pdf_autorizacion_datos.png)
+
+### 5.0 Cimientos ✅ (aprobada el 21/11/2026)
 
 **Qué incluye**
 - **Bandera `CONSULTORIO_ENABLED`** como constante (`lib/core/consultorio/config.dart`). Su único punto de entrada es `crearRouter()`, bajo `if (consultorioHabilitado)`.
@@ -847,15 +912,16 @@ docs/FASE5.md, docs/fase5/           # este plan, resultados y capturas
 | Archivo | Cambio |
 |---|---|
 | `lib/app/router.dart` | `if (consultorioHabilitado)` usa las rutas del consultorio (5.0: `/ajustes`; después `/agenda`, `/pacientes`, `/pacientes/:id`, `/caja` e `/inventario`, con `initialLocation: '/agenda'` desde la 5.5). Apagada: las 3 rutas de hoy |
-| `lib/features/historia/estado/historia_controller.dart` | Enganche en `guardado()` (sin esperar el resultado y sin lanzar errores, como IHCE) y `nuevaDesdePaciente()` |
-| `lib/features/historia/historia_page.dart` | Pasar los bytes del PDF al enganche. Cortes con el ancho disponible (`LayoutBuilder`), que sin riel es el de hoy. Con la bandera: «← Ficha» y aviso de versión más nueva en el índice |
-| `lib/features/historia/secciones/seccion_evoluciones.dart`, `lib/core/models/evolucion.dart`, `lib/core/pdf/historia_pdf.dart`, `lib/core/presentacion/datos_historia.dart` | Solo si eliges 15 (a): «Próximo control» opcional en la evolución, con la bandera encendida |
-| `lib/features/receta/estado/receta_controller.dart`, `lib/features/receta/receta_page.dart`, `lib/core/pdf/receta_pdf.dart` | Con la bandera: `receta.json` incrustado y registro en la ficha |
-| `lib/core/storage/borrador_store.dart`, `lib/core/storage/receta_store.dart` | Con la bandera: borrador y receta en curso en el almacén cifrado (pregunta 6) |
-| `lib/core/pdf/piezas_pdf.dart`, `lib/core/pdf/historia_pdf.dart` | Extraer ficha del paciente, cabecera de sección y encabezado de página, sin cambiar el PDF (prueba de regresión) |
-| `lib/features/medico/medico_page.dart`, `lib/core/widgets/dialogo_firma.dart` (nuevo) | `DialogoFirma` pasa a `lib/core/widgets/` con título y textos como parámetros, sin cambiar cómo se ve el del médico |
+| `lib/features/historia/estado/historia_controller.dart` | Enganche en `guardado()` (sin esperar el resultado y sin lanzar errores, como IHCE) y `nuevaDesdePaciente()`. **5.1: no cambió**; el enganche quedó en la página, que tiene los bytes del PDF, y el prellenado usa `limpiar()` y `actualizar()` |
+| `lib/features/historia/historia_page.dart` | Pasar los bytes del PDF al enganche. Cortes con el ancho disponible (`LayoutBuilder`), que sin riel es el de hoy. Con la bandera: «← Ficha» y aviso de versión más nueva en el índice. **5.1:** dentro de `if (consultorioHabilitado)`, registra lo que guarda (`registrarHistoriaGuardada`) y lo que abre (`alAbrirHistoria`, que avisa si el índice tiene una versión más nueva). La franja «← Ficha» va en el contenedor, no en la página |
+| `lib/features/historia/secciones/seccion_evoluciones.dart`, `lib/core/models/evolucion.dart`, `lib/core/pdf/historia_pdf.dart`, `lib/core/presentacion/datos_historia.dart` | Solo si eliges 15 (a): «Próximo control» opcional en la evolución, con la bandera encendida. **5.1:** el campo del editor va dentro de `if (consultorioHabilitado)`; el modelo, la vista sellada y el PDF lo muestran si existe. `datos_historia.dart` no cambió |
+| `lib/features/receta/estado/receta_controller.dart`, `lib/features/receta/receta_page.dart`, `lib/core/pdf/receta_pdf.dart` | Con la bandera: `receta.json` incrustado y registro en la ficha. **5.1:** `generarPdfReceta` recibe `adjuntos` (vacío: el PDF de siempre); la página los pasa y registra la receta dentro de `if (consultorioHabilitado)`; el provider del almacén de la receta elige el cifrado con la bandera |
+| `lib/features/historia/estado/borrador_provider.dart` (en lugar de `lib/core/storage/borrador_store.dart` y `receta_store.dart`, que no cambian) | Con la bandera: borrador y receta en curso en el almacén cifrado (pregunta 6). **5.1:** los providers eligen `BorradorStoreConsultorio` y `RecetaStoreConsultorio` (subclases en `lib/features/consultorio/integracion/`) dentro de `if (consultorioHabilitado)` |
+| `lib/core/pdf/lector_adjunto.dart`, `lib/core/pdf/adjuntos_pdf.dart` (nuevo) | **5.1:** función nueva `adjuntosConMarca` para leer `documento.json` y `receta.json` (lo demás no cambia) e `incrustarAdjuntos` para escribirlos |
+| `lib/core/pdf/piezas_pdf.dart`, `lib/core/pdf/historia_pdf.dart` | Extraer ficha del paciente, cabecera de sección y encabezado de página, sin cambiar el PDF (prueba de regresión). **5.1: `piezas_pdf.dart` no cambió**; los documentos usan `datosMedicoPdf` y `bloqueFirmaPdf` tal como están |
+| `lib/features/medico/medico_page.dart`, `lib/core/widgets/dialogo_firma.dart` (nuevo) | `DialogoFirma` pasa a `lib/core/widgets/` con título y textos como parámetros, sin cambiar cómo se ve el del médico. **5.1: no hizo falta**; la firma del paciente es un diálogo del consultorio con el `LienzoFirma` de siempre |
 | `lib/core/widgets/campos.dart` | Variante neutra de `CampoEtiquetas` (sin el estilo de alergia). `CampoMoneda` y `CampoCantidad` van en archivos nuevos |
-| `lib/core/archivos/archivos.dart`, `lib/core/archivos/archivos_web.dart`, `lib/core/archivos/archivos_stub.dart` | Elegir varios archivos, soltar varios y `capture` para la cámara |
+| `lib/core/archivos/archivos.dart`, `lib/core/archivos/archivos_web.dart`, `lib/core/archivos/archivos_stub.dart` | Elegir varios archivos, soltar varios y `capture` para la cámara. **5.1:** `elegirPdfs` y `escucharVariosSoltados`; la cámara, en la 5.2 |
 | `tool/ihce/regla10.dart` | Aceptar el inventario de esta tabla y la carpeta `lib/features/consultorio/` (pregunta 8) |
 | `tool/construir_web.sh`, `.github/workflows/ci.yml` | Carpeta de salida como parámetro, y un trabajo de CI que compila con la bandera encendida y corre el e2e del consultorio. **`pages.yml` no cambia** |
 | `tool/e2e/historia_offline.mjs` | Paso nuevo: sin la bandera no existe la base del consultorio |
