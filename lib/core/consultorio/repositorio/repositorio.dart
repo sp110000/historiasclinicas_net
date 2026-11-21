@@ -78,6 +78,27 @@ class RepositorioConsultorio {
     };
   }
 
+  /// Como [leerColeccion], pero un registro que no se puede descifrar (dañado
+  /// o alterado) no detiene la lectura: su id va en `ilegibles`.
+  Future<
+    ({Map<String, Map<String, Object?>> registros, List<String> ilegibles})
+  >
+  leerColeccionTolerante(String coleccion) async {
+    final prefijo = '$coleccion/';
+    final todos = await _almacen.leerTodo(Deposito.registros, prefijo: prefijo);
+    final registros = <String, Map<String, Object?>>{};
+    final ilegibles = <String>[];
+    for (final e in todos.entries) {
+      final id = e.key.substring(prefijo.length);
+      try {
+        registros[id] = await _descifrarRegistro(e.key, e.value);
+      } on Object {
+        ilegibles.add(id);
+      }
+    }
+    return (registros: registros, ilegibles: ilegibles);
+  }
+
   Future<void> guardar(
     String coleccion,
     String id,

@@ -148,20 +148,56 @@ void main() {
     });
   }
 
-  test('ningún archivo público referencia el servicio fuera de la rama de '
-      'la bandera', () {
-    // El único punto de entrada al consultorio es crearRouter(), bajo
-    // `if (consultorioHabilitado)`. Lo demás vive en lib/features/consultorio
-    // y lib/core/consultorio.
+  test('ningún archivo público usa el consultorio fuera de la rama de la '
+      'bandera', () {
+    // Lo del consultorio vive en lib/features/consultorio y
+    // lib/core/consultorio. Fuera de ahí solo estos archivos lo importan, y
+    // solo lo usan dentro de `if (consultorioHabilitado …)`, que el
+    // compilador descarta con la bandera apagada.
+    const permitidos = {
+      'lib/app/router.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/features/consultorio/rutas_consultorio.dart',
+      },
+      'lib/features/historia/historia_page.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/features/consultorio/integracion/enganche_historia.dart',
+      },
+      'lib/features/historia/secciones/seccion_evoluciones.dart': {
+        'lib/core/consultorio/config.dart',
+      },
+    };
+    final enganches = _funcionesPublicas(
+      'lib/features/consultorio/integracion/enganche_historia.dart',
+    );
+    expect(enganches, contains('registrarHistoriaGuardada'));
+
     final fuera = <String>[];
     for (final f in Directory('lib').listSync(recursive: true)) {
       if (f is! File || !f.path.endsWith('.dart')) continue;
       final ruta = f.path.replaceAll(r'\', '/');
       if (ruta.contains('/consultorio/')) continue;
       final texto = f.readAsStringSync();
-      if (texto.contains('consultorio/') &&
-          !ruta.endsWith('lib/app/router.dart')) {
-        fuera.add(ruta);
+      final importados = {
+        for (final m in RegExp(
+          r"^import '([^']*consultorio/[^']*)'",
+          multiLine: true,
+        ).allMatches(texto))
+          Uri.parse(ruta).resolve(m.group(1)!).path,
+      };
+      if (!texto.contains('consultorio/')) continue;
+      final esperados = permitidos[ruta];
+      if (esperados == null || !esperados.containsAll(importados)) {
+        fuera.add('$ruta importa $importados');
+        continue;
+      }
+      final rangos = _rangosConBandera(texto);
+      for (final nombre in enganches) {
+        for (final m in RegExp('\\b$nombre\\(').allMatches(texto)) {
+          if (!rangos.any((r) => m.start > r.$1 && m.start < r.$2)) {
+            fuera.add('$ruta usa $nombre fuera de la bandera');
+          }
+        }
       }
     }
     expect(fuera, isEmpty);
@@ -173,4 +209,47 @@ void main() {
     // La marca que busca la verificación de la compilación es la del módulo.
     expect(marcaModulo, baseDeDatosConsultorio);
   });
+}
+
+/// Nombres de las funciones públicas de primer nivel de [ruta].
+Set<String> _funcionesPublicas(String ruta) => {
+  for (final m in RegExp(
+    r'^(?:Future<[^>]*>|bool|int|void|String\??) ([a-z]\w*)\(',
+    multiLine: true,
+  ).allMatches(File(ruta).readAsStringSync()))
+    m.group(1)!,
+};
+
+/// Rangos (inicio, fin) de los bloques `if (consultorioHabilitado …) {…}` y
+/// de los `if (consultorioHabilitado …) ...[…]` de una lista.
+List<(int, int)> _rangosConBandera(String texto) {
+  final rangos = <(int, int)>[];
+  for (final m in RegExp(r'if \(consultorioHabilitado\b').allMatches(texto)) {
+    // Cierra el paréntesis de la condición.
+    var i = m.end;
+    var parentesis = 1;
+    while (parentesis > 0) {
+      final c = texto[i++];
+      if (c == '(') parentesis++;
+      if (c == ')') parentesis--;
+    }
+    final resto = texto.substring(i).trimLeft();
+    final inicio = texto.length - resto.length;
+    final abre = resto.startsWith('{')
+        ? '{'
+        : resto.startsWith('...[')
+        ? '['
+        : null;
+    if (abre == null) continue;
+    final cierra = abre == '{' ? '}' : ']';
+    var j = texto.indexOf(abre, inicio);
+    var nivel = 0;
+    do {
+      final c = texto[j++];
+      if (c == abre) nivel++;
+      if (c == cierra) nivel--;
+    } while (nivel > 0);
+    rangos.add((inicio, j));
+  }
+  return rangos;
 }

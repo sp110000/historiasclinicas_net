@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import '../ihce/reloj.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
+import 'indice/indice_pacientes.dart';
+import 'modelos/registro_historia.dart';
 import 'modelos/configuracion.dart';
 import 'repositorio/bitacora.dart';
 import 'repositorio/migraciones.dart';
@@ -18,6 +20,25 @@ class OtraPestanaAbierta implements Exception {
 
   @override
   String toString() => 'OtraPestanaAbierta';
+}
+
+/// Historia guardada o abierta con el consultorio bloqueado: se registra
+/// en el índice al desbloquearlo. Solo vive en memoria (nunca se escribe en
+/// claro); si se cierra la pestaña antes, el PDF se puede importar.
+class HistoriaPendiente {
+  const HistoriaPendiente({
+    required this.datos,
+    required this.revision,
+    required this.origen,
+    this.nombreArchivo = '',
+    this.bytesPdf,
+  });
+
+  final Map<String, Object?> datos;
+  final int revision;
+  final OrigenArchivo origen;
+  final String nombreArchivo;
+  final Uint8List? bytesPdf;
 }
 
 /// Punto de entrada del consultorio, sin interfaz: bóveda, repositorio,
@@ -39,6 +60,7 @@ class ServicioConsultorio {
       reloj: reloj,
     );
     repositorio = RepositorioConsultorio(boveda);
+    indice = IndicePacientes(repositorio, reloj: reloj);
   }
 
   final MotorAes motor;
@@ -49,6 +71,14 @@ class ServicioConsultorio {
 
   late final Boveda boveda;
   late final RepositorioConsultorio repositorio;
+
+  /// Fichas e historias descifradas; vacío mientras está bloqueado.
+  late final IndicePacientes indice;
+
+  final _pendientes = <HistoriaPendiente>[];
+
+  /// Historias que esperan a que se desbloquee el consultorio.
+  int get historiasPendientes => _pendientes.length;
 
   ConfiguracionConsultorio _configuracion = const ConfiguracionConsultorio();
 
@@ -73,14 +103,54 @@ class ServicioConsultorio {
       _configuracion = c == null
           ? const ConfiguracionConsultorio()
           : ConfiguracionConsultorio.desdeMapa(c);
+      await indice.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
       rethrow;
     }
+    await _registrarPendientes();
+  }
+
+  Future<void> _registrarPendientes() async {
+    while (_pendientes.isNotEmpty && boveda.desbloqueada) {
+      final p = _pendientes.removeAt(0);
+      try {
+        await indice.registrarHistoria(
+          p.datos,
+          revision: p.revision,
+          origen: p.origen,
+          nombreArchivo: p.nombreArchivo,
+          bytesPdf: p.bytesPdf,
+        );
+      } on Object {
+        // Datos que no son una historia: no hay nada que registrar.
+      }
+    }
+  }
+
+  /// Registra en el índice una historia que se guardó o se abrió. Con el
+  /// consultorio bloqueado la deja pendiente y devuelve `null`.
+  Future<ResultadoRegistro?> registrarHistoria(HistoriaPendiente h) async {
+    if (!boveda.desbloqueada) {
+      _pendientes
+        ..removeWhere(
+          (p) => p.datos['id'] == h.datos['id'] && p.revision <= h.revision,
+        )
+        ..add(h);
+      return null;
+    }
+    return indice.registrarHistoria(
+      h.datos,
+      revision: h.revision,
+      origen: h.origen,
+      nombreArchivo: h.nombreArchivo,
+      bytesPdf: h.bytesPdf,
+    );
   }
 
   void _cerrarSesion() {
+    indice.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();

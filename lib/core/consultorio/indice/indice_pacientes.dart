@@ -134,15 +134,39 @@ class IndicePacientes {
 
   bool get cargado => _cargado;
 
+  /// Registros que no se pudieron leer al cargar (`pacientes/<id>` o
+  /// `historias/<id>`): dañados, alterados o de un formato desconocido. No
+  /// impiden abrir el consultorio; la lista de pacientes avisa.
+  List<String> get registrosIlegibles => List.unmodifiable(_ilegibles);
+  final _ilegibles = <String>[];
+
   Future<void> cargar() async {
-    final fichas = await _repo.leerColeccion(FichaPaciente.coleccion);
-    final historias = await _repo.leerColeccion(RegistroHistoria.coleccion);
+    final fichas = await _repo.leerColeccionTolerante(FichaPaciente.coleccion);
+    final historias = await _repo.leerColeccionTolerante(
+      RegistroHistoria.coleccion,
+    );
     olvidar();
-    for (final e in fichas.entries) {
-      _ponerFicha(FichaPaciente.desdeMapa(e.key, e.value));
+    _ilegibles
+      ..addAll([
+        for (final id in fichas.ilegibles) '${FichaPaciente.coleccion}/$id',
+      ])
+      ..addAll([
+        for (final id in historias.ilegibles)
+          '${RegistroHistoria.coleccion}/$id',
+      ]);
+    for (final e in fichas.registros.entries) {
+      try {
+        _ponerFicha(FichaPaciente.desdeMapa(e.key, e.value));
+      } on Object {
+        _ilegibles.add('${FichaPaciente.coleccion}/${e.key}');
+      }
     }
-    for (final e in historias.entries) {
-      _historias[e.key] = RegistroHistoria.desdeMapa(e.key, e.value);
+    for (final e in historias.registros.entries) {
+      try {
+        _historias[e.key] = RegistroHistoria.desdeMapa(e.key, e.value);
+      } on Object {
+        _ilegibles.add('${RegistroHistoria.coleccion}/${e.key}');
+      }
     }
     _cargado = true;
   }
@@ -153,6 +177,7 @@ class IndicePacientes {
     _historias.clear();
     _porClave.clear();
     _porPaciente = null;
+    _ilegibles.clear();
     _cargado = false;
   }
 

@@ -298,6 +298,14 @@ Future<Uint8List> generarPdfHistoria({
           pw.Text(signos, style: estilo(tamano: 8.5, color: gris)),
           arriba: 2,
         ),
+      if (e.proximoControl != null)
+        sangria(
+          pw.Text(
+            'Próximo control: ${formatoFecha(e.proximoControl!)}',
+            style: estilo(tamano: 8.5),
+          ),
+          arriba: 2,
+        ),
       if (e.avisoIntegridad != null)
         sangria(
           pw.Text(

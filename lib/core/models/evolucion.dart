@@ -15,6 +15,7 @@ class Evolucion {
     this.avisoIntegridad,
     this.autor,
     this.hash,
+    this.proximoControl,
   });
 
   factory Evolucion.desdeMapa(Map<String, Object?> m) => Evolucion(
@@ -27,6 +28,7 @@ class Evolucion {
     avisoIntegridad: m.textoONulo('avisoIntegridad'),
     autor: m['autor'] == null ? null : Autor.desdeMapa(m.mapa('autor')),
     hash: m.textoONulo('hash'),
+    proximoControl: m.fecha('proximoControl'),
   );
 
   /// Identificador estable (UUID).
@@ -48,6 +50,11 @@ class Evolucion {
   /// SHA-256 encadenado; `null` mientras no está sellada.
   final String? hash;
 
+  /// Fecha del próximo control. Solo la escribe el consultorio
+  /// (`CONSULTORIO_ENABLED`); si falta, el mapa sellado no lleva la clave y
+  /// queda igual que antes.
+  final DateTime? proximoControl;
+
   bool get sellada => hash != null;
 
   Evolucion copyWith({
@@ -57,6 +64,7 @@ class Evolucion {
     bool? incluirFirma,
     bool? incluirSello,
     Object? avisoIntegridad = sin,
+    Object? proximoControl = sin,
   }) => Evolucion(
     id: id,
     fechaHora: fechaHora ?? this.fechaHora,
@@ -67,6 +75,7 @@ class Evolucion {
     avisoIntegridad: cambio(avisoIntegridad, this.avisoIntegridad),
     autor: autor,
     hash: hash,
+    proximoControl: cambio(proximoControl, this.proximoControl),
   );
 
   /// Mapa sin el hash: es lo que se sella.
@@ -79,5 +88,6 @@ class Evolucion {
     'incluirSello': incluirSello,
     'avisoIntegridad': avisoIntegridad,
     'autor': autor?.aMapa(),
+    'proximoControl': proximoControl == null ? null : fechaIso(proximoControl!),
   });
 }

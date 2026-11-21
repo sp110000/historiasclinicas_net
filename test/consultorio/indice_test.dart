@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:historiasclinicas_net/core/consultorio/almacen/almacen.dart';
 import 'package:historiasclinicas_net/core/consultorio/indice/indice_pacientes.dart';
 import 'package:historiasclinicas_net/core/consultorio/indice/normalizar.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/ficha_paciente.dart';
@@ -10,61 +11,10 @@ import 'package:historiasclinicas_net/core/consultorio/repositorio/bitacora.dart
 import 'package:historiasclinicas_net/core/consultorio/repositorio/repositorio.dart';
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
 import 'package:historiasclinicas_net/core/models/evolucion.dart';
-import 'package:historiasclinicas_net/core/pdf/adjunto_historia.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../ejemplos.dart';
 import 'ayudas_consultorio.dart';
-
-/// Datos sellados de una historia sintética.
-Map<String, Object?> historiaSintetica({
-  String id = '6f1c2b9e-0000-4000-8000-000000000001',
-  String tipoDocumento = 'CC',
-  String numeroDocumento = '1032456789',
-  String primerApellido = 'Peña',
-  String nombres = 'José Ángel',
-  String telefono = '300 123 4567',
-  DateTime? fecha,
-  DateTime? proximoControl,
-  List<Evolucion> evoluciones = const [],
-}) {
-  final base = historiaCompleta();
-  final h = base.copyWith(
-    fechaAtencion: fecha ?? DateTime(2026, 10, 2, 9, 14),
-    paciente: base.paciente.copyWith(
-      tipoDocumento: tipoDocumento,
-      numeroDocumento: numeroDocumento,
-      primerApellido: primerApellido,
-      nombres: nombres,
-      telefono: telefono,
-    ),
-    plan: base.plan.copyWith(proximoControl: proximoControl),
-  );
-  var datos = sellarBase({
-    ...h.aMapa(),
-    'id': id,
-    'finalizadaEn': '2026-10-02T09:40',
-  });
-  if (evoluciones.isNotEmpty) {
-    datos = sellarEvoluciones(datos, [for (final e in evoluciones) e.aMapa()]);
-  }
-  return datos;
-}
-
-/// PDF mínimo con la historia incrustada (sin el documento completo: el
-/// índice solo lee el adjunto).
-Future<Uint8List> pdfCon(Map<String, Object?> datos, {int revision = 1}) {
-  final doc = pw.Document()..addPage(pw.Page(build: (_) => pw.Text('x')));
-  incrustarHistoria(
-    doc,
-    PaqueteHistoria(
-      revision: revision,
-      guardadoEn: DateTime(2026, 10, 2, 9, 40),
-      datos: datos,
-    ),
-  );
-  return doc.save();
-}
+import 'ayudas_historias.dart';
 
 void main() {
   late BancoConsultorio b;
@@ -469,6 +419,42 @@ void main() {
       expect(pendiente.controlVencido(b.reloj.ahora()), isFalse);
     });
   });
+
+  test(
+    'un registro dañado o alterado no impide abrir el consultorio',
+    () async {
+      final r = await indice.registrarHistoria(
+        historiaSintetica(),
+        revision: 1,
+        origen: OrigenArchivo.importado,
+      );
+      // Una ficha con un formato que el índice no entiende…
+      await b.servicio.repositorio.guardar(FichaPaciente.coleccion, 'rara', {
+        'nombre': 'sin clave ni fechas',
+      });
+      await b.servicio.repositorio.esperarEscrituras();
+      // …y una historia con un byte cambiado (falla el descifrado autenticado).
+      final registros = b.almacen.datos[Deposito.registros]!;
+      final clave = RepositorioConsultorio.claveRegistro(
+        RegistroHistoria.coleccion,
+        r.historiaId,
+      );
+      final alterado = Uint8List.fromList(registros[clave]!);
+      alterado[alterado.length - 1] ^= 1;
+      registros[clave] = alterado;
+
+      await b.servicio.bloquear();
+      await b.servicio.desbloquear(fraseDePrueba);
+      final i = b.servicio.indice;
+      expect(i.cargado, isTrue);
+      expect(
+        i.registrosIlegibles,
+        unorderedEquals(['pacientes/rara', 'historias/${r.historiaId}']),
+      );
+      expect(i.fichasActivas.single.id, r.pacienteId);
+      expect(i.historia(r.historiaId), isNull);
+    },
+  );
 
   group('Fichas', () {
     test(

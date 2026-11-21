@@ -10,6 +10,7 @@ import '../../../core/consultorio/respaldo/respaldo.dart';
 import '../../../core/consultorio/seguridad/boveda.dart';
 import '../../../core/consultorio/seguridad/motor_aes.dart';
 import '../../../core/consultorio/servicio.dart';
+import 'pacientes_provider.dart';
 
 /// El servicio del consultorio. Solo se crea si una pantalla del
 /// consultorio lo pide, y esas pantallas solo existen con la bandera
@@ -99,6 +100,8 @@ class ControladorConsultorio extends Notifier<EstadoConsultorio> {
       respaldo: await _s.infoRespaldo(),
       codigoPendiente: codigo,
     );
+    // El índice ya se cargó (y registró lo pendiente) al abrir.
+    ref.read(versionIndiceProvider.notifier).cambio();
     unawaited(pedirPersistencia());
   }
 
@@ -132,6 +135,7 @@ class ControladorConsultorio extends Notifier<EstadoConsultorio> {
       fase: FaseConsultorio.bloqueado,
       respaldo: state.respaldo,
     );
+    ref.read(versionIndiceProvider.notifier).cambio();
   }
 
   Future<void> guardarConfiguracion(ConfiguracionConsultorio c) async {
