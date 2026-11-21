@@ -267,7 +267,8 @@ class IndicePacientes {
   }
 
   /// Alergias vigentes: las de la historia o la evolución más reciente que
-  /// las registró.
+  /// las registró. `desde` es la fecha de la evolución que las actualizó, o
+  /// `null` si vienen de la historia inicial.
   ({List<String> alergias, bool niega, DateTime? desde})? alergiasDe(
     String pacienteId,
   ) {
@@ -284,7 +285,8 @@ class IndicePacientes {
     return (
       alergias: mejor.alergias,
       niega: mejor.niegaAlergias,
-      desde: fechaMejor,
+      // Solo si una evolución las actualizó; si no, vienen de la historia.
+      desde: mejor.alergiasDesde,
     );
   }
 

@@ -156,7 +156,10 @@ void main() {
     final b = await _consultorioConPacientes();
     final id = b.servicio.indice.historia('h-jose')!.pacienteId;
     await _montar(t, banco: b, ruta: '/pacientes/$id');
-    expect(find.text('Alergias: Penicilina, AINEs'), findsOneWidget);
+    // La píldora y el dato de antecedentes; sin «actualizadas»: vienen de
+    // la historia inicial.
+    expect(find.text('Alergias: Penicilina, AINEs'), findsNWidgets(2));
+    expect(find.textContaining('actualizadas el'), findsNothing);
     expect(find.text('Control vencido (15/11/2026)'), findsOneWidget);
     expect(
       find.text('ANTECEDENTES · DE LA HISTORIA DEL 02/10/2026'),

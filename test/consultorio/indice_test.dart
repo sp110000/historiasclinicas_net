@@ -585,6 +585,8 @@ void main() {
         'Penicilina',
         'AINEs',
       ]);
+      // Vienen de la historia inicial: sin fecha de actualización.
+      expect(indice.alergiasDe(r.pacienteId)!.desde, isNull);
     });
   });
 

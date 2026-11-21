@@ -123,6 +123,8 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
       floatingActionButton: movil
           ? FloatingActionButton.extended(
               onPressed: _nuevo,
+              backgroundColor: ColoresMarca.primario,
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.person_add_alt_outlined),
               label: const Text('Paciente'),
             )
@@ -384,6 +386,12 @@ class _FilaPaciente extends StatelessWidget {
       if (u != null) 'Última atención ${formatoFecha(u)}',
     ];
     const radio = Radius.circular(12);
+    final angosta = MediaQuery.sizeOf(context).width < 600;
+    const pildora = EtiquetaEstado(
+      icono: Icons.alarm,
+      texto: 'Control vencido',
+      color: ColoresMarca.aviso,
+    );
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -425,17 +433,16 @@ class _FilaPaciente extends StatelessWidget {
                             color: ColoresMarca.textoSuave,
                           ),
                         ),
+                      // En pantallas angostas el nombre tiene prioridad: la
+                      // píldora va debajo.
+                      if (vencido && angosta) ...[
+                        const SizedBox(height: 4),
+                        pildora,
+                      ],
                     ],
                   ),
                 ),
-                if (vencido) ...[
-                  const SizedBox(width: 8),
-                  const EtiquetaEstado(
-                    icono: Icons.alarm,
-                    texto: 'Control vencido',
-                    color: ColoresMarca.aviso,
-                  ),
-                ],
+                if (vencido && !angosta) ...[const SizedBox(width: 8), pildora],
                 const SizedBox(width: 4),
                 const Icon(Icons.chevron_right, color: ColoresMarca.textoSuave),
               ],
