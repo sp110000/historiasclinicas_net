@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../integridad/json_canonico.dart';
 import '../../models/mapa.dart';
+import '../../utils/texto.dart';
 import 'plantillas.dart';
 
 /// Marca de los adjuntos del consultorio. Es otra clave que la de
@@ -11,6 +12,25 @@ import 'plantillas.dart';
 const marcaAdjuntoConsultorio = '"aplicacion":"historiasclinicas.net"';
 
 const nombreAdjuntoDocumento = 'documento.json';
+
+/// `Autorizacion_datos_PENA-MUNOZ_AD-000001.pdf`: solo ASCII (Chromium
+/// descarta el nombre de una descarga con tildes o «ñ»).
+String nombreArchivoDocumento(
+  String base, {
+  required String apellido,
+  required String numero,
+}) {
+  String ascii(String s, String siVacio) {
+    final r = sinTildes(s.trim())
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    return r.isEmpty ? siVacio : r;
+  }
+
+  return '${base}_${ascii(apellido, 'SIN-APELLIDO')}_'
+      '${ascii(numero, 'SIN-NUMERO')}.pdf';
+}
 
 enum EstadoDocumento {
   vigente('Vigente'),

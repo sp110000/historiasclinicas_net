@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/consultorio/documentos/documento.dart';
+import '../../../core/consultorio/documentos/plantillas.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
+import '../../../core/models/mapa.dart';
 import '../../../core/consultorio/modelos/registro_receta.dart';
 import '../../../core/integridad/cadena_hash.dart';
 import '../../../core/utils/fechas.dart';
@@ -115,7 +117,14 @@ class TarjetaDocumento extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final d = documento;
-    final nombre = '${d.titulo}_${d.numero}.pdf'.replaceAll(' ', '_');
+    final nombre = nombreArchivoDocumento(
+      switch (d.tipo) {
+        TipoPlantilla.autorizacionDatos => 'Autorizacion_datos',
+        TipoPlantilla.politicaPrivacidad => 'Politica_datos',
+      },
+      apellido: d.datos.mapa('paciente').texto('nombre').split(',').first,
+      numero: d.numero,
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _decoracion,

@@ -69,7 +69,7 @@ const _anchoRiel = 80.0;
 /// del consultorio (riel en escritorio, menú lateral en pantallas
 /// angostas), aviso de respaldo, bloqueo por inactividad y, en las
 /// pantallas del consultorio, el desbloqueo mientras esté cerrado.
-class ContenedorConsultorio extends ConsumerWidget {
+class ContenedorConsultorio extends ConsumerStatefulWidget {
   const ContenedorConsultorio({
     super.key,
     required this.ubicacion,
@@ -78,6 +78,23 @@ class ContenedorConsultorio extends ConsumerWidget {
 
   final String ubicacion;
   final Widget child;
+
+  @override
+  ConsumerState<ContenedorConsultorio> createState() =>
+      _ContenedorConsultorioState();
+}
+
+class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
+  /// El cuerpo (aviso, franja y pantalla) se conserva al cruzar el corte
+  /// del riel: con una llave global Flutter lo mueve en lugar de recrearlo.
+  /// Así la pantalla no pierde su estado al girar o cambiar el tamaño de la
+  /// ventana, y el árbol de accesibilidad no se rompe (sin la llave, el
+  /// motor web lanzaba «Null check operator…» al quitar un área
+  /// desplazable con la semántica activa).
+  final _cuerpo = GlobalKey(debugLabel: 'cuerpo del consultorio');
+
+  String get ubicacion => widget.ubicacion;
+  Widget get child => widget.child;
 
   int get _indice {
     for (var i = destinosConsultorio.length - 1; i >= 0; i--) {
@@ -88,7 +105,7 @@ class ContenedorConsultorio extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final e = ref.watch(consultorioProvider);
     final libre = _rutasLibres.contains(ubicacion);
     final cerrado = !e.desbloqueado || e.codigoPendiente != null;
@@ -98,6 +115,7 @@ class ContenedorConsultorio extends ConsumerWidget {
     // antes (el riel, la barra y el aviso de respaldo) hasta el primer
     // contenedor semántico. Por eso la pantalla va en un contenedor propio.
     final cuerpo = Column(
+      key: _cuerpo,
       children: [
         const _AvisoRespaldo(),
         if (ubicacion == '/') const FranjaFicha(),

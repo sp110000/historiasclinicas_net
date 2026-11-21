@@ -348,6 +348,30 @@ void main() {
     await _terminar(t);
   });
 
+  testWidgets('al cruzar el corte del riel la pantalla conserva su estado', (
+    t,
+  ) async {
+    final b = await _consultorioConPacientes();
+    await _montar(t, banco: b);
+    expect(find.byType(NavigationRail), findsOneWidget);
+    await t.enterText(find.byType(TextField).first, 'pena');
+    await t.pumpAndSettle();
+    expect(find.text('1 paciente'), findsOneWidget);
+
+    t.view.physicalSize = const Size(700, 900);
+    await t.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('1 paciente'), findsOneWidget, reason: 'misma pantalla');
+    expect(find.widgetWithText(TextField, 'pena'), findsOneWidget);
+
+    t.view.physicalSize = const Size(1440, 1000);
+    await t.pumpAndSettle();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('1 paciente'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await _terminar(t);
+  });
+
   for (final ruta in ['/pacientes', 'ficha']) {
     testWidgets('320 px sin desbordes: $ruta', (t) async {
       final b = await _consultorioConPacientes();

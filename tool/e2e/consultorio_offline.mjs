@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 y 5.1) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -13,8 +13,12 @@
 // últimos 4 caracteres), medir la derivación, respaldar, bloquear, frase
 // incorrecta, desbloquear, candado entre pestañas, restaurar (un archivo
 // dañado y una frase equivocada se rechazan), aviso de respaldo vencido,
-// recuperar con el código, móvil y 320 px. Falla si hay peticiones fuera
-// del sitio, peticiones fallidas o errores de consola (incluida la CSP).
+// recuperar con el código, móvil y 320 px. Luego, en un navegador nuevo
+// (5.1): importar PDF sintéticos (uno alterado), buscar, abrir la ficha,
+// firmar la autorización de datos, evolución y receta desde la ficha, y
+// comprobar que nada de los pacientes queda en claro. Falla si hay
+// peticiones fuera del sitio, peticiones fallidas o errores de consola
+// (incluida la CSP).
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -32,12 +36,14 @@ const informe = { externas: [], fallidas: [], erroresConsola: [], pasos: [], der
 const consola = [];
 let paginaActual;
 const paso = (t) => {
+  consola.push(`--- paso: ${t}`);
   informe.pasos.push(t);
   console.log('✓', t);
 };
 const alFallar = async (e) => {
   console.error('✗ Falló la prueba:', e.message);
   console.error('Últimos mensajes de consola:\n  ' + consola.slice(-25).join('\n  '));
+  fs.writeFileSync(path.join(OUT, 'consola.txt'), consola.join('\n'));
   if (paginaActual) await paginaActual.screenshot({ path: path.join(OUT, 'ERROR.png') }).catch(() => {});
   process.exit(1);
 };
@@ -379,10 +385,260 @@ await captura(page, 'c12_320_ajustes.png');
 paso('320 px: desbloqueo y Ajustes');
 
 await context.close();
+
+// ─────────────── 2. Pacientes (5.1), en un navegador nuevo ───────────────
+{
+  const FIXTURES = path.join(path.dirname(new URL(import.meta.url).pathname), 'fixtures', 'consultorio');
+  // Médico configurado como lo deja «Datos del médico» (sintético); sin el
+  // selector de archivos del sistema, para que los PDF se descarguen.
+  const MEDICO = {
+    nombre: 'Dra. Ana Pérez Gómez',
+    registro: 'RM 54321',
+    tipoDocumento: 'CC',
+    documento: '52111222',
+    direccion: 'Calle 5 # 10-20',
+    ciudad: 'Santander de Quilichao',
+    telefono: '602 555 0101',
+    correo: 'consultorio@ejemplo.invalid',
+  };
+  const ctx = await browser.newContext({
+    acceptDownloads: true,
+    viewport: { width: 1440, height: 1000 },
+    locale: 'es-CO',
+    timezoneId: 'America/Bogota',
+  });
+  await ctx.addInitScript((medico) => {
+    delete window.showOpenFilePicker;
+    delete window.showSaveFilePicker;
+    if (!localStorage.getItem('flutter.hc.medico.v1')) {
+      localStorage.setItem('flutter.hc.medico.v1', JSON.stringify(JSON.stringify(medico)));
+    }
+    document.addEventListener('securitypolicyviolation', (e) =>
+      console.error(`CSP: ${e.violatedDirective} bloqueó ${e.blockedURI}`),
+    );
+  }, MEDICO);
+  const p = await nuevaPagina(ctx);
+  await texto(p, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
+  await texto(p, 'ya funciona sin conexión').desaparece({ timeout: 20000 });
+  await ctx.setOffline(true);
+
+  await pulsar(p, 'Pacientes');
+  await texto(p, 'Crea tu frase de acceso').waitFor({ timeout: 30000 });
+  await escribir(p, 'Frase de acceso', FRASE);
+  await escribir(p, 'Repite la frase', FRASE);
+  await pulsar(p, 'Crear frase');
+  await texto(p, 'Guarda tu código de recuperación').waitFor({ timeout: 60000 });
+  const cod = await p.evaluate(() => {
+    for (const e of document.querySelectorAll('flt-semantics')) {
+      const t = `${e.getAttribute('aria-label') ?? ''} ${e.textContent ?? ''}`;
+      const m = t.match(/Código de recuperación: ([0-9A-Z]{4}(?:-[0-9A-Z]{4}){5})/);
+      if (m) return m[1];
+    }
+    return '';
+  });
+  await escribir(p, 'Últimos 4 caracteres del código', cod.slice(-4));
+  await pulsar(p, 'Ya lo guardé, continuar');
+  await texto(p, 'Todavía no hay pacientes').waitFor({ timeout: 30000 });
+  await captura(p, 'p0_pacientes_vacia.png');
+
+  // Importar los PDF sintéticos: tres historias (una alterada) y uno ajeno.
+  const archivos = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.pdf')).map((f) => path.join(FIXTURES, f));
+  const [selector] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Importar PDF')]);
+  await selector.setFiles(archivos);
+  await texto(p, 'Importación terminada').waitFor({ timeout: 60000 });
+  await texto(p, '3 de 4 archivos en el índice').waitFor();
+  await texto(p, 'Importada con alteraciones').waitFor();
+  await texto(p, 'No es de la app').waitFor();
+  await captura(p, 'p1_informe_importacion.png');
+  paso('Importación de 4 PDF: 3 en el índice (1 alterada, marcada) y 1 ajeno, con informe por archivo');
+  await pulsar(p, 'Cerrar');
+  await texto(p, 'Pacientes · 3').waitFor();
+  await texto(p, 'Control vencido').waitFor();
+  await captura(p, 'p2_lista_pacientes.png');
+
+  // Buscar sin tildes y abrir la ficha con Enter.
+  await escribir(p, 'Buscar paciente', 'pena jose');
+  await texto(p, '1 paciente').waitFor();
+  await captura(p, 'p3_busqueda.png');
+  await p.keyboard.press('Enter');
+  await texto(p, 'Ficha del paciente').waitFor();
+  await texto(p, 'Control vencido (15/11/2026)').waitFor();
+  await texto(p, 'Sin autorización de tratamiento de datos').waitFor();
+  await captura(p, 'p4_ficha.png');
+  paso('Búsqueda sin tildes («pena jose») y Enter abre la ficha: alergias, control vencido y línea de tiempo');
+
+  // Aprobar la plantilla de autorización y firmarla en pantalla.
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Plantillas de documentos').waitFor();
+  await pulsar(p, 'Aprobar v1');
+  await p.getByRole('button', { name: 'Aprobar', exact: true }).click();
+  await texto(p, 'aprobada el').waitFor();
+  await pulsar(p, 'Pacientes');
+  await escribir(p, 'Buscar paciente', '1032456789');
+  await p.keyboard.press('Enter');
+  await texto(p, 'Ficha del paciente').waitFor();
+  await pulsar(p, 'Pedir autorización');
+  await texto(p, 'Plantilla versión 1').waitFor();
+  await p.getByRole('checkbox', { name: /El paciente leyó/ }).click();
+  const rotulo = await p
+    .locator('flt-semantics')
+    .filter({ hasText: /^FIRMA DEL PACIENTE$/ })
+    .or(p.locator('flt-semantics[aria-label="FIRMA DEL PACIENTE"]'))
+    .first()
+    .boundingBox();
+  if (!rotulo) throw new Error('No se encontró el lienzo de la firma');
+  const x0 = rotulo.x + 40;
+  const y0 = rotulo.y + rotulo.height + 60;
+  await p.mouse.move(x0, y0);
+  await p.mouse.down();
+  for (let i = 1; i <= 12; i++) await p.mouse.move(x0 + i * 18, y0 + (i % 2 ? -25 : 25), { steps: 2 });
+  await p.mouse.up();
+  await captura(p, 'p5_autorizacion_firma.png');
+  const autorizacion = await descargar(p, () => pulsar(p, 'Firmar y descargar PDF'));
+  if (!/^Autorizacion_datos_.*_AD-000001\.pdf$/.test(path.basename(autorizacion))) {
+    throw new Error(`Nombre de la autorización: ${path.basename(autorizacion)}`);
+  }
+  const pdfAut = fs.readFileSync(autorizacion).toString('latin1');
+  if (!pdfAut.includes('(documento.json)')) throw new Error('La autorización no lleva documento.json');
+  await texto(p, 'Autorización de datos firmada el').waitFor();
+  paso(`Autorización de datos firmada en pantalla → ${path.basename(autorizacion)} (con documento.json)`);
+
+  // Evolución prellenada desde la ficha: se guarda y aparece en la línea de tiempo.
+  await p.getByRole('button', { name: 'Evolución', exact: true }).click();
+  await texto(p, 'Historia abierta').waitFor({ timeout: 30000 });
+  await escribir(p, 'Nueva evolución *', 'Control. Peso estable, buena tolerancia.');
+  await escribir(p, 'Próximo control', '15/12/2026');
+  await captura(p, 'p6_evolucion_con_franja.png');
+  await pulsar(p, 'Descargar historia actualizada');
+  const opcion = p.getByText('Guardar como nueva versión', { exact: false }).first();
+  const v3 = await descargar(p, async () => {
+    await p.waitForTimeout(500);
+    if (await opcion.count()) await opcion.click();
+  });
+  await texto(p, 'Integridad verificada (3 sellos encadenados)').waitFor({ timeout: 30000 });
+  paso(`Evolución desde la ficha, con la franja «← Ficha» y próximo control → ${path.basename(v3)}`);
+
+  // Receta desde la ficha, con receta.json, registrada en la ficha.
+  await pulsar(p, 'Ficha');
+  await texto(p, 'Evolución 2').waitFor({ timeout: 30000 });
+  await texto(p, 'Íntegra · revisión 3').waitFor();
+  await p.getByRole('button', { name: 'Receta', exact: true }).click();
+  await texto(p, 'Vista previa de la receta').waitFor({ timeout: 30000 });
+  for (const [etiqueta, valor] of [
+    ['Medicamento (DCI o genérico) *', 'Metformina'],
+    ['Concentración *', '850 mg'],
+    ['Forma farmacéutica *', 'tableta'],
+    ['Dosis *', '1 tableta'],
+    ['Vía *', 'oral'],
+    ['Frecuencia *', 'cada 12 horas'],
+    ['Duración *', '30 días'],
+  ]) {
+    await escribir(p, etiqueta, valor);
+    await p.keyboard.press('Escape');
+  }
+  // La cantidad sugerida completa el campo obligatorio. El chip se expone
+  // como casilla, con su tooltip delante en el nombre («… Usar 60»).
+  const usar = p
+    .getByRole('button', { name: /Usar 60/ })
+    .or(p.getByRole('checkbox', { name: /Usar 60/ }))
+    .or(p.locator('flt-semantics[flt-tappable][aria-label*="Usar 60"]'))
+    .first();
+  await usar.scrollIntoViewIfNeeded();
+  await usar.click();
+  await texto(p, '(sesenta)').waitFor();
+  const receta = await descargar(p, () => pulsar(p, 'Guardar PDF'));
+  if (!fs.readFileSync(receta).toString('latin1').includes('(receta.json)')) {
+    throw new Error('La receta no lleva receta.json');
+  }
+  const registrar = p.getByRole('button', { name: 'Registrar en la historia' });
+  await registrar.waitFor({ timeout: 15000 });
+  await registrar.click();
+  await pulsar(p, 'Pacientes');
+  await escribir(p, 'Buscar paciente', 'pena');
+  await p.keyboard.press('Enter');
+  await texto(p, 'METFORMINA 850 mg').waitFor({ timeout: 30000 });
+  await texto(p, 'Evolución 2 · Control. Peso estable').waitFor();
+  await captura(p, 'p7_ficha_linea_de_tiempo.png');
+  paso(`Receta con receta.json → ${path.basename(receta)}; la ficha muestra la evolución, la receta y la autorización`);
+
+  // Nada de los pacientes en claro en IndexedDB ni en localStorage.
+  const enClaro = await p.evaluate(
+    () =>
+      new Promise((listo, falla) => {
+        const r = indexedDB.open('historiasclinicas_consultorio');
+        r.onerror = () => falla(r.error);
+        r.onsuccess = () => {
+          const bd = r.result;
+          const textos = [];
+          const tx = bd.transaction(['registros', 'binarios']);
+          for (const n of ['registros', 'binarios']) {
+            const c = tx.objectStore(n).openCursor();
+            c.onsuccess = () => {
+              const k = c.result;
+              if (!k) return;
+              const v = k.value;
+              textos.push(new TextDecoder('latin1').decode(v instanceof ArrayBuffer ? new Uint8Array(v) : v));
+              k.continue();
+            };
+          }
+          tx.oncomplete = () => {
+            bd.close();
+            const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
+            listo(['1032456789', 'Metformina', 'PEÑA', 'Penicilina'].filter((t) => todo.includes(t)));
+          };
+        };
+      }),
+  );
+  if (enClaro.length) throw new Error(`Datos de pacientes en claro: ${enClaro}`);
+  paso('IndexedDB y localStorage sin datos de pacientes en claro (índice, documentos, recetas y borrador cifrados)');
+
+  // Móvil: lista y ficha.
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(800);
+  await captura(p, 'p8_ficha_movil.png');
+  // La lista construye solo lo visible: se sube hasta «Acciones».
+  const acciones = p.getByRole('button', { name: 'Acciones', exact: true });
+  for (let i = 0; i < 15 && !(await acciones.count()); i++) {
+    await p.mouse.move(200, 500);
+    await p.mouse.wheel(0, -400);
+    await p.waitForTimeout(250);
+  }
+  // Se pulsa el nodo visible (al cambiar de tamaño pueden quedar otros).
+  let pulsado = false;
+  for (const l of await acciones.all()) {
+    const c = await l.boundingBox();
+    if (c && c.width > 0 && c.y >= 0 && c.y < 844) {
+      await p.mouse.click(c.x + c.width / 2, c.y + c.height / 2);
+      pulsado = true;
+      break;
+    }
+  }
+  if (!pulsado) throw new Error('No se encontró el botón «Acciones» visible');
+  await texto(p, 'Unir con otra ficha').waitFor();
+  await captura(p, 'p9_ficha_movil_acciones.png');
+  await p.keyboard.press('Escape');
+  paso('Móvil (390 px): ficha con el menú «Acciones»');
+  await ctx.close();
+}
+
 await browser.close();
 informe.externas = [...new Set(informe.externas)];
 fs.writeFileSync(path.join(OUT, 'informe.json'), JSON.stringify(informe, null, 2));
 console.log('\nPeticiones fuera del sitio:', informe.externas.length ? informe.externas : 'ninguna');
 console.log('Peticiones fallidas:', informe.fallidas.length ? informe.fallidas : 'ninguna');
 console.log('Errores de consola:', informe.erroresConsola.length ? informe.erroresConsola : 'ninguno');
-if (informe.externas.length || informe.fallidas.length || informe.erroresConsola.length) process.exit(1);
+// Flutter informa sus excepciones como mensajes normales de la consola.
+informe.excepciones = consola.filter((l) =>
+  /Another exception was thrown|EXCEPTION CAUGHT|Null check operator used on a null value/.test(l),
+);
+console.log('Excepciones de Flutter:', informe.excepciones.length ? informe.excepciones.slice(0, 5) : 'ninguna');
+fs.writeFileSync(path.join(OUT, 'informe.json'), JSON.stringify(informe, null, 2));
+if (
+  informe.externas.length ||
+  informe.fallidas.length ||
+  informe.erroresConsola.length ||
+  informe.excepciones.length
+) {
+  fs.writeFileSync(path.join(OUT, 'consola.txt'), consola.join('\n'));
+  process.exit(1);
+}

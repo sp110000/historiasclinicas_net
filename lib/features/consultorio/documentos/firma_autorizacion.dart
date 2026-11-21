@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
+import '../../../core/consultorio/documentos/documento.dart';
 import '../../../core/consultorio/documentos/plantillas.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/pais/pais_provider.dart';
@@ -91,8 +92,11 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
       final numero = r.documento.numero;
       ref.read(descargarPdfProvider)(
         r.pdf,
-        'Autorizacion_datos_${widget.ficha.primerApellido}_$numero.pdf'
-            .replaceAll(' ', '_'),
+        nombreArchivoDocumento(
+          'Autorizacion_datos',
+          apellido: widget.ficha.primerApellido,
+          numero: numero,
+        ),
       );
       ref.read(versionIndiceProvider.notifier).cambio();
       if (!mounted) return;

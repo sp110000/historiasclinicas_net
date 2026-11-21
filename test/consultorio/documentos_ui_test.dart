@@ -171,7 +171,8 @@ void main() {
     expect(boton().onPressed, isNotNull);
 
     await _pulsar(t, find.text('Firmar y descargar PDF'));
-    expect(descargas.single.$1, 'Autorizacion_datos_Peña_AD-000001.pdf');
+    // Solo ASCII: Chromium descarta los nombres con «ñ».
+    expect(descargas.single.$1, 'Autorizacion_datos_PENA_AD-000001.pdf');
     expect(
       find.text('Autorización de datos firmada el 21/11/2026 · AD-000001'),
       findsOneWidget,
