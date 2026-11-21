@@ -42,9 +42,15 @@ paso "2/5 Pruebas (suite completa; T01–T24 sin red)"
 paso "3/5 Capa 1 — JSON Schema FHIR R4 (Bundles del gate y ejemplos oficiales)"
 # Las pruebas ya la ejecutan; aquí se regeneran los Bundles del gate con
 # fechas relativas a hoy y se repite el control del propio gate (T20).
+rm -f build/ihce/ejemplos-capa1.json
 "$FLUTTER" test test/ihce/gate_bundles_test.dart test/ihce/gate_test.dart ||
   rojo "capa 1"
 ls build/ihce/bundles/*.json >/dev/null 2>&1 || rojo "no hay Bundles del gate"
+# T20 se omite sin ejemplos; en el gate debe haberlos registrado todos.
+n_ejemplos=$(sed -n 's/^# ejemplos: //p' vendor/fhir/VERSIONS.lock)
+[ -n "$n_ejemplos" ] &&
+  [ "$(jq -r .total build/ihce/ejemplos-capa1.json 2>/dev/null)" = "$n_ejemplos" ] ||
+  rojo "T20 no registró los $n_ejemplos ejemplos oficiales (build/ihce/ejemplos-capa1.json)"
 
 paso "4/5 Capa 2 — validador HL7 (perfiles de la guía)"
 if ! command -v java >/dev/null || [ ! -f "$JAR" ]; then

@@ -146,21 +146,25 @@ void main() {
 
   test('T20 ejemplos oficiales de la guía por la capa 1 (se registran)', () {
     final dir = Directory('vendor/fhir/ejemplos');
-    if (!dir.existsSync()) {
+    // Ausente o sin ejemplos es lo mismo: no aprovisionado. La carpeta
+    // vacía queda cuando el aprovisionamiento falla a medias (el script la
+    // crea antes de descargar). En el gate no se omite: verificar.sh exige
+    // el registro build/ihce/ejemplos-capa1.json que escribe esta prueba.
+    final archivos = !dir.existsSync()
+        ? <File>[]
+        : (dir
+                  .listSync()
+                  .whereType<File>()
+                  .where((f) => f.path.endsWith('.json'))
+                  .toList()
+                ..sort((a, b) => a.path.compareTo(b.path)));
+    if (archivos.isEmpty) {
       markTestSkipped(
-        'vendor/fhir/ejemplos no está aprovisionado '
+        'vendor/fhir/ejemplos no está aprovisionado o no tiene ejemplos '
         '(tool/ihce/fetch_fhir_tooling.sh)',
       );
       return;
     }
-    final archivos =
-        dir
-            .listSync()
-            .whereType<File>()
-            .where((f) => f.path.endsWith('.json'))
-            .toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
-    expect(archivos, isNotEmpty);
     final resultados = <Map<String, Object?>>[];
     for (final f in archivos) {
       final recurso = (jsonDecode(f.readAsStringSync()) as Map)
