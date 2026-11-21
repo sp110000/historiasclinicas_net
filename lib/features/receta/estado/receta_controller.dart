@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/consultorio/config.dart';
 import '../../../core/models/medico.dart';
 import '../../../core/pdf/rasterizar.dart';
 import '../../../core/pdf/receta_pdf.dart';
@@ -12,13 +13,19 @@ import '../../../core/receta/receta.dart';
 import '../../../core/storage/preferencias.dart';
 import '../../../core/storage/receta_store.dart';
 import '../../../core/utils/ids.dart';
+import '../../consultorio/integracion/en_curso_cifrado.dart';
 import '../../historia/estado/borrador_provider.dart';
 import '../../historia/estado/historia_controller.dart';
 import '../../medico/medico_provider.dart';
 
-final recetaStoreProvider = Provider<RecetaStore>(
-  (ref) => RecetaStore(ref.watch(preferenciasProvider)),
-);
+final recetaStoreProvider = Provider<RecetaStore>((ref) {
+  // Consultorio: la receta en curso va cifrada (en memoria si está
+  // bloqueado); la numeración y «Mis medicamentos», como siempre.
+  if (consultorioHabilitado) {
+    return crearRecetaStoreConsultorio(ref);
+  }
+  return RecetaStore(ref.watch(preferenciasProvider));
+});
 
 /// Receta en curso de la historia actual. Se guarda sola en el navegador;
 /// si cambia la historia (otra historia abierta o una nueva), empieza una

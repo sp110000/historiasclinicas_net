@@ -10,6 +10,7 @@ import '../../../core/consultorio/respaldo/respaldo.dart';
 import '../../../core/consultorio/seguridad/boveda.dart';
 import '../../../core/consultorio/seguridad/motor_aes.dart';
 import '../../../core/consultorio/servicio.dart';
+import '../integracion/en_curso_cifrado.dart';
 import 'pacientes_provider.dart';
 
 /// El servicio del consultorio. Solo se crea si una pantalla del
@@ -102,6 +103,8 @@ class ControladorConsultorio extends Notifier<EstadoConsultorio> {
     );
     // El índice ya se cargó (y registró lo pendiente) al abrir.
     ref.read(versionIndiceProvider.notifier).cambio();
+    // Borrador y receta en curso: se cifra lo que esperaba en memoria.
+    await sincronizarEnCurso(ref);
     unawaited(pedirPersistencia());
   }
 

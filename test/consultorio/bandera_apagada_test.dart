@@ -166,6 +166,14 @@ void main() {
       'lib/features/historia/secciones/seccion_evoluciones.dart': {
         'lib/core/consultorio/config.dart',
       },
+      'lib/features/historia/estado/borrador_provider.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/features/consultorio/integracion/en_curso_cifrado.dart',
+      },
+      'lib/features/receta/estado/receta_controller.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/features/consultorio/integracion/en_curso_cifrado.dart',
+      },
       'lib/features/receta/receta_page.dart': {
         'lib/core/consultorio/config.dart',
         'lib/core/consultorio/documentos/receta_json.dart',
@@ -176,6 +184,7 @@ void main() {
       for (final f in [
         'lib/features/consultorio/integracion/enganche_historia.dart',
         'lib/features/consultorio/integracion/enganche_receta.dart',
+        'lib/features/consultorio/integracion/en_curso_cifrado.dart',
         'lib/core/consultorio/documentos/receta_json.dart',
       ])
         ..._funcionesPublicas(f),
@@ -186,6 +195,8 @@ void main() {
         'registrarHistoriaGuardada',
         'registrarRecetaEmitida',
         'adjuntosReceta',
+        'crearBorradorStoreConsultorio',
+        'crearRecetaStoreConsultorio',
       ]),
     );
 
