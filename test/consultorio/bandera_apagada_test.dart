@@ -166,11 +166,28 @@ void main() {
       'lib/features/historia/secciones/seccion_evoluciones.dart': {
         'lib/core/consultorio/config.dart',
       },
+      'lib/features/receta/receta_page.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/core/consultorio/documentos/receta_json.dart',
+        'lib/features/consultorio/integracion/enganche_receta.dart',
+      },
     };
-    final enganches = _funcionesPublicas(
-      'lib/features/consultorio/integracion/enganche_historia.dart',
+    final enganches = {
+      for (final f in [
+        'lib/features/consultorio/integracion/enganche_historia.dart',
+        'lib/features/consultorio/integracion/enganche_receta.dart',
+        'lib/core/consultorio/documentos/receta_json.dart',
+      ])
+        ..._funcionesPublicas(f),
+    };
+    expect(
+      enganches,
+      containsAll([
+        'registrarHistoriaGuardada',
+        'registrarRecetaEmitida',
+        'adjuntosReceta',
+      ]),
     );
-    expect(enganches, contains('registrarHistoriaGuardada'));
 
     final fuera = <String>[];
     for (final f in Directory('lib').listSync(recursive: true)) {
@@ -214,7 +231,7 @@ void main() {
 /// Nombres de las funciones públicas de primer nivel de [ruta].
 Set<String> _funcionesPublicas(String ruta) => {
   for (final m in RegExp(
-    r'^(?:Future<[^>]*>|bool|int|void|String\??) ([a-z]\w*)\(',
+    r'^(?:[A-Z]\w*(?:<.*>)?\??|bool|int|void|double) ([a-z]\w*)\(',
     multiLine: true,
   ).allMatches(File(ruta).readAsStringSync()))
     m.group(1)!,

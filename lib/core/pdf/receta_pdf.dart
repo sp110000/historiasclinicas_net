@@ -7,6 +7,7 @@ import '../models/medico.dart';
 import '../pais/perfil_pais.dart';
 import '../receta/receta.dart';
 import '../utils/fechas.dart';
+import 'adjuntos_pdf.dart';
 import 'fuentes_pdf.dart';
 import 'piezas_pdf.dart';
 
@@ -40,10 +41,14 @@ class DocumentoReceta {
 /// PDF de la receta en A5 vertical (148 × 210 mm). Si los medicamentos no
 /// caben, continúa en otra hoja con la numeración seguida; la firma va al
 /// pie de la última.
+///
+/// [adjuntos]: `receta.json` del consultorio (`CONSULTORIO_ENABLED`). Sin
+/// adjuntos, el PDF es el de siempre.
 Future<Uint8List> generarPdfReceta(
   DocumentoReceta d, {
   FuentesPdf? fuentes,
   DateTime? generadoEn,
+  List<AdjuntoPdf> adjuntos = const [],
 }) async {
   final f = fuentes ?? await FuentesPdf.cargar();
   final r = d.receta;
@@ -329,5 +334,6 @@ Future<Uint8List> generarPdfReceta(
       ],
     ),
   );
+  incrustarAdjuntos(doc, adjuntos);
   return doc.save();
 }

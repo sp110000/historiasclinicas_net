@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import '../ihce/reloj.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
+import 'documentos/documentos.dart';
 import 'indice/indice_pacientes.dart';
+import '../models/paciente.dart';
 import 'modelos/registro_historia.dart';
 import 'modelos/configuracion.dart';
 import 'repositorio/bitacora.dart';
@@ -41,6 +43,32 @@ class HistoriaPendiente {
   final Uint8List? bytesPdf;
 }
 
+/// Receta emitida con el consultorio bloqueado: se registra al
+/// desbloquearlo. Solo en memoria, como [HistoriaPendiente].
+class RecetaPendiente {
+  const RecetaPendiente({
+    required this.recetaId,
+    required this.paciente,
+    required this.fecha,
+    required this.bytesPdf,
+    this.numero,
+    this.historiaId = '',
+    this.items = const [],
+    this.indicaciones = '',
+    this.nombreArchivo = '',
+  });
+
+  final String recetaId;
+  final Paciente paciente;
+  final DateTime fecha;
+  final Uint8List bytesPdf;
+  final String? numero;
+  final String historiaId;
+  final List<String> items;
+  final String indicaciones;
+  final String nombreArchivo;
+}
+
 /// Punto de entrada del consultorio, sin interfaz: bóveda, repositorio,
 /// migraciones, ajustes, bitácora y respaldo.
 class ServicioConsultorio {
@@ -61,6 +89,7 @@ class ServicioConsultorio {
     );
     repositorio = RepositorioConsultorio(boveda);
     indice = IndicePacientes(repositorio, reloj: reloj);
+    documentos = DocumentosConsultorio(repositorio, indice, reloj: reloj);
   }
 
   final MotorAes motor;
@@ -75,10 +104,15 @@ class ServicioConsultorio {
   /// Fichas e historias descifradas; vacío mientras está bloqueado.
   late final IndicePacientes indice;
 
-  final _pendientes = <HistoriaPendiente>[];
+  /// Plantillas y documentos firmados; vacío mientras está bloqueado.
+  late final DocumentosConsultorio documentos;
 
-  /// Historias que esperan a que se desbloquee el consultorio.
+  final _pendientes = <HistoriaPendiente>[];
+  final _recetasPendientes = <RecetaPendiente>[];
+
+  /// Historias y recetas que esperan a que se desbloquee el consultorio.
   int get historiasPendientes => _pendientes.length;
+  int get recetasPendientes => _recetasPendientes.length;
 
   ConfiguracionConsultorio _configuracion = const ConfiguracionConsultorio();
 
@@ -104,6 +138,7 @@ class ServicioConsultorio {
           ? const ConfiguracionConsultorio()
           : ConfiguracionConsultorio.desdeMapa(c);
       await indice.cargar();
+      await documentos.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -113,6 +148,13 @@ class ServicioConsultorio {
   }
 
   Future<void> _registrarPendientes() async {
+    while (_recetasPendientes.isNotEmpty && boveda.desbloqueada) {
+      try {
+        await _registrarReceta(_recetasPendientes.removeAt(0));
+      } on Object {
+        // Sin paciente reconocible: la receta sigue en su PDF.
+      }
+    }
     while (_pendientes.isNotEmpty && boveda.desbloqueada) {
       final p = _pendientes.removeAt(0);
       try {
@@ -149,8 +191,33 @@ class ServicioConsultorio {
     );
   }
 
+  /// Registra una receta emitida. Con el consultorio bloqueado la deja
+  /// pendiente y devuelve `null`; si no, devuelve la ficha.
+  Future<String?> registrarReceta(RecetaPendiente r) async {
+    if (!boveda.desbloqueada) {
+      _recetasPendientes
+        ..removeWhere((p) => p.recetaId == r.recetaId)
+        ..add(r);
+      return null;
+    }
+    return _registrarReceta(r);
+  }
+
+  Future<String> _registrarReceta(RecetaPendiente r) => indice.registrarReceta(
+    recetaId: r.recetaId,
+    paciente: r.paciente,
+    fecha: r.fecha,
+    bytesPdf: r.bytesPdf,
+    numero: r.numero,
+    historiaId: r.historiaId,
+    items: r.items,
+    indicaciones: r.indicaciones,
+    nombreArchivo: r.nombreArchivo,
+  );
+
   void _cerrarSesion() {
     indice.olvidar();
+    documentos.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();

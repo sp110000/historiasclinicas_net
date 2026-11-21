@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
 import 'package:historiasclinicas_net/core/models/evolucion.dart';
+import 'package:historiasclinicas_net/core/models/medico.dart';
 import 'package:historiasclinicas_net/core/pdf/adjunto_historia.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -56,3 +58,23 @@ Future<Uint8List> pdfCon(Map<String, Object?> datos, {int revision = 1}) {
   );
   return doc.save();
 }
+
+/// PNG mínimo válido (1 × 1) como firma del paciente.
+final firmaDePrueba = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+);
+
+/// Médico con todos los datos que piden los documentos.
+Medico medicoCompleto() => Medico(
+  nombre: 'Dra. Ana Pérez Gómez',
+  registro: 'RM 54321',
+  tipoDocumento: 'CC',
+  documento: '52111222',
+  consultorio: 'Consultorio Salud Plena',
+  direccion: 'Calle 5 # 10-20',
+  ciudad: 'Santander de Quilichao',
+  telefono: '602 555 0101',
+  correo: 'consultorio@ejemplo.invalid',
+  firma: pngFirma,
+  sello: pngSello,
+);

@@ -11,6 +11,7 @@ import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/campos.dart';
 import '../../../core/widgets/titulo_dialogo.dart';
 import '../desbloqueo/panel_codigo.dart';
+import '../documentos/plantillas_ajustes.dart';
 import '../estado/consultorio_provider.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
@@ -33,6 +34,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           _Seguridad(),
           SizedBox(height: 16),
           _Respaldo(),
+          SizedBox(height: 16),
+          TarjetaPlantillas(),
           SizedBox(height: 16),
           _Bitacora(),
         ],

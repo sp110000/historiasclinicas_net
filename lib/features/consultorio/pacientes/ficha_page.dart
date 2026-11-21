@@ -17,6 +17,8 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
+import '../documentos/firma_autorizacion.dart';
+import '../documentos/linea_tiempo_documentos.dart';
 import 'dialogo_ficha.dart';
 import 'unir_fichas.dart';
 
@@ -65,6 +67,15 @@ class FichaPage extends ConsumerWidget {
 
     final ahora = s.reloj.ahora();
     final historias = indice.historiasDe(f.id);
+    // Historias, documentos y recetas, de lo más reciente a lo más viejo.
+    final entradas = <(DateTime, Widget)>[
+      for (final h in historias)
+        (h.ultimaAtencion, _TarjetaHistoria(historia: h)),
+      for (final d in s.documentos.documentosDe(f.id))
+        (d.fechaHora, TarjetaDocumento(documento: d)),
+      for (final r in indice.recetasDe(f.id))
+        (r.fecha, TarjetaReceta(receta: r)),
+    ]..sort((a, b) => b.$1.compareTo(a.$1));
     final resumen = indice.resumen(f);
     return Scaffold(
       appBar: AppBar(
@@ -89,15 +100,15 @@ class FichaPage extends ConsumerWidget {
           const SizedBox(height: 16),
           const Text('LÍNEA DE TIEMPO', style: EstilosMarca.rotulo),
           const SizedBox(height: 8),
-          if (historias.isEmpty)
+          if (entradas.isEmpty)
             const Text(
               'Sin historias todavía. «Historia nueva» empieza una con los '
               'datos de esta ficha.',
               style: TextStyle(color: ColoresMarca.textoSuave),
             )
           else
-            for (final h in historias) ...[
-              _TarjetaHistoria(historia: h),
+            for (final (_, tarjeta) in entradas) ...[
+              tarjeta,
               const SizedBox(height: 12),
             ],
         ],
@@ -209,6 +220,8 @@ class _Encabezado extends ConsumerWidget {
             const SizedBox(height: 10),
             Text(contacto.join(' · ')),
           ],
+          const SizedBox(height: 10),
+          LineaAutorizacion(ficha: f),
           if (f.notas.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -340,6 +353,11 @@ class _Acciones extends ConsumerWidget {
         Icons.warning_amber_rounded,
         'Actualizar alergias',
         () => _alergias(context, ref),
+      ),
+      (
+        Icons.privacy_tip_outlined,
+        'Autorización de datos',
+        () => pedirAutorizacionDatos(context, ficha: ficha),
       ),
       (Icons.edit_outlined, 'Editar datos', () => _editar(context)),
       (Icons.merge_type, 'Unir con otra ficha', () => _unir(context, ref)),

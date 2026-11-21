@@ -9,6 +9,7 @@ import '../../pdf/adjunto_historia.dart';
 import '../../pdf/lector_adjunto.dart';
 import '../../utils/ids.dart';
 import '../modelos/ficha_paciente.dart';
+import '../modelos/registro_receta.dart';
 import '../modelos/registro_historia.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
@@ -121,6 +122,7 @@ class IndicePacientes {
 
   final _fichas = <String, FichaPaciente>{};
   final _historias = <String, RegistroHistoria>{};
+  final _recetas = <String, RegistroReceta>{};
 
   /// Clave de documento → id de la ficha que la lleva.
   final _porClave = <String, String>{};
@@ -145,6 +147,9 @@ class IndicePacientes {
     final historias = await _repo.leerColeccionTolerante(
       RegistroHistoria.coleccion,
     );
+    final recetas = await _repo.leerColeccionTolerante(
+      RegistroReceta.coleccion,
+    );
     olvidar();
     _ilegibles
       ..addAll([
@@ -168,6 +173,13 @@ class IndicePacientes {
         _ilegibles.add('${RegistroHistoria.coleccion}/${e.key}');
       }
     }
+    for (final e in recetas.registros.entries) {
+      try {
+        _recetas[e.key] = RegistroReceta.desdeMapa(e.key, e.value);
+      } on Object {
+        _ilegibles.add('${RegistroReceta.coleccion}/${e.key}');
+      }
+    }
     _cargado = true;
   }
 
@@ -175,6 +187,7 @@ class IndicePacientes {
   void olvidar() {
     _fichas.clear();
     _historias.clear();
+    _recetas.clear();
     _porClave.clear();
     _porPaciente = null;
     _ilegibles.clear();
@@ -240,6 +253,44 @@ class IndicePacientes {
   }
 
   FichaPaciente? porClave(String clave) => _activa(_fichas[_porClave[clave]]);
+
+  /// La ficha activa para [id]: la misma, o la que la reemplazó al unirlas.
+  FichaPaciente? fichaActiva(String id) => _activa(_fichas[id]);
+
+  /// [pacienteId] y los ids de las fichas que se unieron a ella: los
+  /// documentos y las recetas sellados con un id viejo siguen apareciendo.
+  Set<String> idsUnidos(String pacienteId) => {
+    pacienteId,
+    for (final f in _fichas.values)
+      if (f.unidaEn != null && _activa(f)?.id == pacienteId) f.id,
+  };
+
+  /// Ficha de un paciente: la de su historia, la de su documento o una
+  /// nueva (que hay que guardar) si no existe. [sinDocumento] es la clave
+  /// para un paciente sin identificar.
+  ({FichaPaciente ficha, bool nueva}) _fichaPara(
+    Paciente p, {
+    String? historiaId,
+    required String sinDocumento,
+    required DateTime ahora,
+  }) {
+    final h = historiaId == null ? null : _historias[historiaId];
+    var ficha = h == null ? null : _activa(_fichas[h.pacienteId]);
+    final clave = claveDocumento(p.tipoDocumento, p.numeroDocumento);
+    if (ficha == null && clave != null) ficha = porClave(clave);
+    if (ficha != null) {
+      return (ficha: ficha.completadaCon(p, ahora), nueva: false);
+    }
+    return (
+      ficha: FichaPaciente.desdePaciente(
+        p,
+        id: nuevoUuid(),
+        clave: clave ?? sinDocumento,
+        ahora: ahora,
+      ),
+      nueva: true,
+    );
+  }
 
   ResumenPaciente resumen(FichaPaciente f) {
     final hs = _historiasPorPaciente[f.id] ?? const [];
@@ -378,26 +429,12 @@ class IndicePacientes {
     }
 
     // Nueva o más reciente: ficha, datos, PDF y registro.
-    var pacienteNuevo = false;
-    FichaPaciente? ficha = existente == null
-        ? null
-        : _activa(_fichas[existente.pacienteId]);
-    final clave = claveDocumento(
-      h.paciente.tipoDocumento,
-      h.paciente.numeroDocumento,
+    final (:ficha, nueva: pacienteNuevo) = _fichaPara(
+      h.paciente,
+      historiaId: existente == null ? null : h.id,
+      sinDocumento: 'SIN:${h.id}',
+      ahora: ahora,
     );
-    if (ficha == null && clave != null) ficha = porClave(clave);
-    if (ficha == null) {
-      pacienteNuevo = true;
-      ficha = FichaPaciente.desdePaciente(
-        h.paciente,
-        id: nuevoUuid(),
-        clave: clave ?? 'SIN:${h.id}',
-        ahora: ahora,
-      );
-    } else {
-      ficha = ficha.completadaCon(h.paciente, ahora);
-    }
     await _repo.guardarBinario(
       RegistroHistoria.tipoBinarioDatos,
       h.id,
@@ -539,6 +576,75 @@ class IndicePacientes {
   /// El PDF exacto de la última revisión, si el índice lo guarda.
   Future<Uint8List?> pdfDe(String historiaId) =>
       _repo.leerBinario(RegistroHistoria.tipoBinarioPdf, historiaId);
+
+  // ─────────────────────────── Recetas ───────────────────────────
+
+  RegistroReceta? receta(String id) => _recetas[id];
+
+  /// Recetas de la ficha (y de las unidas a ella), de la más reciente a la
+  /// más vieja.
+  List<RegistroReceta> recetasDe(String pacienteId) {
+    final ids = idsUnidos(pacienteId);
+    return _recetas.values.where((r) => ids.contains(r.pacienteId)).toList()
+      ..sort((a, b) => b.fecha.compareTo(a.fecha));
+  }
+
+  Future<Uint8List?> pdfReceta(String id) =>
+      _repo.leerBinario(RegistroReceta.tipoBinarioPdf, id);
+
+  /// Registra una receta emitida (impresa o guardada) para [paciente] con su
+  /// PDF exacto. La misma receta otra vez reemplaza la anterior (el último
+  /// PDF es el que vale). Devuelve la ficha.
+  Future<String> registrarReceta({
+    required String recetaId,
+    required Paciente paciente,
+    required DateTime fecha,
+    required Uint8List bytesPdf,
+    String? numero,
+    String historiaId = '',
+    List<String> items = const [],
+    String indicaciones = '',
+    String nombreArchivo = '',
+  }) async {
+    final ahora = reloj.ahora();
+    final existente = _recetas[recetaId];
+    final fichaExistente = existente == null
+        ? null
+        : _activa(_fichas[existente.pacienteId]);
+    final (:ficha, :nueva) = fichaExistente != null
+        ? (ficha: fichaExistente, nueva: false)
+        : _fichaPara(
+            paciente,
+            historiaId: historiaId.isEmpty ? null : historiaId,
+            sinDocumento: 'SIN:$recetaId',
+            ahora: ahora,
+          );
+    final registro = RegistroReceta(
+      id: recetaId,
+      pacienteId: ficha.id,
+      fecha: fecha,
+      numero: numero,
+      historiaId: historiaId,
+      items: items,
+      indicaciones: indicaciones,
+      sha256Pdf: sha256.convert(bytesPdf).toString(),
+      nombreArchivo: nombreArchivo,
+      tienePdf: true,
+      actualizado: ahora,
+    );
+    await _repo.guardarBinario(
+      RegistroReceta.tipoBinarioPdf,
+      recetaId,
+      bytesPdf,
+    );
+    await _repo.guardarVarios([
+      if (nueva) Escritura(FichaPaciente.coleccion, ficha.id, ficha.aMapa()),
+      Escritura(RegistroReceta.coleccion, recetaId, registro.aMapa()),
+    ]);
+    if (nueva) _ponerFicha(ficha);
+    _recetas[recetaId] = registro;
+    return ficha.id;
+  }
 
   // ─────────────────────────── Fichas ───────────────────────────
 

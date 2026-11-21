@@ -91,6 +91,23 @@ PaqueteHistoria leerHistoriaDePdf(Uint8List bytes) {
 
 const _marca = '"app":"$identificadorApp"';
 
+/// Contenido (sin filtros) de los archivos incrustados de [bytes] cuyo
+/// comienzo contiene [marca]. Sirve para los adjuntos del consultorio
+/// (`receta.json`, `documento.json`), que llevan otra marca y por eso
+/// [leerHistoriaDePdf] no los confunde con una historia.
+List<Uint8List> adjuntosConMarca(Uint8List bytes, String marca) {
+  final texto = latin1.decode(bytes);
+  final r = <Uint8List>[];
+  for (final f in _extraerFlujos(texto, bytes)) {
+    if (!f.esArchivoIncrustado) continue;
+    final c = f.decodificar();
+    if (c == null) continue;
+    final inicio = c.length < 256 ? c : Uint8List.sublistView(c, 0, 256);
+    if (latin1.decode(inicio).contains(marca)) r.add(c);
+  }
+  return r;
+}
+
 bool _tieneMarca(Uint8List contenido) {
   final inicio = contenido.length < 256
       ? contenido

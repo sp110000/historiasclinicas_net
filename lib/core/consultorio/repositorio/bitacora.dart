@@ -15,7 +15,11 @@ enum AccionBitacora {
   restaurar('Restauró un respaldo'),
   cambiarAjustes('Cambió los ajustes'),
   importarPdf('Importó historias en PDF'),
-  unirFichas('Unió dos fichas de paciente');
+  unirFichas('Unió dos fichas de paciente'),
+  aprobarPlantilla('Aprobó una plantilla'),
+  firmarDocumento('Firmó un documento'),
+  revocarDocumento('Registró la revocación de un documento'),
+  anularDocumento('Anuló un documento');
 
   const AccionBitacora(this.etiqueta);
 
