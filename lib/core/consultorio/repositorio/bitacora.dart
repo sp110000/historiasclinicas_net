@@ -13,7 +13,9 @@ enum AccionBitacora {
   bloqueoAutomatico('Bloqueo por inactividad'),
   respaldar('Descargó un respaldo'),
   restaurar('Restauró un respaldo'),
-  cambiarAjustes('Cambió los ajustes');
+  cambiarAjustes('Cambió los ajustes'),
+  importarPdf('Importó historias en PDF'),
+  unirFichas('Unió dos fichas de paciente');
 
   const AccionBitacora(this.etiqueta);
 
