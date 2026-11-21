@@ -1,6 +1,6 @@
-# Fase 5: el sistema de tu consultorio (plan)
+# Fase 5: el sistema de tu consultorio
 
-> **Estado: plan, pendiente de tu aprobación.** Todavía no hay código. Rama `claude/fase5-consultorio`.
+> **Estado: 5.0 «Cimientos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). Plan aprobado el 21/11/2026 con las respuestas 1 a 9 por defecto. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,98 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para empezar:** respuesta a las preguntas 1 a 9 (bloque «Para empezar la 5.0»). Las demás pueden esperar a su subfase. Junto a cada pregunta pongo lo que haría por defecto; basta con que respondas «ok» a lo que te parezca bien.
+**Qué necesito de ti para seguir:** el visto bueno de la 5.0 y, antes de la 5.1, las preguntas 10 a 16 (bloque «Pacientes»). Junto a cada pregunta pongo lo que haría por defecto; basta con que respondas «ok» a lo que te parezca bien.
+
+---
+
+## Decisiones confirmadas (21/11/2026)
+
+| # | Tema | Decisión |
+|---|---|---|
+| 1 | Arquitectura | Aprobada con los ocho ajustes |
+| 2 | Dónde corre | Otra dirección (subdominio), con la guía [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md). No publico nada |
+| 3 | Equipos | Portátil principal y celular secundario, con el paquete cifrado (5.2) |
+| 4 | Frase y recuperación | Frase de 12 caracteres o más con medidor; código de recuperación de 24 caracteres con hoja PDF y confirmación de los últimos 4 |
+| 5 | Derivación | PBKDF2-HMAC-SHA256 con 600.000 iteraciones; Argon2id se mide en tus equipos con «Medir la derivación» |
+| 6 | Bloqueo | 10 minutos (de 2 a 60), «Bloquear ahora», llave descartada; borrador y receta cifrados con la bandera (llega en la 5.1, ver desviaciones) |
+| 7 | Respaldo | Aviso a los 7 días; restaurar reemplaza todo. Ofrecer respaldo al cerrar la caja: en la 5.6 |
+| 8 | Regla 10 | Acepta el inventario de este documento y la carpeta `lib/features/consultorio/` |
+| 9 | Subfases | 5.0 «Cimientos» primero; el consentimiento informado pasa a la 5.3 |
+
+---
+
+## Avance
+
+### 5.0 Cimientos ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Bandera `CONSULTORIO_ENABLED`** como constante (`lib/core/consultorio/config.dart`). Su único punto de entrada es `crearRouter()`, bajo `if (consultorioHabilitado)`.
+- **Almacén cifrado propio** en IndexedDB (`historiasclinicas_consultorio`), con tres depósitos (`meta` en claro; `registros` y `binarios` cifrados) y escrituras atómicas en una transacción.
+  - AES-256-GCM con AAD (colección e id). En el navegador, la llave se importa en WebCrypto como **no extraíble**.
+  - Llave en sobre: la llave de datos se guarda envuelta con la frase (PBKDF2, 600.000 iteraciones) y con el código de recuperación.
+  - Migraciones, candado entre pestañas (Web Locks), pedido de almacenamiento persistente y bitácora sin datos de pacientes.
+  - **El código de IHCE no se tocó.**
+- **Respaldo `.hcrespaldo`:** ZIP con manifiesto sellado.
+  - Al importar se verifica la frase o el código, el sello del manifiesto, el SHA-256 de cada archivo, que cada registro se descifre con su AAD y los conteos.
+  - Restaurar reemplaza todo, y si hay problemas solo restaura lo íntegro tras confirmar.
+- **Interfaz:**
+  - Riel lateral desde 1100 px (Historia y Ajustes por ahora) y menú lateral en pantallas angostas.
+  - Crear la frase con medidor de fortaleza.
+  - Código de recuperación mostrado una sola vez, con **hoja PDF para imprimir** y confirmación de los últimos 4 caracteres.
+  - Desbloquear, recuperar con el código y bloqueo por inactividad.
+  - Aviso de respaldo vencido con el texto de custodia.
+  - **La historia, la receta y los datos del médico funcionan con el consultorio bloqueado.**
+- **Ajustes:**
+  - Seguridad: minutos de bloqueo, «Bloquear ahora», cambiar la frase, nuevo código de recuperación y «Medir la derivación».
+  - Respaldo: respaldar, restaurar, días de aviso, espacio usado y almacenamiento persistente.
+  - Bitácora.
+- **Compilación:**
+  - `./tool/construir_web.sh --salida DIR` permite compilar la versión del consultorio aparte.
+  - `tool/consultorio/verificar_compilacion.dart` comprueba si el módulo quedó en `main.dart.js`.
+  - Guía de publicación: [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md).
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **383 en verde** (eran 323: **+60**). 3 omitidas: las 2 que solo corren con la bandera encendida (la CI las corre en el job «consultorio») y 1 que ya existía |
+| **Bandera apagada = sitio de hoy** | `main.dart.js` compilado **idéntico byte a byte** al de `main` (5.208 KB). Router con exactamente `/`, `/receta` y `/medico`. Menú «Más opciones» idéntico a 1920 y a 390 px. Nadie crea el servicio del consultorio. `pages.yml` sin la bandera. En la e2e de siempre no se crea la base del consultorio |
+| Bandera encendida | `crearRouter()` usa el contenedor y las rutas del consultorio. El módulo pesa **+187 KB** en `main.dart.js` (5.395 KB) |
+| Cifrado y respaldo | Vector conocido de PBKDF2; tildes compuestas o separadas dan la misma llave; un byte cambiado, otra AAD o un registro copiado sobre otra clave no se descifran; nada en claro en el almacén ni en el respaldo. Respaldo de ida y vuelta; se detectan el manifiesto modificado, archivos modificados, faltantes, sobrantes o intercambiados, el archivo ajeno o truncado y la versión nueva |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** (`tool/e2e/consultorio_offline.mjs`) | **16 de 16 pasos.** Crear la frase, código y hoja PDF, base sin la frase ni el código en claro, medir la derivación, respaldar, bloquear, frase incorrecta, desbloquear, **otra pestaña no abre**, respaldo dañado y frase equivocada rechazados, restaurar, aviso de respaldo vencido tras recargar sin conexión, recuperar con el código, móvil y 320 px. 0 peticiones externas, 0 fallidas, 0 errores de consola |
+| e2e de siempre (`historia_offline.mjs`, `pwa_offline.mjs`) | En verde, más el paso nuevo: sin la bandera no existe la base del consultorio |
+| `tool/ihce/verificar.sh` | **En rojo por una causa externa a la Fase 5:** MinSalud recompiló la guía RDA (compilación `20261109215545`, del 09/11/2026), y el gate se detiene en el aprovisionamiento porque la huella ya no coincide con `vendor/fhir/VERSIONS.lock`. Lo mismo pasaría hoy en `main`. Las pruebas de IHCE (T01–T24 y capa 1) corren dentro de `flutter test` y pasan, y la regla 10 está en verde con el inventario de la Fase 5. Actualizar la guía (`--actualizar`, regenerar `PERFILES_RDA.md` y la línea base) es una tarea de IHCE aparte, que dejo propuesta |
+
+**Derivación de la llave** (Chromium de este contenedor, 4 núcleos): PBKDF2-HMAC-SHA256 con 600.000 iteraciones, **unos 100 a 120 ms**; Argon2id con 19 MiB y 2 pasadas, **unos 1,1 a 1,2 s**. Argon2id es razonable en un escritorio, pero falta medirlo en tu Mac y en tu celular. Por ahora sigue PBKDF2. Los parámetros van guardados con la llave, así que cambiarlos después no rompe nada.
+
+**Problemas encontrados y corregidos en la 5.0**
+1. **La hoja de recuperación cortaba el último carácter del código** («TQP» en vez de «TQPV»): no cabía en una línea. Ahora va en dos líneas y se achica si hace falta. Una prueba lee el PDF con `pdftotext` y exige los 6 grupos; con la versión anterior falla.
+2. **El riel y el aviso de respaldo no existían para los lectores de pantalla** sobre las pantallas con barra propia (historia, receta, médico). Cada pantalla vive en un `Navigator` anidado cuya barrera usa `BlockSemantics`, que oculta todo lo pintado antes. La pantalla va ahora en su propio contenedor semántico. Una prueba de accesibilidad lo vigila; sin el arreglo, falla.
+3. **El aviso de respaldo salía sin el estilo del tema** (texto rojo con subrayado amarillo) y el motor intentaba descargar una fuente de respaldo, lo que **sin conexión fallaba**. Faltaba un `Material` alrededor del riel. Hay prueba.
+4. El rótulo «CONSULTORIO» no cabía en el riel de 80 px y se quitó. El campo de la frase ya no toma el foco solo.
+
+**Desviaciones del plan**
+- **El borrador y la receta en curso cifrados (pregunta 6)** pasan a la 5.1. Allí se engancha la historia al índice, y es más seguro cambiar el borrador en el mismo paso. Hasta entonces quedan como hoy.
+- **La historia no se tocó.** En vez de cambiar sus cortes a `LayoutBuilder`, el contenedor le pasa el ancho que queda a la derecha del riel (`MediaQuery`). El resultado es el mismo y no cambia ningún archivo de la historia.
+- **El respaldo guarda un archivo por registro** en vez de «en lotes». Es más simple y permite informar cada problema por nombre.
+- **La app abre en la historia** (`/`) y no en la agenda, porque la agenda llega en la 5.5.
+- **Fuente de íconos del sitio público: +2 KB.** El recorte de íconos de Flutter ocurre antes de descartar el código, así que la fuente pública incluye unos pocos íconos del consultorio que nunca se muestran (18 → 20 KB). Es lo único del sitio público que cambia, junto con las huellas de `sw.js`. Al publicar, los navegadores descargan esa fuente y el `sw.js` nuevos.
+- **Prueba local con Playwright 1.65:** en este contenedor, el Chromium instalado es de otra versión y lo enlacé fuera del repositorio. En la CI, Playwright instala el suyo.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):**
+  - [historia con el riel](fase5/escritorio_historia_con_riel.png)
+  - [crear la frase](fase5/escritorio_crear_frase.png)
+  - [código de recuperación](fase5/escritorio_codigo_recuperacion.png)
+  - [Ajustes sin respaldo](fase5/escritorio_ajustes_sin_respaldo.png)
+  - [bloqueado](fase5/escritorio_bloqueado.png)
+  - [restaurar](fase5/escritorio_restaurar.png)
+  - [aviso de respaldo vencido](fase5/escritorio_aviso_respaldo_vencido.png)
+  - [recuperar con el código](fase5/escritorio_recuperar_con_codigo.png)
+- **Móvil (390 px):** [Ajustes](fase5/movil_ajustes.png) · [menú](fase5/movil_menu.png) · [bloqueado](fase5/movil_bloqueado.png)
+- **320 px:** [bloqueado](fase5/320_bloqueado.png) · [Ajustes](fase5/320_ajustes.png)
+- **PDF:** [hoja de recuperación](fase5/pdf_hoja_recuperacion.png)
 
 ---
 
@@ -755,7 +846,7 @@ docs/FASE5.md, docs/fase5/           # este plan, resultados y capturas
 
 | Archivo | Cambio |
 |---|---|
-| `lib/app/router.dart` | `if (consultorioHabilitado)` agrega el contenedor y las rutas `/agenda`, `/pacientes`, `/pacientes/:id`, `/caja`, `/inventario` y `/ajustes`, con `initialLocation: '/agenda'`. Apagada: las 3 rutas de hoy |
+| `lib/app/router.dart` | `if (consultorioHabilitado)` usa las rutas del consultorio (5.0: `/ajustes`; después `/agenda`, `/pacientes`, `/pacientes/:id`, `/caja` e `/inventario`, con `initialLocation: '/agenda'` desde la 5.5). Apagada: las 3 rutas de hoy |
 | `lib/features/historia/estado/historia_controller.dart` | Enganche en `guardado()` (sin esperar el resultado y sin lanzar errores, como IHCE) y `nuevaDesdePaciente()` |
 | `lib/features/historia/historia_page.dart` | Pasar los bytes del PDF al enganche. Cortes con el ancho disponible (`LayoutBuilder`), que sin riel es el de hoy. Con la bandera: «← Ficha» y aviso de versión más nueva en el índice |
 | `lib/features/historia/secciones/seccion_evoluciones.dart`, `lib/core/models/evolucion.dart`, `lib/core/pdf/historia_pdf.dart`, `lib/core/presentacion/datos_historia.dart` | Solo si eliges 15 (a): «Próximo control» opcional en la evolución, con la bandera encendida |
@@ -767,6 +858,7 @@ docs/FASE5.md, docs/fase5/           # este plan, resultados y capturas
 | `lib/core/archivos/archivos.dart`, `lib/core/archivos/archivos_web.dart`, `lib/core/archivos/archivos_stub.dart` | Elegir varios archivos, soltar varios y `capture` para la cámara |
 | `tool/ihce/regla10.dart` | Aceptar el inventario de esta tabla y la carpeta `lib/features/consultorio/` (pregunta 8) |
 | `tool/construir_web.sh`, `.github/workflows/ci.yml` | Carpeta de salida como parámetro, y un trabajo de CI que compila con la bandera encendida y corre el e2e del consultorio. **`pages.yml` no cambia** |
+| `tool/e2e/historia_offline.mjs` | Paso nuevo: sin la bandera no existe la base del consultorio |
 
 El código de IHCE (`lib/core/ihce/`, `lib/features/ihce/`) no cambia.
 
