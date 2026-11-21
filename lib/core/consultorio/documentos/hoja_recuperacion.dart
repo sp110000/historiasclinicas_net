@@ -71,20 +71,25 @@ Future<Uint8List> generarHojaRecuperacion({
               border: pw.Border.all(color: lineaPdf, width: 1),
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < grupos.length; i++) ...[
-                  if (i > 0) pw.Text(' – ', style: estilo(20, color: grisPdf)),
-                  pw.Text(
-                    grupos[i],
-                    style: estilo(
-                      24,
-                      fuente: f.seminegrita,
-                    ).copyWith(letterSpacing: 2),
-                  ),
+            // Dos líneas de tres grupos, y achicado si aun así no cabe: el
+            // código nunca se corta.
+            child: pw.FittedBox(
+              fit: pw.BoxFit.scaleDown,
+              child: pw.Column(
+                children: [
+                  for (final linea in [grupos.sublist(0, 3), grupos.sublist(3)])
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                      child: pw.Text(
+                        linea.join('  –  '),
+                        style: estilo(
+                          26,
+                          fuente: f.seminegrita,
+                        ).copyWith(letterSpacing: 2),
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
           ),
           pw.SizedBox(height: 28),

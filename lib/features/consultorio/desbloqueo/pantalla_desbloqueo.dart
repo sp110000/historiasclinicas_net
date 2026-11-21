@@ -362,7 +362,6 @@ class _DesbloquearState extends ConsumerState<_Desbloquear> {
             obscureText: true,
             autocorrect: false,
             enableSuggestions: false,
-            autofocus: true,
             decoration: const InputDecoration(labelText: 'Frase de acceso'),
             onChanged: (v) => _frase = v,
             onSubmitted: (_) => _trabajando ? null : _desbloquear(),

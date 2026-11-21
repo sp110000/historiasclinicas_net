@@ -86,10 +86,20 @@ class ContenedorConsultorio extends ConsumerWidget {
     final libre = _rutasLibres.contains(ubicacion);
     final cerrado = !e.desbloqueado || e.codigoPendiente != null;
     final contenido = !libre && cerrado ? const PantallaDesbloqueo() : child;
+    // Cada pantalla vive en un Navigator anidado cuya barrera modal usa
+    // BlockSemantics, que oculta a los lectores de pantalla todo lo pintado
+    // antes (el riel, la barra y el aviso de respaldo) hasta el primer
+    // contenedor semántico. Por eso la pantalla va en un contenedor propio.
     final cuerpo = Column(
       children: [
         const _AvisoRespaldo(),
-        Expanded(child: contenido),
+        Expanded(
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            child: contenido,
+          ),
+        ),
       ],
     );
     final ancho = MediaQuery.sizeOf(context).width;
@@ -101,19 +111,24 @@ class ContenedorConsultorio extends ConsumerWidget {
       // Las pantallas calculan sus cortes con el ancho de la ventana: se les
       // da el ancho que les queda a la derecha del riel.
       final mq = MediaQuery.of(context);
-      pantalla = Row(
-        children: [
-          _Riel(indice: _indice, alElegir: ir),
-          const VerticalDivider(width: 1, thickness: 1),
-          Expanded(
-            child: MediaQuery(
-              data: mq.copyWith(
-                size: Size(ancho - _anchoRiel - 1, mq.size.height),
+      // Material: da a los textos de fuera de las pantallas (el aviso de
+      // respaldo) el estilo y la fuente del tema.
+      pantalla = Material(
+        color: ColoresMarca.fondo,
+        child: Row(
+          children: [
+            _Riel(indice: _indice, alElegir: ir),
+            const VerticalDivider(width: 1, thickness: 1),
+            Expanded(
+              child: MediaQuery(
+                data: mq.copyWith(
+                  size: Size(ancho - _anchoRiel - 1, mq.size.height),
+                ),
+                child: cuerpo,
               ),
-              child: cuerpo,
             ),
-          ),
-        ],
+          ],
+        ),
       );
     } else {
       pantalla = Scaffold(
@@ -196,10 +211,7 @@ class _Riel extends StatelessWidget {
           color: ColoresMarca.textoSuave,
           fontSize: 12,
         ),
-        leading: const Padding(
-          padding: EdgeInsets.only(top: 12, bottom: 8),
-          child: Text('CONSULTORIO', style: EstilosMarca.rotulo),
-        ),
+        leading: const SizedBox(height: 8),
         trailing: const Expanded(
           child: Align(
             alignment: Alignment.bottomCenter,

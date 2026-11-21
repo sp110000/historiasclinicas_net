@@ -107,6 +107,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Resolución 1995 de 1999'), findsOneWidget);
+    // El aviso está fuera de las pantallas: debe heredar el estilo del tema
+    // (sin el subrayado amarillo de «texto sin Material» ni otra fuente).
+    final estilo = DefaultTextStyle.of(
+      t.element(find.text('Todavía no has respaldado el consultorio')),
+    ).style;
+    expect(estilo.decoration, isNot(TextDecoration.underline));
+    expect(estilo.fontFamily, 'Inter');
   });
 
   testWidgets('bloqueado: frase incorrecta muestra el error y la correcta '
@@ -160,6 +167,26 @@ void main() {
     expect(find.text('HISTORIA NUEVA'), findsOneWidget);
     expect(find.text('El consultorio está bloqueado'), findsNothing);
     expect(find.byType(NavigationRail), findsOneWidget);
+  });
+
+  testWidgets('el riel es accesible también sobre las pantallas con su '
+      'propia barra (historia)', (t) async {
+    final semantica = t.ensureSemantics();
+    final banco = BancoConsultorio();
+    await _montar(t, banco: banco, ruta: '/', tamano: const Size(1920, 1200));
+    expect(find.bySemanticsLabel(RegExp('^Ajustes')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('^Historia')), findsOneWidget);
+    expect(find.bySemanticsLabel('Consultorio bloqueado'), findsOneWidget);
+
+    // Abierto y sin respaldo: el aviso también se lee.
+    await banco.servicio.crear(fraseDePrueba);
+    await t.pumpWidget(const SizedBox());
+    await _montar(t, banco: banco, ruta: '/', tamano: const Size(1920, 1200));
+    expect(
+      find.bySemanticsLabel(RegExp('Todavía no has respaldado el consultorio')),
+      findsOneWidget,
+    );
+    semantica.dispose();
   });
 
   testWidgets('se bloquea solo tras los minutos sin actividad', (t) async {

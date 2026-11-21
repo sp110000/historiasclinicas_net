@@ -144,7 +144,7 @@ class _SeguridadState extends ConsumerState<_Seguridad> {
                   builder: (_) => const _DialogoCodigoNuevo(),
                 ),
                 icon: const Icon(Icons.key_outlined),
-                label: const Text('Generar un código de recuperación nuevo'),
+                label: const Text('Nuevo código de recuperación'),
               ),
             ],
           ),
@@ -166,7 +166,7 @@ class _SeguridadState extends ConsumerState<_Seguridad> {
             ),
           ),
           if (_medicion != null)
-            SelectableText(
+            Text(
               _medicion!,
               style: const TextStyle(fontSize: 13.5, height: 1.5),
             ),
