@@ -8,6 +8,7 @@ enum AccionBitacora {
   desbloquear('Desbloqueó el consultorio'),
   recuperar('Recuperó el acceso con el código'),
   cambiarFrase('Cambió la frase de acceso'),
+  regenerarCodigo('Generó un código de recuperación nuevo'),
   bloquear('Bloqueó el consultorio'),
   bloqueoAutomatico('Bloqueo por inactividad'),
   respaldar('Descargó un respaldo'),

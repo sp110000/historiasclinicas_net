@@ -122,6 +122,22 @@ class Boveda {
     }
   }
 
+  /// Genera un código de recuperación nuevo; el anterior deja de servir.
+  /// Lanza [SecretoIncorrecto] si [frase] no es la de hoy.
+  Future<String> regenerarCodigo(String frase) async {
+    final llavero = await _llaveroExistente();
+    final llave = await _fabrica.abrirConFrase(llavero, frase);
+    try {
+      final r = await _fabrica.cambiarCodigo(llavero, llave);
+      await almacen.aplicar([
+        Cambio(Deposito.meta, ClavesMeta.llavero, r.llavero.aBytes()),
+      ]);
+      return r.codigo;
+    } finally {
+      llave.fillRange(0, llave.length, 0);
+    }
+  }
+
   /// Descarta la llave. Lo cifrado sigue en el almacén.
   void bloquear() => _cifrado = null;
 

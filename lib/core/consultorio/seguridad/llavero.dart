@@ -69,6 +69,9 @@ class Llavero {
   Llavero conFrase(SobreLlave nueva) =>
       Llavero(creado: creado, frase: nueva, codigo: codigo);
 
+  Llavero conCodigo(SobreLlave nuevo) =>
+      Llavero(creado: creado, frase: frase, codigo: nuevo);
+
   Map<String, Object?> aMapa() => {
     'formato': formato,
     'creado': creado.toUtc().toIso8601String(),
@@ -221,4 +224,20 @@ class FabricaLlavero {
   ) async => l.conFrase(
     await _envolver(llaveDatos, nuevaFrase, parametrosFrase, _aadFrase),
   );
+
+  /// El mismo llavero con un código de recuperación nuevo (el anterior deja
+  /// de servir). Devuelve también el código, que se muestra una sola vez.
+  Future<({Llavero llavero, String codigo})> cambiarCodigo(
+    Llavero l,
+    Uint8List llaveDatos,
+  ) async {
+    final codigo = _codigoNuevo();
+    final sobre = await _envolver(
+      llaveDatos,
+      codigo,
+      parametrosCodigo,
+      _aadCodigo,
+    );
+    return (llavero: l.conCodigo(sobre), codigo: codigo);
+  }
 }

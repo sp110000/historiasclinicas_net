@@ -114,6 +114,17 @@ class ServicioConsultorio {
     );
   }
 
+  /// El código anterior deja de servir. Lanza [SecretoIncorrecto].
+  Future<String> regenerarCodigo(String frase) async {
+    final codigo = await boveda.regenerarCodigo(frase);
+    await registrarEnBitacora(
+      repositorio,
+      AccionBitacora.regenerarCodigo,
+      fecha: reloj.ahora(),
+    );
+    return codigo;
+  }
+
   Future<void> bloquear({bool automatico = false}) async {
     if (!boveda.desbloqueada) return;
     try {

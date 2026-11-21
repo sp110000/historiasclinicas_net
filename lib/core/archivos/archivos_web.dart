@@ -80,6 +80,10 @@ Future<ArchivoAbierto?> elegirCatalogo() => _elegirConInput(
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 );
 
+/// Pide un respaldo del consultorio (`.hcrespaldo`).
+Future<ArchivoAbierto?> elegirRespaldo() =>
+    _elegirConInput('.hcrespaldo,application/octet-stream,application/zip');
+
 Future<ArchivoAbierto?> _elegirConInput(String acepta) {
   final completer = Completer<ArchivoAbierto?>();
   final input = web.HTMLInputElement()
