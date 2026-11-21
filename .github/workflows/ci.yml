@@ -44,6 +44,11 @@ jobs:
       - name: Compilar el sitio (sin CDN, con service worker)
         run: ./tool/construir_web.sh
 
+      # Con CONSULTORIO_ENABLED apagada (lo que publica pages.yml), el código
+      # del consultorio no debe estar en main.dart.js.
+      - name: El sitio público no incluye el consultorio
+        run: dart run tool/consultorio/verificar_compilacion.dart build/web --sin-modulo
+
       - uses: actions/upload-artifact@v4
         with:
           name: sitio-web
@@ -94,4 +99,72 @@ jobs:
         with:
           name: e2e
           path: build/e2e
+          retention-days: 7
+
+  consultorio:
+    name: Compilación del consultorio (bandera encendida)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.10
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Pruebas de widgets con la bandera encendida
+        run: flutter test --dart-define=CONSULTORIO_ENABLED=true test/consultorio/bandera_encendida_test.dart test/consultorio/interfaz_test.dart
+
+      - name: Compilar la versión del consultorio
+        run: ./tool/construir_web.sh --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio
+
+      - name: La compilación incluye el consultorio
+        run: dart run tool/consultorio/verificar_compilacion.dart build/web-consultorio --con-modulo
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sitio-consultorio
+          path: build/web-consultorio
+          include-hidden-files: true # .htaccess
+          retention-days: 14
+
+  e2e-consultorio:
+    name: Prueba del consultorio en Chromium sin conexión
+    needs: consultorio
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sitio-consultorio
+          path: build/web-consultorio
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Playwright
+        working-directory: tool/e2e
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Consultorio sin conexión (frase, bloqueo, respaldo y restauración)
+        run: |
+          node tool/e2e/servidor.mjs 8766 build/web-consultorio &
+          sleep 1
+          node tool/e2e/consultorio_offline.mjs
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-consultorio
+          path: build/e2e-consultorio
           retention-days: 7
