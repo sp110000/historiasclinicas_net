@@ -1,4 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
+
+import '../../../core/archivos/archivos.dart' as archivos;
+import '../../../core/archivos/archivos.dart' show ArchivoAbierto;
 
 /// Sube cada vez que cambia el índice de pacientes (registro, importación,
 /// unir fichas, desbloqueo o bloqueo). Las pantallas lo miran y vuelven a
@@ -25,4 +31,24 @@ class ControladorFichaEnCurso extends Notifier<String?> {
 
 final fichaEnCursoProvider = NotifierProvider<ControladorFichaEnCurso, String?>(
   ControladorFichaEnCurso.new,
+);
+
+/// Elige varios PDF para importar. Las pruebas lo sustituyen.
+final elegirPdfsProvider = Provider<Future<List<ArchivoAbierto>> Function()>(
+  (ref) => archivos.elegirPdfs,
+);
+
+/// Muestra un PDF guardado en la vista de impresión del navegador (desde
+/// ahí se ve, se imprime o se guarda). Las pruebas lo sustituyen.
+final verPdfProvider = Provider<Future<void> Function(Uint8List, String)>(
+  (ref) =>
+      (bytes, nombre) =>
+          Printing.layoutPdf(onLayout: (_) async => bytes, name: nombre),
+);
+
+/// Descarga un PDF guardado. Las pruebas lo sustituyen.
+final descargarPdfProvider = Provider<void Function(Uint8List, String)>(
+  (ref) =>
+      (bytes, nombre) =>
+          archivos.descargar(nombre, bytes, tipo: 'application/pdf'),
 );

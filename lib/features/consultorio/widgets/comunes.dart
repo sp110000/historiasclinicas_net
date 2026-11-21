@@ -141,3 +141,46 @@ String haceDias(DateTime fecha, DateTime ahora) {
     _ => 'hace $dias días',
   };
 }
+
+/// Píldora de estado: control vencido, alterada, divergente…
+class EtiquetaEstado extends StatelessWidget {
+  const EtiquetaEstado({
+    super.key,
+    required this.icono,
+    required this.texto,
+    required this.color,
+  });
+
+  final IconData icono;
+  final String texto;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        // 6 %: con más tinte, el verde de «Íntegra» baja de 4,5:1.
+        color: color.withValues(alpha: 0.06),
+        borderRadius: RadiosMarca.pildora,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 14, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              texto,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

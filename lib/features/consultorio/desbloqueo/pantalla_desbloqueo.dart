@@ -8,6 +8,7 @@ import '../../../core/consultorio/seguridad/llavero.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/campos.dart';
 import '../estado/consultorio_provider.dart';
+import '../estado/pacientes_provider.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
 import 'panel_codigo.dart';
@@ -82,10 +83,26 @@ class _PieDesbloqueo extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final r = ref.watch(consultorioProvider).respaldo;
-    final ahora = ref.read(servicioConsultorioProvider).reloj.ahora();
+    ref.watch(versionIndiceProvider);
+    final s = ref.read(servicioConsultorioProvider);
+    final ahora = s.reloj.ahora();
+    final pendientes = s.historiasPendientes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (pendientes > 0) ...[
+          Text(
+            pendientes == 1
+                ? 'Hay 1 historia guardada mientras el consultorio estaba '
+                      'bloqueado: se registrará al desbloquearlo.'
+                : 'Hay $pendientes historias guardadas mientras el '
+                      'consultorio estaba bloqueado: se registrarán al '
+                      'desbloquearlo.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: ColoresMarca.aviso),
+          ),
+          const SizedBox(height: 8),
+        ],
         Text(
           r == null
               ? 'Todavía no hay respaldos de este consultorio.'

@@ -10,6 +10,7 @@ import '../../../app/tema.dart';
 import '../../historia/widgets/avisos.dart';
 import '../desbloqueo/pantalla_desbloqueo.dart';
 import '../estado/consultorio_provider.dart';
+import '../pacientes/franja_ficha.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
 
@@ -32,8 +33,8 @@ class DestinoConsultorio {
   final bool requiereDesbloqueo;
 }
 
-/// Destinos construidos hasta la 5.0. Las subfases siguientes agregan
-/// Agenda, Pacientes, Caja e Inventario.
+/// Destinos construidos hasta la 5.1. Las subfases siguientes agregan
+/// Agenda, Caja e Inventario.
 const destinosConsultorio = [
   DestinoConsultorio(
     ruta: '/',
@@ -41,6 +42,12 @@ const destinosConsultorio = [
     icono: Icons.description_outlined,
     iconoActivo: Icons.description,
     requiereDesbloqueo: false,
+  ),
+  DestinoConsultorio(
+    ruta: '/pacientes',
+    etiqueta: 'Pacientes',
+    icono: Icons.people_outline,
+    iconoActivo: Icons.people,
   ),
   DestinoConsultorio(
     ruta: '/ajustes',
@@ -93,6 +100,7 @@ class ContenedorConsultorio extends ConsumerWidget {
     final cuerpo = Column(
       children: [
         const _AvisoRespaldo(),
+        if (ubicacion == '/') const FranjaFicha(),
         Expanded(
           child: Semantics(
             container: true,

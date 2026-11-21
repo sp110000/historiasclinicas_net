@@ -34,8 +34,13 @@ void main() {
         '/',
         '/receta',
         '/medico',
+        '/pacientes',
         '/ajustes',
       ]);
+      final pacientes = shell.routes.cast<GoRoute>().singleWhere(
+        (r) => r.path == '/pacientes',
+      );
+      expect(pacientes.routes.cast<GoRoute>().single.path, ':id');
     },
     skip: _soloEncendida,
   );

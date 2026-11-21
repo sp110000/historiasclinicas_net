@@ -32,3 +32,10 @@ void Function() escucharArchivosSoltados({
   required void Function(ArchivoAbierto archivo) alSoltar,
   required void Function(bool arrastrando) alArrastrar,
 }) => () {};
+
+Future<List<ArchivoAbierto>> elegirPdfs() async => const [];
+
+void Function() escucharVariosSoltados({
+  required void Function(List<ArchivoAbierto> archivos) alSoltar,
+  required void Function(bool arrastrando) alArrastrar,
+}) => () {};

@@ -228,7 +228,16 @@ bool historiaEnCursoConCambios(WidgetRef ref) =>
 /// Empieza una historia nueva con los datos de la ficha y los antecedentes
 /// de su historia más reciente (con las alergias vigentes). El médico los
 /// revisa antes de finalizar.
-Future<void> nuevaHistoriaPara(WidgetRef ref, FichaPaciente ficha) async {
+///
+/// Con [alergias] (lista vacía y [niegaAlergias] para «niega»), esas
+/// reemplazan a las vigentes: es lo que hace «Actualizar alergias» en un
+/// paciente sin historias.
+Future<void> nuevaHistoriaPara(
+  WidgetRef ref,
+  FichaPaciente ficha, {
+  List<String>? alergias,
+  bool niegaAlergias = false,
+}) async {
   final indice = _servicio(ref).indice;
   Antecedentes? antecedentes;
   final ultima = indice.ultimaHistoria(ficha.id);
@@ -245,6 +254,12 @@ Future<void> nuevaHistoriaPara(WidgetRef ref, FichaPaciente ficha) async {
       }
     }
   }
+  if (alergias != null) {
+    antecedentes = (antecedentes ?? const Antecedentes()).copyWith(
+      alergias: alergias,
+      niegaAlergias: niegaAlergias,
+    );
+  }
   final ctrl = ref.read(historiaProvider.notifier);
   // En el mismo bloque síncrono: limpiar sube versionFormulario y el
   // formulario se reconstruye ya con la ficha.
@@ -259,6 +274,37 @@ Future<void> nuevaHistoriaPara(WidgetRef ref, FichaPaciente ficha) async {
   ref.read(archivoActualProvider.notifier).cambiar(null);
   await ref.read(borradorProvider.notifier).borrar();
   ref.read(fichaEnCursoProvider.notifier).cambiar(ficha.id);
+}
+
+/// Línea que el índice reconoce como actualización de alergias.
+String lineaAlergias(List<String> alergias, {required bool niega}) =>
+    niega || alergias.isEmpty
+    ? '$prefijoAlergiasActualizadas niega alergias.'
+    : '$prefijoAlergiasActualizadas ${alergias.join(', ')}.';
+
+/// «Actualizar alergias» desde la ficha. Con historias: la línea va al final
+/// de la evolución en curso de la más reciente (y se sella al descargarla).
+/// Sin historias: empieza una historia nueva con esas alergias. Devuelve
+/// dónde quedó, para el mensaje.
+Future<String> actualizarAlergias(
+  WidgetRef ref,
+  FichaPaciente ficha, {
+  required List<String> alergias,
+  required bool niega,
+}) async {
+  if (await nuevaEvolucionPara(ref, ficha.id)) {
+    ref
+        .read(historiaProvider.notifier)
+        .registrarReceta(lineaAlergias(alergias, niega: niega));
+    return 'la evolución en curso';
+  }
+  await nuevaHistoriaPara(
+    ref,
+    ficha,
+    alergias: niega ? const [] : alergias,
+    niegaAlergias: niega,
+  );
+  return 'los antecedentes de la historia nueva';
 }
 
 /// Historias pendientes de registrar (consultorio bloqueado).
