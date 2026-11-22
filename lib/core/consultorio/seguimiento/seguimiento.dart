@@ -3,14 +3,19 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 
 import '../../ihce/reloj.dart';
+import '../../models/medico.dart';
+import '../../pais/perfil_pais.dart';
+import '../../pdf/fuentes_pdf.dart';
 import '../../utils/ids.dart';
 import '../documentos/documentos.dart';
 import '../fotos/foto_procesada.dart';
 import '../indice/indice_pacientes.dart';
+import '../modelos/ficha_paciente.dart';
 import '../modelos/foto.dart';
 import '../modelos/medicion.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
+import 'informe_pdf.dart';
 
 /// Seguimiento antropométrico (y, desde la 5.2c, las fotos) del
 /// consultorio, descifrado mientras está abierto.
@@ -194,5 +199,90 @@ class SeguimientoConsultorio {
       AccionBitacora.borrarMedicion,
       fecha: reloj.ahora(),
     );
+  }
+
+  // ─────────────────────────── PDF ───────────────────────────
+
+  PacienteInforme _paciente(FichaPaciente ficha) => PacienteInforme(
+    nombre: ficha.nombreCompleto,
+    documento: ficha.documentoTexto,
+    edad: ficha.edadAnios(reloj.ahora()),
+    sexo: opcionesSexo
+        .where((o) => o.codigo == ficha.sexo)
+        .map((o) => o.etiqueta)
+        .firstOrNull,
+  );
+
+  Future<List<FotoConBytes>> _conBytes(Iterable<Foto> fotos) async => [
+    for (final f in fotos)
+      if (await bytesFoto(f.id) case final b?) (foto: f, bytes: b),
+  ];
+
+  /// Informe de seguimiento en PDF. Las fotos entran solo con
+  /// [incluirFotos] (pregunta 23); si se piden, va la primera y la última
+  /// de cada vista, y queda en la bitácora.
+  Future<Uint8List> informePdf(
+    FichaPaciente ficha, {
+    required Medico medico,
+    required Pais pais,
+    bool incluirFotos = false,
+    FuentesPdf? fuentes,
+  }) async {
+    final copia = instantaneaMedico(medico, pais: pais);
+    final fotos = <Foto>[];
+    if (incluirFotos) {
+      for (final v in VistaFoto.values) {
+        final deLaVista = [
+          for (final f in fotosDe(ficha.id))
+            if (f.vista == v) f,
+        ];
+        if (deLaVista.isEmpty) continue;
+        fotos.add(deLaVista.first);
+        if (deLaVista.length > 1) fotos.add(deLaVista.last);
+      }
+    }
+    final pdf = await generarInformeSeguimiento(
+      paciente: _paciente(ficha),
+      mediciones: medicionesDe(ficha.id),
+      fotos: await _conBytes(fotos),
+      medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+      recursos: copia.recursos,
+      fuentes: fuentes,
+      generadoEn: reloj.ahora(),
+    );
+    if (fotos.isNotEmpty) {
+      await registrarEnBitacora(
+        _repo,
+        AccionBitacora.exportarFotos,
+        fecha: reloj.ahora(),
+      );
+    }
+    return pdf;
+  }
+
+  /// Todas las fotos de la ficha en un PDF («Exportar fotos del paciente»,
+  /// pregunta 23). Queda en la bitácora.
+  Future<Uint8List> fotosPdf(
+    FichaPaciente ficha, {
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) async {
+    final fotos = fotosDe(ficha.id);
+    if (fotos.isEmpty) throw StateError('La ficha no tiene fotos.');
+    final copia = instantaneaMedico(medico, pais: pais);
+    final pdf = await generarPdfFotos(
+      paciente: _paciente(ficha),
+      fotos: await _conBytes(fotos),
+      medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+      fuentes: fuentes,
+      generadoEn: reloj.ahora(),
+    );
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.exportarFotos,
+      fecha: reloj.ahora(),
+    );
+    return pdf;
   }
 }

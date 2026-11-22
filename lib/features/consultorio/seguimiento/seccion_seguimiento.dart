@@ -11,6 +11,7 @@ import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import 'dialogo_medicion.dart';
 import 'grafica_seguimiento.dart';
+import 'informe.dart';
 
 /// Qué se grafica.
 enum SerieSeguimiento {
@@ -74,6 +75,16 @@ class _SeccionSeguimientoState extends ConsumerState<SeccionSeguimiento> {
               icon: const Icon(Icons.add),
               label: const Text('Medición'),
             ),
+            if (mediciones.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () => descargarInformeSeguimiento(
+                  context,
+                  ref,
+                  ficha: widget.ficha,
+                ),
+                icon: const Icon(Icons.summarize_outlined),
+                label: const Text('Informe de seguimiento'),
+              ),
             ...?widget.acciones,
           ],
         ),

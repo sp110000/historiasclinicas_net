@@ -22,6 +22,7 @@ enum AccionBitacora {
   anularDocumento('Anuló un documento'),
   borrarMedicion('Borró una medición'),
   borrarFoto('Borró una foto'),
+  exportarFotos('Exportó fotos de un paciente en PDF'),
   exportarPaquete('Exportó el paquete del equipo secundario'),
   combinarPaquete('Combinó un paquete del equipo secundario');
 

@@ -10,6 +10,7 @@ import '../../historia/widgets/dialogos.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../seguimiento/informe.dart';
 import '../widgets/comunes.dart';
 import 'piezas_fotos.dart';
 import 'secuencia_fotos.dart';
@@ -58,21 +59,30 @@ class SeccionFotos extends ConsumerWidget {
             ),
           )
         else
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: () async {
-                final n = await tomarFotos(context, pacienteId: ficha.id);
-                if (n != null && n > 0 && context.mounted) {
-                  mostrarMensaje(
-                    context,
-                    n == 1 ? '1 foto guardada.' : '$n fotos guardadas.',
-                  );
-                }
-              },
-              icon: const Icon(Icons.photo_camera_outlined),
-              label: const Text('Tomar fotos'),
-            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: () async {
+                  final n = await tomarFotos(context, pacienteId: ficha.id);
+                  if (n != null && n > 0 && context.mounted) {
+                    mostrarMensaje(
+                      context,
+                      n == 1 ? '1 foto guardada.' : '$n fotos guardadas.',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: const Text('Tomar fotos'),
+              ),
+              if (fotos.isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: () => exportarFotosPdf(context, ref, ficha: ficha),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Exportar fotos en PDF'),
+                ),
+            ],
           ),
         const SizedBox(height: 12),
         if (fotos.isEmpty)
