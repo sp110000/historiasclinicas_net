@@ -1,8 +1,16 @@
+import '../../models/mapa.dart';
+
 /// Ajustes del consultorio que se guardan cifrados en el almacén.
 class ConfiguracionConsultorio {
   const ConfiguracionConsultorio({
     this.minutosBloqueo = minutosBloqueoPorDefecto,
     this.diasRespaldo = diasRespaldoPorDefecto,
+    this.codigoReps = '',
+    this.nit = '',
+    this.habilitacion = '',
+    this.polizaAseguradora = '',
+    this.polizaNumero = '',
+    this.sinPoliza = false,
   });
 
   static const coleccion = 'configuracion';
@@ -22,26 +30,80 @@ class ConfiguracionConsultorio {
   /// Días sin respaldo antes de avisar.
   final int diasRespaldo;
 
-  ConfiguracionConsultorio copyWith({int? minutosBloqueo, int? diasRespaldo}) =>
-      ConfiguracionConsultorio(
-        minutosBloqueo: (minutosBloqueo ?? this.minutosBloqueo).clamp(
-          minutosBloqueoMinimo,
-          minutosBloqueoMaximo,
-        ),
-        diasRespaldo: (diasRespaldo ?? this.diasRespaldo).clamp(
-          diasRespaldoMinimo,
-          diasRespaldoMaximo,
-        ),
-      );
+  /// Datos del prestador (Resolución 3100 de 2019, VERIFICAR): los usan el
+  /// consentimiento informado y, en la 5.4, la incapacidad.
+  final String codigoReps;
+  final String nit;
 
-  Map<String, Object?> aMapa() => {
+  /// Habilitación del servicio (p. ej. número y servicio habilitado).
+  final String habilitacion;
+
+  /// Póliza de complicaciones (pregunta 34, VERIFICAR): se copia al
+  /// consentimiento y a la sesión.
+  final String polizaAseguradora;
+  final String polizaNumero;
+  final bool sinPoliza;
+
+  /// «Póliza N.º 123 de Aseguradora», «Sin póliza de complicaciones» o
+  /// vacío si no se ha escrito.
+  String get textoPoliza {
+    if (sinPoliza) return 'sin póliza de complicaciones';
+    final n = polizaNumero.trim();
+    final a = polizaAseguradora.trim();
+    if (n.isEmpty && a.isEmpty) return '';
+    return [
+      'póliza',
+      if (n.isNotEmpty) 'N.º $n',
+      if (a.isNotEmpty) 'de $a',
+    ].join(' ');
+  }
+
+  ConfiguracionConsultorio copyWith({
+    int? minutosBloqueo,
+    int? diasRespaldo,
+    String? codigoReps,
+    String? nit,
+    String? habilitacion,
+    String? polizaAseguradora,
+    String? polizaNumero,
+    bool? sinPoliza,
+  }) => ConfiguracionConsultorio(
+    minutosBloqueo: (minutosBloqueo ?? this.minutosBloqueo).clamp(
+      minutosBloqueoMinimo,
+      minutosBloqueoMaximo,
+    ),
+    diasRespaldo: (diasRespaldo ?? this.diasRespaldo).clamp(
+      diasRespaldoMinimo,
+      diasRespaldoMaximo,
+    ),
+    codigoReps: codigoReps ?? this.codigoReps,
+    nit: nit ?? this.nit,
+    habilitacion: habilitacion ?? this.habilitacion,
+    polizaAseguradora: polizaAseguradora ?? this.polizaAseguradora,
+    polizaNumero: polizaNumero ?? this.polizaNumero,
+    sinPoliza: sinPoliza ?? this.sinPoliza,
+  );
+
+  Map<String, Object?> aMapa() => compacto({
     'minutosBloqueo': minutosBloqueo,
     'diasRespaldo': diasRespaldo,
-  };
+    'codigoReps': codigoReps.trim(),
+    'nit': nit.trim(),
+    'habilitacion': habilitacion.trim(),
+    'polizaAseguradora': polizaAseguradora.trim(),
+    'polizaNumero': polizaNumero.trim(),
+    'sinPoliza': sinPoliza ? true : null,
+  });
 
   static ConfiguracionConsultorio desdeMapa(Map<String, Object?> m) =>
       const ConfiguracionConsultorio().copyWith(
         minutosBloqueo: m['minutosBloqueo'] as int?,
         diasRespaldo: m['diasRespaldo'] as int?,
+        codigoReps: m.texto('codigoReps'),
+        nit: m.texto('nit'),
+        habilitacion: m.texto('habilitacion'),
+        polizaAseguradora: m.texto('polizaAseguradora'),
+        polizaNumero: m.texto('polizaNumero'),
+        sinPoliza: m.booleano('sinPoliza'),
       );
 }

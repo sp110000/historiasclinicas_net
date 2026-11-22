@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../ihce/reloj.dart';
 import '../../models/medico.dart';
 import '../../pais/perfil_pais.dart';
@@ -5,13 +7,18 @@ import '../../pdf/fuentes_pdf.dart';
 import '../../utils/fechas.dart';
 import '../../utils/ids.dart';
 import '../../utils/numeros.dart';
+import '../documentos/documento.dart';
+import '../documentos/documentos.dart';
+import '../documentos/plantillas.dart';
 import '../indice/indice_pacientes.dart';
 import '../indice/sellar_evolucion.dart';
+import '../modelos/configuracion.dart';
 import '../modelos/ficha_paciente.dart';
 import '../modelos/medicion.dart';
 import '../reglas/estetica.dart';
 import '../repositorio/repositorio.dart';
 import '../seguimiento/seguimiento.dart';
+import 'plan_tratamiento.dart';
 import 'plantilla_procedimiento.dart';
 import 'valoracion.dart';
 
@@ -21,13 +28,17 @@ class ProcedimientosConsultorio {
   ProcedimientosConsultorio(
     this._repo,
     this._indice,
-    this._seguimiento, {
+    this._seguimiento,
+    this._documentos, {
+    required ConfiguracionConsultorio Function() configuracion,
     this.reloj = const RelojSistema(),
-  });
+  }) : _configuracion = configuracion;
 
   final RepositorioConsultorio _repo;
   final IndicePacientes _indice;
   final SeguimientoConsultorio _seguimiento;
+  final DocumentosConsultorio _documentos;
+  final ConfiguracionConsultorio Function() _configuracion;
   final Reloj reloj;
 
   final _plantillas = <String, PlantillaProcedimiento>{};
@@ -213,6 +224,113 @@ class ProcedimientosConsultorio {
     await _repo.guardar(Valoracion.coleccion, id, guardada.aMapa());
     _valoraciones[id] = guardada;
     return (guardada, sellada);
+  }
+
+  // ──────────────────── Consentimiento informado ────────────────────
+
+  /// Los consentimientos informados de la ficha para [plantillaId], del
+  /// más viejo al más reciente.
+  List<DocumentoConsultorio> consentimientosDe(
+    String pacienteId,
+    String plantillaId,
+  ) => [
+    for (final d in _documentos.documentosDe(pacienteId))
+      if (d.tipo == TipoPlantilla.consentimientoInformado &&
+          d.plan?.plantillaId == plantillaId)
+        d,
+  ]..sort((a, b) => a.fechaHora.compareTo(b.fechaHora));
+
+  /// El consentimiento vigente (sin revocar ni anular) más reciente.
+  DocumentoConsultorio? consentimientoVigente(
+    String pacienteId,
+    String plantillaId,
+  ) => consentimientosDe(
+    pacienteId,
+    plantillaId,
+  ).where((d) => d.vigente).lastOrNull;
+
+  /// Un plan para empezar: las zonas de la última valoración, el número de
+  /// sesiones del protocolo y sus componentes como producto.
+  PlanTratamiento planSugerido(String pacienteId, String plantillaId) {
+    final v = vigente(plantillaId);
+    final d = v.definicion;
+    final ultima = ultimaValoracion(valoracionesDe(pacienteId), plantillaId);
+    return PlanTratamiento(
+      plantillaId: plantillaId,
+      version: v.version,
+      procedimiento: d.nombre,
+      zonas: [
+        for (final z in ultima?.zonas ?? const <ZonaValorada>[])
+          if (d.zonas.contains(z.zona)) z.zona,
+      ],
+      sesiones: d.numeroSesiones ?? 1,
+      producto: d.componentes.join(', '),
+    );
+  }
+
+  /// Valores de los marcadores del consentimiento para [plan].
+  Map<String, String> valoresConsentimiento(PlanTratamiento plan) {
+    final d = vigente(plan.plantillaId).definicion;
+    final c = _configuracion();
+    return {
+      'procedimiento': plan.procedimiento,
+      'zonas': plan.textoZonas,
+      'sesiones': '${plan.sesiones}',
+      'producto': plan.producto,
+      'riesgos': d.riesgos,
+      'alternativas': d.alternativas,
+      'codigoReps': c.codigoReps,
+      'habilitacion': c.habilitacion,
+      'poliza': c.textoPoliza,
+      'certificacion': certificacionPara(d.familia),
+    };
+  }
+
+  /// Texto de la certificación en la técnica (5.3d); vacío si no hay.
+  String Function(String familia) certificacionPara = (_) => '';
+
+  /// Problemas del plan antes de firmar. Vacía: se puede.
+  List<String> problemasPlan(PlanTratamiento plan) {
+    final d = vigente(plan.plantillaId).definicion;
+    return [
+      if (plan.zonas.isEmpty) 'Elige al menos una zona.',
+      for (final z in plan.zonas)
+        if (!d.zonas.contains(z)) 'La zona «$z» no está en el protocolo.',
+      if (plan.sesiones < 1) 'Indica el número de sesiones.',
+      if (d.numeroSesiones != null && plan.sesiones > d.numeroSesiones!)
+        'El protocolo permite hasta ${d.numeroSesiones} sesiones.',
+      if (plan.producto.trim().isEmpty) 'Escribe el producto o la solución.',
+    ];
+  }
+
+  /// Firma el consentimiento informado de [plan] (pregunta 39). Lanza
+  /// [StateError] por la edad, la plantilla o el plan.
+  Future<DocumentoFirmado> firmarConsentimiento({
+    required FichaPaciente ficha,
+    required PlanTratamiento plan,
+    required Uint8List firmaPng,
+    required Medico medico,
+    required Pais pais,
+    bool incluirFirma = true,
+    bool incluirSello = true,
+    FuentesPdf? fuentes,
+  }) {
+    final bloqueo = bloqueoPorEdad(ficha, reloj.ahora());
+    if (bloqueo != null) throw StateError(bloqueo);
+    final problemas = problemasPlan(plan);
+    if (problemas.isNotEmpty) throw StateError(problemas.first);
+    return _documentos.firmarDocumento(
+      TipoPlantilla.consentimientoInformado,
+      ficha: ficha,
+      firmaPng: firmaPng,
+      medico: medico,
+      pais: pais,
+      valoresExtra: valoresConsentimiento(plan),
+      datosExtra: {'plan': plan.aMapa()},
+      incluirFirma: incluirFirma,
+      incluirSello: incluirSello,
+      fuentes: fuentes,
+    );
   }
 }
 

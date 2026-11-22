@@ -106,6 +106,8 @@ class ServicioConsultorio {
       repositorio,
       indice,
       seguimiento,
+      documentos,
+      configuracion: () => _configuracion,
       reloj: reloj,
     );
   }

@@ -13,6 +13,14 @@ enum TipoPlantilla {
     'CIM',
     'Consentimiento_imagen',
   ),
+
+  /// Consentimiento informado de un procedimiento, por plan de tratamiento
+  /// (5.3, pregunta 39).
+  consentimientoInformado(
+    'Consentimiento informado de procedimiento',
+    'CI',
+    'Consentimiento_informado',
+  ),
   politicaPrivacidad(
     'Política de tratamiento de datos personales',
     null,
@@ -151,6 +159,7 @@ class Plantilla {
         cuerpo: switch (tipo) {
           TipoPlantilla.autorizacionDatos => _autorizacionBase.trim(),
           TipoPlantilla.consentimientoImagen => _imagenBase.trim(),
+          TipoPlantilla.consentimientoInformado => _informadoBase.trim(),
           TipoPlantilla.politicaPrivacidad => _politicaBase.trim(),
         },
       ),
@@ -172,6 +181,17 @@ const marcadoresPlantilla = {
   'permisos':
       'Usos de la imagen que el paciente autoriza (consentimiento '
       'de imagen)',
+  'registroMedico': 'Tu registro profesional',
+  'procedimiento': 'Procedimiento (consentimiento informado)',
+  'zonas': 'Zonas del plan de tratamiento',
+  'sesiones': 'Número de sesiones del plan',
+  'producto': 'Producto o solución, con su registro Invima',
+  'riesgos': 'Riesgos (de la plantilla del procedimiento)',
+  'alternativas': 'Alternativas (de la plantilla del procedimiento)',
+  'certificacion': 'Tu certificación en la técnica',
+  'codigoReps': 'Código de prestador en el REPS',
+  'habilitacion': 'Habilitación del servicio',
+  'poliza': 'Póliza de complicaciones',
 };
 
 /// Reemplaza los `{{clave}}` de [cuerpo]. Un marcador sin valor queda como
@@ -218,6 +238,32 @@ b) Para docencia o publicaciones académicas se usan sin mi rostro ni rasgos que
 c) Para publicidad o redes sociales solo se usan si lo marqué expresamente.
 d) Puedo revocar en cualquier momento los usos de docencia y publicidad, escribiendo a {{correo}} o llamando al {{telefono}}. La revocación no afecta lo ya publicado de buena fe antes de ella, ni las fotografías que deben conservarse como parte de la historia clínica.
 e) No recibo pago por estas autorizaciones y negarme a las de docencia o publicidad no cambia mi atención.
+
+Fecha: {{fecha}}
+''';
+
+// Consentimiento informado por plan de tratamiento: sigue los apartados
+// del art. 16 del Proyecto de Ley 187 de 2026 Senado (NO es ley) y el
+// art. 15 de la Ley 23 de 1981. Borrador para revisar con tu abogado
+// (VERIFICAR); la app no lo deja usar sin aprobarlo.
+const _informadoBase = '''
+Yo, {{paciente}}, identificado(a) con {{documentoPaciente}}, declaro que el médico {{responsable}}, {{registroMedico}}, me explicó de forma clara y suficiente lo siguiente, que pude hacer todas mis preguntas y que me las resolvió:
+
+1. Procedimiento y plan de tratamiento: {{procedimiento}}, en {{zonas}}, en {{sesiones}} sesiones. Producto o solución: {{producto}}.
+
+2. Quién lo hace y dónde: {{responsable}}, {{registroMedico}}. Certificación en la técnica: {{certificacion}}. Prestador inscrito en el REPS con el código {{codigoReps}}; habilitación del servicio: {{habilitacion}}.
+
+3. Alcance realista: el resultado depende de cada persona y no se puede garantizar. El médico se obliga a poner todos los medios a su alcance (obligación de medio), no a lograr un resultado determinado.
+
+4. Riesgos: {{riesgos}}
+
+5. Alternativas: {{alternativas}}. También puedo no hacerme el procedimiento.
+
+6. Si hay una complicación: debo comunicarme de inmediato al {{telefono}} o acudir al servicio de urgencias más cercano. Póliza de complicaciones: {{poliza}}.
+
+7. Puedo revocar este consentimiento en cualquier momento antes de cada sesión, sin dar explicaciones. La revocación queda registrada y no afecta lo ya hecho.
+
+8. Este consentimiento cubre el plan descrito. Si cambian la técnica, el producto o las zonas, firmaré uno nuevo.
 
 Fecha: {{fecha}}
 ''';

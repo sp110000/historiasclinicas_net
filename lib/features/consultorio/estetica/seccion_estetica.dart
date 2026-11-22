@@ -9,9 +9,11 @@ import '../../../core/consultorio/procedimientos/valoracion.dart';
 import '../../../core/consultorio/reglas/estetica.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/campos.dart';
+import '../documentos/linea_tiempo_documentos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import 'consentimiento_informado.dart';
 
 /// Pastilla del estado de la valoración de un procedimiento.
 Widget etiquetaValoracion(Valoracion? v, DateTime ahora) =>
@@ -225,6 +227,12 @@ class _Procedimiento extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          _Consentimiento(
+            ficha: ficha,
+            plantillaId: plantilla.id,
+            habilitado: usable && bloqueo == null,
+          ),
           if (valoraciones.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Text('VALORACIONES', style: EstilosMarca.rotulo),
@@ -242,6 +250,74 @@ class _Procedimiento extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Consentimiento informado del procedimiento: el vigente (con su plan) y
+/// los anteriores, con «Firmar consentimiento».
+class _Consentimiento extends ConsumerWidget {
+  const _Consentimiento({
+    required this.ficha,
+    required this.plantillaId,
+    required this.habilitado,
+  });
+
+  final FichaPaciente ficha;
+  final String plantillaId;
+  final bool habilitado;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.read(servicioConsultorioProvider).procedimientos;
+    final todos = p.consentimientosDe(ficha.id, plantillaId);
+    final vigente = p.consentimientoVigente(ficha.id, plantillaId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('CONSENTIMIENTO INFORMADO', style: EstilosMarca.rotulo),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (vigente != null)
+              EtiquetaEstado(
+                icono: Icons.verified_outlined,
+                texto:
+                    '${vigente.numero} · ${textoPlan(vigente.plan!)} '
+                    '(${formatoFecha(vigente.fechaHora)})',
+                color: ColoresMarca.estadoOk,
+              )
+            else
+              const EtiquetaEstado(
+                icono: Icons.pending_outlined,
+                texto: 'Sin consentimiento vigente',
+                color: ColoresMarca.textoSuave,
+              ),
+            OutlinedButton.icon(
+              onPressed: habilitado
+                  ? () => pedirConsentimientoInformado(
+                      context,
+                      ficha: ficha,
+                      plantillaId: plantillaId,
+                    )
+                  : null,
+              icon: const Icon(Icons.draw_outlined),
+              label: Text(
+                vigente == null
+                    ? 'Firmar consentimiento'
+                    : 'Nuevo consentimiento (otro plan)',
+              ),
+            ),
+          ],
+        ),
+        for (final d in todos.reversed) ...[
+          const SizedBox(height: 8),
+          TarjetaDocumento(documento: d),
+        ],
+      ],
     );
   }
 }

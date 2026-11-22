@@ -4,6 +4,7 @@ import '../../integridad/json_canonico.dart';
 import '../../models/mapa.dart';
 import '../../utils/texto.dart';
 import 'plantillas.dart';
+import '../procedimientos/plan_tratamiento.dart';
 
 /// Marca de los adjuntos del consultorio. Es otra clave que la de
 /// `historia.json` (`"app"`), así que abrir un documento o una receta en la
@@ -124,6 +125,11 @@ class DocumentoConsultorio {
   DateTime get fechaHora => datos.fecha('fechaHora')!;
   String get sha256Firma => datos.texto('sha256Firma');
   bool get vigente => estado == EstadoDocumento.vigente;
+
+  /// El plan que cubre un consentimiento informado, o `null`.
+  PlanTratamiento? get plan => datos['plan'] == null
+      ? null
+      : PlanTratamiento.desdeMapa(datos.mapa('plan'));
 
   /// Usos autorizados de la imagen (solo el consentimiento de imagen).
   PermisosImagen get permisos =>

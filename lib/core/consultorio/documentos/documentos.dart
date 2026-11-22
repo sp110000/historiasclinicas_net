@@ -155,6 +155,9 @@ class DocumentosConsultorio {
     'ciudad': medico.ciudad,
     'telefono': medico.telefono,
     'correo': medico.correo,
+    'registroMedico': medico.registro.trim().isEmpty
+        ? ''
+        : 'registro profesional ${medico.registro.trim()}',
     if (ficha != null) 'paciente': ficha.nombreCompleto,
     if (ficha != null) 'documentoPaciente': ficha.documentoTexto,
     'fecha': formatoFecha(fecha),
@@ -191,6 +194,8 @@ class DocumentosConsultorio {
     required Medico medico,
     required Pais pais,
     PermisosImagen? permisos,
+    Map<String, String> valoresExtra = const {},
+    Map<String, Object?> datosExtra = const {},
     bool incluirFirma = true,
     bool incluirSello = true,
     FuentesPdf? fuentes,
@@ -222,6 +227,7 @@ class DocumentosConsultorio {
     );
     final contenido = rellenarPlantilla(version.cuerpo, {
       ...valores(medico, ficha: ficha, fecha: ahora),
+      ...valoresExtra,
       if (imagen) 'permisos': permisos!.texto,
     });
     final documento = DocumentoConsultorio(
@@ -242,6 +248,7 @@ class DocumentosConsultorio {
         'contenido': contenido,
         'sha256Firma': sha256.convert(firmaPng).toString(),
         if (imagen) 'permisos': permisos!.aMapa(),
+        ...datosExtra,
         if (medico.configurado) 'autor': copia.autor,
       },
     );
@@ -271,11 +278,11 @@ class DocumentosConsultorio {
     await _repo.guardar(DocumentoConsultorio.coleccion, id, documento.aMapa());
     _documentos[id] = documento;
     final actual = _indice.fichaActiva(ficha.id) ?? ficha;
-    await _indice.guardarFicha(
-      imagen
-          ? actual.copyWith(consentimientoImagenId: id)
-          : actual.copyWith(autorizacionDatosId: id),
-    );
+    if (imagen) {
+      await _indice.guardarFicha(actual.copyWith(consentimientoImagenId: id));
+    } else if (tipo == TipoPlantilla.autorizacionDatos) {
+      await _indice.guardarFicha(actual.copyWith(autorizacionDatosId: id));
+    }
     await registrarEnBitacora(
       _repo,
       AccionBitacora.firmarDocumento,

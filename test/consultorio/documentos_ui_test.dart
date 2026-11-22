@@ -115,7 +115,7 @@ void main() {
         of: find.byType(TarjetaPlantillas),
         matching: find.text('v1 en borrador (sin aprobar)'),
       ),
-      findsNWidgets(3),
+      findsNWidgets(4),
     );
     expect(find.text('Descargar PDF para exhibir'), findsNothing);
 

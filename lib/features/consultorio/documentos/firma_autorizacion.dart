@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/consultorio/documentos/documento.dart';
+import '../../../core/consultorio/documentos/documentos.dart';
 import '../../../core/consultorio/documentos/plantillas.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/pais/pais_provider.dart';
@@ -46,21 +47,49 @@ Future<void> pedirConsentimientoImagen(
 
 /// El paciente lee el texto de la plantilla vigente de [tipo], lo confirma
 /// y firma en pantalla. Al firmar se descarga el PDF y queda en la ficha.
+///
+/// [valoresExtra] completa los marcadores (el plan del consentimiento
+/// informado) y [firmar], si se da, firma en lugar de la firma genérica
+/// (para validar el plan en el servicio).
 Future<void> pedirFirmaDocumento(
   BuildContext context, {
   required FichaPaciente ficha,
   required TipoPlantilla tipo,
+  Map<String, String> valoresExtra = const {},
+  Future<DocumentoFirmado> Function(
+    Uint8List firmaPng, {
+    required bool incluirFirma,
+    required bool incluirSello,
+  })?
+  firmar,
 }) => showDialog<void>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => _DialogoAutorizacion(ficha: ficha, tipo: tipo),
+  builder: (_) => _DialogoAutorizacion(
+    ficha: ficha,
+    tipo: tipo,
+    valoresExtra: valoresExtra,
+    firmar: firmar,
+  ),
 );
 
 class _DialogoAutorizacion extends ConsumerStatefulWidget {
-  const _DialogoAutorizacion({required this.ficha, required this.tipo});
+  const _DialogoAutorizacion({
+    required this.ficha,
+    required this.tipo,
+    this.valoresExtra = const {},
+    this.firmar,
+  });
 
   final FichaPaciente ficha;
   final TipoPlantilla tipo;
+  final Map<String, String> valoresExtra;
+  final Future<DocumentoFirmado> Function(
+    Uint8List firmaPng, {
+    required bool incluirFirma,
+    required bool incluirSello,
+  })?
+  firmar;
 
   @override
   ConsumerState<_DialogoAutorizacion> createState() =>
@@ -109,19 +138,25 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
     try {
       final png = await ref.read(exportarFirmaProvider)(_firma);
       if (png == null) throw StateError('Falta la firma del paciente.');
-      final r = await ref
-          .read(servicioConsultorioProvider)
-          .documentos
-          .firmarDocumento(
-            widget.tipo,
-            ficha: widget.ficha,
-            firmaPng: png,
-            medico: ref.read(medicoProvider),
-            pais: ref.read(paisProvider),
-            permisos: _imagen ? _permisos : null,
-            incluirFirma: _incluirFirma,
-            incluirSello: _incluirSello,
-          );
+      final r = widget.firmar != null
+          ? await widget.firmar!(
+              png,
+              incluirFirma: _incluirFirma,
+              incluirSello: _incluirSello,
+            )
+          : await ref
+                .read(servicioConsultorioProvider)
+                .documentos
+                .firmarDocumento(
+                  widget.tipo,
+                  ficha: widget.ficha,
+                  firmaPng: png,
+                  medico: ref.read(medicoProvider),
+                  pais: ref.read(paisProvider),
+                  permisos: _imagen ? _permisos : null,
+                  incluirFirma: _incluirFirma,
+                  incluirSello: _incluirSello,
+                );
       final numero = r.documento.numero;
       ref.read(descargarPdfProvider)(
         r.pdf,
@@ -185,6 +220,7 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
           ficha: widget.ficha,
           fecha: s.reloj.ahora(),
         ),
+        ...widget.valoresExtra,
         if (_imagen) 'permisos': _permisos.texto,
       });
       contenido = [
