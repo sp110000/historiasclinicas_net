@@ -1073,6 +1073,170 @@ await context.close();
   // Lo que sigue (móvil) es con la ficha de Peña, la que tiene fotos.
   await abrirFicha('1032456789');
 
+  // ─────────────── 5. Documentos clínicos (5.4) ───────────────
+  // Certificado, incapacidad, orden y remisión de Peña desde «Documento»:
+  // la plantilla (en borrador) se aprueba en el mismo formulario, se emite
+  // y el PDF se lee con pdftotext; después, el certificado y la orden se
+  // reimportan y se verifican.
+  async function abrirDocumento(menu, titulo) {
+    await alInicio();
+    await hacerClic(p.getByRole('button', { name: 'Documento', exact: true }));
+    // Flutter expone los elementos del menú como botones, pero en el DOM el
+    // nodo de accesibilidad de un botón de la ficha («Unir con otra ficha»)
+    // queda encima del menú y se lleva el clic: el evento se envía directo
+    // al nodo del elemento.
+    const item = p
+      .getByRole('menuitem', { name: menu, exact: true })
+      .or(p.getByRole('button', { name: menu, exact: true }))
+      .first();
+    await item.waitFor();
+    await item.dispatchEvent('click');
+    await texto(p, titulo).waitFor();
+    await p.waitForTimeout(600);
+  }
+  async function aprobarAqui() {
+    await hacerClic(p.getByRole('button', { name: 'Aprobar v1', exact: true }));
+    await texto(p, '¿Aprobar la versión 1?').waitFor();
+    await aprobarConfirmando();
+    await texto(p, 'Versión 1 · aprobada').waitFor();
+  }
+  // La vista previa se vuelve a dibujar 300 ms después del último cambio;
+  // en Chromium sin GPU puede tardar unos segundos.
+  async function vistaPreviaAlDia() {
+    await p.waitForTimeout(700);
+    await texto(p, 'Actualizando la vista previa').desaparece({ timeout: 60000 });
+    await p.waitForTimeout(300);
+  }
+  async function emitirDocumento(nombreEsperado) {
+    const ruta = await descargar(p, () =>
+      hacerClic(p.getByRole('button', { name: 'Emitir y descargar', exact: true })),
+    );
+    if (path.basename(ruta) !== nombreEsperado) throw new Error(`Documento: ${path.basename(ruta)}`);
+    await texto(p, 'Ficha del paciente').waitFor();
+    return ruta;
+  }
+  // El texto del PDF (sin pdftotext, no se lee) y la imagen de su primera
+  // página para las evidencias.
+  function leerDocumento(ruta, esperados, imagen) {
+    try {
+      const t = execFileSync('pdftotext', [ruta, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+      for (const e of esperados) if (!t.includes(e)) throw new Error(`${path.basename(ruta)} no dice «${e}»`);
+      execFileSync('pdftoppm', ['-r', '90', '-png', '-f', '1', '-l', '1', '-singlefile', ruta, path.join(OUT, imagen)]);
+      return true;
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+      return false;
+    }
+  }
+
+  await abrirDocumento('Certificado', 'Certificado médico ·');
+  await texto(p, 'La plantilla «General» está en borrador').waitFor();
+  await captura(p, 'd0_certificado_borrador.png');
+  await aprobarAqui();
+  await escribirAbajo('Se expide con destino a', 'Empresa de prueba S. A. S.');
+  await escribirAbajo(
+    'Texto del documento',
+    'El suscrito médico, Dra. Ana Pérez Gómez, registro profesional RM 54321, certifica que valoró a ' +
+      'PEÑA MUÑOZ, José Ángel, identificado(a) con CC 1032456789.\n\n' +
+      'Hallazgos: examen físico sin hallazgos de importancia (dato de prueba).\n\n' +
+      'Concepto: sin contraindicación para la actividad descrita (dato de prueba).',
+  );
+  await texto(p, 'Listo para emitir.').waitFor();
+  await vistaPreviaAlDia();
+  await captura(p, 'd1_certificado.png');
+  const ce = await emitirDocumento('Certificado_PENA_CE-000001.pdf');
+  leerDocumento(ce, ['CERTIFICADO MÉDICO', 'CE-000001', 'Se expide con destino a', 'Empresa de prueba S. A. S.', 'Hallazgos: examen físico'], 'pdf_certificado');
+  paso(`Certificado: plantilla aprobada en el formulario, finalidad y texto → ${path.basename(ce)} (con documento.json)`);
+
+  await abrirDocumento('Incapacidad', 'Incapacidad médica ·');
+  await aprobarAqui();
+  await escribirAbajo('Diagnóstico', 'Diarrea y gastroenteritis de presunto origen infeccioso');
+  await escribirAbajo('CIE-10', 'A09X');
+  await escribirAbajo('Días', '3');
+  await escribirAbajo(
+    'Texto del documento',
+    'El suscrito médico, Dra. Ana Pérez Gómez, registro profesional RM 54321, certifica que PEÑA MUÑOZ, ' +
+      'José Ángel, identificado(a) con CC 1032456789, requiere incapacidad médica por el diagnóstico, los ' +
+      'días y las fechas que se indican en este documento.\n\nRecomendaciones: reposo e hidratación (dato de prueba).',
+  );
+  await texto(p, 'Falta tu NIT').waitFor();
+  await texto(p, 'Listo para emitir, con 1 aviso.').waitFor();
+  await vistaPreviaAlDia();
+  await captura(p, 'd2_incapacidad.png');
+  const inc = await emitirDocumento('Incapacidad_PENA_IN-000001.pdf');
+  leerDocumento(inc, ['IN-000001', 'A09X Diarrea y gastroenteritis', '3 (tres)', 'Desde', 'Hasta', 'código REPS 00000-PRUEBA'], 'pdf_incapacidad');
+  paso(`Incapacidad de 3 días con CIE-10 y aviso «Falta tu NIT» (no bloquea) → ${path.basename(inc)}`);
+
+  await abrirDocumento('Orden de laboratorio o imágenes', 'Orden de laboratorio o imágenes ·');
+  // El texto de un campo sin foco no está en el DOM: se mira la plantilla.
+  await texto(p, 'Perfil metabólico').waitFor();
+  await aprobarAqui();
+  await escribirAbajo('Impresión diagnóstica', 'Obesidad, no especificada');
+  await escribirAbajo('CIE-10', 'E669');
+  await texto(p, 'Listo para emitir, con 1 aviso.').waitFor();
+  await vistaPreviaAlDia();
+  await captura(p, 'd3_orden.png');
+  const or = await emitirDocumento('Orden_PENA_OR-000001.pdf');
+  leerDocumento(or, ['OR-000001', 'Glucosa en ayunas', 'Impresión diagnóstica', 'E669 Obesidad'], 'pdf_orden');
+  paso(`Orden con la plantilla «Perfil metabólico» → ${path.basename(or)}`);
+
+  await abrirDocumento('Remisión o interconsulta', 'Remisión o interconsulta ·');
+  await aprobarAqui();
+  await escribirAbajo('Remitido a', 'Endocrinología');
+  await escribirAbajo('Diagnóstico', 'Obesidad, no especificada');
+  await escribirAbajo('CIE-10', 'E669');
+  await escribirAbajo(
+    'Texto del documento',
+    'Remito al paciente para valoración y manejo por la especialidad o el servicio que se indica.\n\n' +
+      'Motivo de la remisión: dato de prueba.\n\nResumen de la historia clínica: dato de prueba.\n\n' +
+      'Tratamiento actual: dato de prueba.\n\nPregunta o solicitud concreta: dato de prueba.',
+  );
+  await texto(p, 'Listo para emitir.').waitFor();
+  const rm = await emitirDocumento('Remision_PENA_RM-000001.pdf');
+  leerDocumento(rm, ['RM-000001', 'Remitido a', 'Endocrinología', 'E669 Obesidad'], 'pdf_remision');
+  paso(`Remisión a Endocrinología → ${path.basename(rm)}`);
+
+  // El formulario en móvil y a 320 px (pestañas «Editar» y «Vista previa»),
+  // sin el aviso de «emitido» encima.
+  await texto(p, 'emitido: el PDF se descargó').desaparece({ timeout: 20000 });
+  await abrirDocumento('Certificado', 'Certificado médico ·');
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(900);
+  await captura(p, 'd4_formulario_movil.png');
+  await p.setViewportSize({ width: 320, height: 640 });
+  await p.waitForTimeout(900);
+  await captura(p, 'd5_formulario_320.png');
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  await p.waitForTimeout(900);
+  // Está en la barra de arriba (fuera de la zona que mira aLaVista).
+  await p.getByRole('button', { name: 'Volver a la ficha' }).first().click();
+  await texto(p, 'Ficha del paciente').waitFor();
+  await alcanzar(conTexto('RM-000001'));
+  await captura(p, 'd6_ficha_documentos.png');
+  paso('Formulario en móvil (390 px) y 320 px; la ficha muestra los cuatro documentos con sus datos');
+
+  // Reimportar el certificado y la orden: se verifican contra lo registrado.
+  await pulsar(p, 'Pacientes');
+  const [selDocs] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Importar PDF')]);
+  await selDocs.setFiles([ce, or]);
+  await texto(p, 'Importación terminada').waitFor({ timeout: 60000 });
+  await texto(p, '2 de 2 archivos en el índice').waitFor();
+  await texto(p, 'Ya estaba, íntegro · CE-000001').waitFor();
+  await texto(p, 'Ya estaba, íntegro · OR-000001').waitFor();
+  await captura(p, 'd7_reimportacion.png');
+  await pulsar(p, 'Cerrar');
+  paso('Certificado y orden descargados y reimportados: «Ya estaba, íntegro» (documento.json verificado)');
+
+  // Ajustes → Documentos clínicos: las plantillas con sus versiones.
+  await pulsar(p, 'Ajustes');
+  await alcanzar(conTexto('Documentos clínicos'));
+  await hacerClic(p.getByRole('button', { name: 'Ver las plantillas' }));
+  await texto(p, '4 de 12 aprobadas').waitFor();
+  await alcanzar(conTexto('Perfil metabólico'));
+  await captura(p, 'd8_ajustes_documentos.png');
+  paso('Ajustes → Documentos clínicos: 4 de 12 plantillas aprobadas, con versiones y «Agregar plantilla»');
+  await abrirFicha('1032456789');
+
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
   const enClaro = await p.evaluate(
     () =>
@@ -1096,7 +1260,11 @@ await context.close();
           tx.oncomplete = () => {
             bd.close();
             const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
-            listo(['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif'].filter((t) => todo.includes(t)));
+            listo(
+              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog'].filter((t) =>
+                todo.includes(t),
+              ),
+            );
           };
         };
       }),

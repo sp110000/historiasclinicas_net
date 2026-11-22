@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: 5.3 «Programa de peso, valoración estética, consentimiento y sesiones» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). La 5.0, la 5.1 y la 5.2 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
+> **Estado: 5.4 «Documentos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). De la 5.0 a la 5.3 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para seguir:** el visto bueno de la 5.3 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos del consentimiento, catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.4, dímelo.
+**Qué necesito de ti para seguir:** el visto bueno de la 5.4 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos de los consentimientos, certificados, incapacidad y órdenes; catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo; los límites de la incapacidad del Decreto 1427 de 2022). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.5, dímelo.
 
 ---
 
@@ -31,7 +31,81 @@
 
 ## Avance
 
-### 5.3 Programa de peso, valoración estética, consentimiento y sesiones ✅ (pendiente de tu visto bueno)
+### 5.4 Documentos ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Cuatro documentos nuevos, con consecutivo propio:** certificado (CE-), incapacidad (IN-), orden de laboratorio o imágenes (OR-) y remisión o interconsulta (RM-) (pregunta 40).
+  - Los expide el médico, sin la firma del paciente, con tus datos, tu firma y tu sello (los mismos interruptores de siempre).
+  - Al emitirlo **se descarga su PDF** y queda en la ficha (pregunta 37).
+  - Se **anulan** con motivo, no se revocan, y su número no se reutiliza.
+- **Plantillas con versiones, varias por tipo**, todas en BORRADOR con espacios «______» (VERIFICAR):
+  - certificado general, laboral, deportivo y de asistencia;
+  - incapacidad;
+  - órdenes de perfil metabólico, TSH, HbA1c, perfil lipídico, función hepática e imágenes diagnósticas (pregunta 41, sin códigos CUPS);
+  - remisión o interconsulta.
+
+  Se aprueban en Ajustes → Documentos clínicos (una tarjeta plegada, con el resumen «4 de 12 aprobadas») o en el mismo formulario. Puedes **agregar plantillas propias** (por ejemplo, otra orden frecuente). Cada documento guarda la plantilla y la versión con que se emitió.
+- **El mismo formulario para todos** (ficha → «Documento»):
+  - plantilla, datos del tipo y texto prellenado y editable;
+  - **vista previa del PDF real**, como la receta: dos columnas desde 1100 px, y pestañas «Editar» y «Vista previa» en pantallas angostas;
+  - botón fijo «Emitir y descargar» que **dice por qué** no se puede.
+- **Los datos de cada tipo van aparte del texto**, en un bloque del PDF; así cambiar un dato no obliga a reescribir el texto:
+  - certificado: «Se expide con destino a» (Ley 23 de 1981, art. 51, VERIFICAR). El diagnóstico solo va si el paciente lo autoriza;
+  - incapacidad: diagnóstico con el **buscador CIE-10** de la historia, origen, días (también en letras), desde, hasta, prórroga y el prestador (nombre, NIT y código REPS);
+  - orden: impresión diagnóstica;
+  - remisión: especialidad o servicio, y diagnóstico.
+
+  El diagnóstico principal de la última historia viene prellenado.
+- **Reglas puras con pruebas por tabla.**
+  - **Bloquean:** plantilla en borrador, tus datos de médico incompletos, texto vacío, certificado sin finalidad (o con el diagnóstico pedido y vacío), incapacidad sin diagnóstico o sin días, remisión sin destino, y un texto que viene de otra versión de la plantilla.
+  - **Avisan:** diagnóstico sin CIE-10, falta el NIT o el código REPS, incapacidad retroactiva, más días o más retroactividad que tus límites, orden o remisión sin diagnóstico, y «______» sin completar.
+  - Los **límites de días y de retroactividad** del Decreto 1427 de 2022 se escriben en Ajustes → Prestador **solo cuando los verifiques**; en blanco no avisan.
+- **PDF A4** con `documento.json` incrustado y sellado, la huella en el pie y en el índice. La ficha lo muestra con sus datos («Días: 3 (tres) · Desde: …»).
+- **Importación en lote de documentos y recetas** (Pacientes → Importar PDF), además de las historias:
+  - verifica la huella de `documento.json` y `receta.json` y, si el documento ya estaba, que sea el mismo («Ya estaba, íntegro»);
+  - un documento de otro equipo se liga a la ficha del mismo paciente (por id, por historia o por documento de identidad) sin tocar lo sellado, y adelanta el consecutivo para no repetir números;
+  - un PDF alterado, uno con un número ya usado por otro documento o uno sin ficha **no se importa**, y el informe dice por qué.
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **587 en verde** (540 en la 5.3). Por tabla: 9 bloqueos y 9 avisos de los documentos, más los válidos de cada tipo y «sin límites escritos no avisa». Además: días en letras, fecha final, filas del PDF desde lo sellado, plantillas de fábrica y propias, emitir los cuatro tipos (número, `documento.json` y texto del PDF con `pdftotext`), anular, e importar (ya estaba, otro equipo, alterado, número repetido, sin ficha, recetas y lote mezclado) |
+| Bandera apagada | La 5.4 no tocó ningún archivo compartido: el `main.dart.js` público **pesa lo mismo que en la 5.1, la 5.2 y la 5.3** (5.333.404 bytes) y no lleva el módulo |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **6.000 KB** (5.946 KB en la 5.3) |
+| Contraste | Textos y avisos con los colores del tema, ya probados (≥ 4,5:1) |
+| 320 px | Los cuatro formularios sin desbordes, con prueba |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **44 de 44 pasos** (37 de antes y 7 nuevos). Desde la ficha de Peña: **certificado** con la plantilla aprobada en el formulario, **incapacidad** de 3 días con CIE-10 y el aviso «Falta tu NIT», **orden** «Perfil metabólico» y **remisión**, cada uno descargado y leído con `pdftotext`. El formulario en 390 y 320 px. El certificado y la orden se **reimportan**: «Ya estaba, íntegro». 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.4**
+1. **A 320 px, la barra de «Emitir y descargar» se desbordaba 38 px.** En pantallas angostas, ahora el motivo va arriba y el botón abajo, con prueba en los cuatro tipos.
+2. **En los interruptores solo respondía el botón**, no su texto («Es una prórroga»). Ahora responde toda la fila.
+3. **La tarjeta de documentos clínicos ponía doce botones «Aprobar v1» en Ajustes**, y la e2e de la 5.3 aprueba «la primera pendiente». La tarjeta empieza plegada, con el resumen, y cada plantilla también se aprueba desde el formulario.
+4. Una prueba de la 5.1 contaba cuatro plantillas en Ajustes; los documentos clínicos tienen ahora su propia tarjeta.
+5. **La vista previa tardaba unos segundos en ponerse al día en Chromium sin GPU**, y las primeras capturas salieron con la anterior. La barra de progreso lleva ahora la etiqueta «Actualizando la vista previa», que también oye un lector de pantalla, y la e2e espera a que desaparezca.
+6. En la e2e, el menú «Documento» expone sus elementos como botones, y el nodo de accesibilidad de «Unir con otra ficha» queda encima en el DOM y se llevaba el clic. La e2e envía el clic directo al elemento. Con el ratón o un lector de pantalla funciona bien.
+7. La integración continua de los dos primeros commits de la 5.4 quedó en rojo: la e2e de la 5.3 aprobaba la primera «Aprobar v1» de Ajustes y encontraba una de documentos clínicos. Se arregló plegando esa tarjeta (punto 3).
+
+**Desviaciones del plan**
+- **Varias plantillas por tipo, y propias**, también en certificados y remisiones. El plan las preveía solo para las órdenes frecuentes.
+- **Los datos del tipo van en un bloque aparte del PDF**, no como marcadores en el texto.
+- **El certificado laboral es un certificado médico general con destino laboral.** Las evaluaciones médicas ocupacionales tienen su propia norma (VERIFICAR), y el formulario lo advierte.
+- **Un documento o una receta sin ficha del paciente no se importa**, porque lo sellado no alcanza para llenarla bien. Importa primero su historia o crea la ficha.
+- **El estado no viaja en el PDF.** Reimportar un documento anulado en el mismo equipo no lo revive; en otro equipo entra vigente.
+- **Una receta repetida (mismo id) queda como «ya estaba»**, aunque su PDF se haya vuelto a guardar.
+- **El origen de la incapacidad** (general, accidente de trabajo o enfermedad laboral) se registra, pero no cambia nada más. La de origen laboral la reconoce la ARL (VERIFICAR).
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):**
+  - [certificado con la plantilla en borrador](fase5/escritorio_certificado_borrador.png) · [certificado listo, con la vista previa](fase5/escritorio_certificado.png)
+  - [incapacidad con aviso](fase5/escritorio_incapacidad.png) · [orden](fase5/escritorio_orden.png)
+  - [ficha con los documentos](fase5/escritorio_ficha_documentos.png) · [reimportación](fase5/escritorio_reimportacion.png) · [Ajustes → Documentos clínicos](fase5/escritorio_ajustes_documentos.png)
+- **Móvil (390 px):** [formulario](fase5/movil_documento.png)
+- **320 px:** [formulario](fase5/320_documento.png)
+- **PDF (primera página):** [certificado](fase5/pdf_certificado.png) · [incapacidad](fase5/pdf_incapacidad.png) · [orden](fase5/pdf_orden.png) · [remisión](fase5/pdf_remision.png)
+
+### 5.3 Programa de peso, valoración estética, consentimiento y sesiones ✅ (aprobada el 22/11/2026)
 
 **Qué incluye**
 - **Programa de peso** (ficha → Peso):
