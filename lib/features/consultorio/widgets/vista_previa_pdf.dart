@@ -120,7 +120,11 @@ class _VistaPreviaPdfState extends ConsumerState<VistaPreviaPdf> {
         ),
         SizedBox(
           height: 3,
-          child: _generando ? const LinearProgressIndicator() : null,
+          child: _generando
+              ? const LinearProgressIndicator(
+                  semanticsLabel: 'Actualizando la vista previa',
+                )
+              : null,
         ),
         Expanded(
           child: LayoutBuilder(
