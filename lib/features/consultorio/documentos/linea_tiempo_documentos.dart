@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/consultorio/documentos/documento.dart';
-import '../../../core/consultorio/documentos/plantillas.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/models/mapa.dart';
 import '../../../core/consultorio/modelos/registro_receta.dart';
@@ -52,6 +51,47 @@ class LineaAutorizacion extends ConsumerWidget {
         TextButton(
           onPressed: () => pedirAutorizacionDatos(context, ficha: ficha),
           child: const Text('Pedir autorización'),
+        ),
+      ],
+    );
+  }
+}
+
+/// «Consentimiento de imagen: uso clínico · docencia (CIM-…)» o el aviso
+/// de que falta. Sin él no se pueden tomar fotos.
+class LineaConsentimientoImagen extends ConsumerWidget {
+  const LineaConsentimientoImagen({super.key, required this.ficha});
+
+  final FichaPaciente ficha;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = ref
+        .read(servicioConsultorioProvider)
+        .documentos
+        .consentimientoImagenVigente(ficha);
+    if (d != null) {
+      return EtiquetaEstado(
+        icono: Icons.photo_camera_outlined,
+        texto:
+            'Consentimiento de imagen: ${d.permisos.etiquetas.join(' · ')} '
+            '(${d.numero}, ${formatoFecha(d.fechaHora)})',
+        color: ColoresMarca.estadoOk,
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        const EtiquetaEstado(
+          icono: Icons.no_photography_outlined,
+          texto: 'Sin consentimiento de uso de imagen',
+          color: ColoresMarca.textoSuave,
+        ),
+        TextButton(
+          onPressed: () => pedirConsentimientoImagen(context, ficha: ficha),
+          child: const Text('Pedir consentimiento'),
         ),
       ],
     );
@@ -118,10 +158,7 @@ class TarjetaDocumento extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final d = documento;
     final nombre = nombreArchivoDocumento(
-      switch (d.tipo) {
-        TipoPlantilla.autorizacionDatos => 'Autorizacion_datos',
-        TipoPlantilla.politicaPrivacidad => 'Politica_datos',
-      },
+      d.tipo.baseArchivo,
       apellido: d.datos.mapa('paciente').texto('nombre').split(',').first,
       numero: d.numero,
     );

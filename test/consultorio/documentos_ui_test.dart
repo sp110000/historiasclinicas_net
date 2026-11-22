@@ -107,7 +107,7 @@ void main() {
     await b.servicio.crear(fraseDePrueba);
     await _montar(t, banco: b, ruta: '/ajustes');
     expect(find.text('Plantillas de documentos'), findsOneWidget);
-    expect(find.text('v1 en borrador (sin aprobar)'), findsNWidgets(2));
+    expect(find.text('v1 en borrador (sin aprobar)'), findsNWidgets(3));
     expect(find.text('Descargar PDF para exhibir'), findsNothing);
 
     // Editar la autorización: el borrador cambia, sigue sin aprobar.
@@ -132,8 +132,8 @@ void main() {
       isTrue,
     );
 
-    // La política, aprobada, se descarga en PDF.
-    await _pulsar(t, find.text('Aprobar v1'));
+    // La política (la última), aprobada, se descarga en PDF.
+    await _pulsar(t, find.text('Aprobar v1').last);
     await _pulsar(t, find.widgetWithText(FilledButton, 'Aprobar'));
     await _pulsar(t, find.text('Descargar PDF para exhibir'));
     expect(descargas.single.$1, 'Politica_tratamiento_datos_v1.pdf');
@@ -179,7 +179,9 @@ void main() {
     );
     expect(find.textContaining('AD-000001 · versión 1'), findsOneWidget);
     expect(
-      find.textContaining('Autorización firmada (AD-000001)'),
+      find.textContaining(
+        'Documento firmado: Autorización de tratamiento de datos (AD-000001)',
+      ),
       findsOneWidget,
     );
 
@@ -198,6 +200,41 @@ void main() {
     );
     final d = b.servicio.documentos.documentosDe(id).single;
     expect(d.estado, EstadoDocumento.revocado);
+    await _terminar(t);
+  });
+
+  testWidgets('consentimiento de imagen: usos marcados y ficha', (t) async {
+    final (b, id) = await _conPaciente();
+    await b.servicio.documentos.aprobar(TipoPlantilla.consentimientoImagen);
+    await _montar(t, banco: b, ruta: '/pacientes/$id');
+    expect(find.text('Sin consentimiento de uso de imagen'), findsOneWidget);
+    await _pulsar(t, find.text('Pedir consentimiento'));
+    expect(find.text('USOS QUE AUTORIZA'), findsOneWidget);
+    expect(find.textContaining('[X] Registro clínico'), findsOneWidget);
+    expect(find.textContaining('[ ] Docencia'), findsOneWidget);
+    await _pulsar(t, find.text('Docencia o publicación académica'));
+    expect(find.textContaining('[X] Docencia'), findsOneWidget);
+    await _pulsar(
+      t,
+      find.text('El paciente leyó el documento y resolvió sus dudas'),
+    );
+    await t.ensureVisible(find.byType(LienzoFirma));
+    await t.drag(find.byType(LienzoFirma), const Offset(120, 30));
+    await t.pumpAndSettle();
+    await _pulsar(t, find.text('Firmar y descargar PDF'));
+
+    expect(descargas.single.$1, 'Consentimiento_imagen_PENA_CIM-000001.pdf');
+    expect(
+      find.text(
+        'Consentimiento de imagen: uso clínico · docencia '
+        '(CIM-000001, 21/11/2026)',
+      ),
+      findsOneWidget,
+    );
+    final ficha = b.servicio.indice.ficha(id)!;
+    final d = b.servicio.documentos.consentimientoImagenVigente(ficha)!;
+    expect(d.permisos.docencia, isTrue);
+    expect(d.permisos.publicidad, isFalse);
     await _terminar(t);
   });
 

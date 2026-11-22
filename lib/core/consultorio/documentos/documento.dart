@@ -32,6 +32,51 @@ String nombreArchivoDocumento(
       '${ascii(numero, 'SIN-NUMERO')}.pdf';
 }
 
+/// Los tres usos de la imagen, cada uno por separado (pregunta 22).
+class PermisosImagen {
+  const PermisosImagen({
+    this.clinico = false,
+    this.docencia = false,
+    this.publicidad = false,
+  });
+
+  /// Registro clínico: obligatorio para tomar fotos.
+  final bool clinico;
+
+  /// Docencia o publicación académica, sin rostro ni rasgos identificables.
+  final bool docencia;
+
+  /// Publicidad o redes sociales.
+  final bool publicidad;
+
+  List<String> get etiquetas => [
+    if (clinico) 'uso clínico',
+    if (docencia) 'docencia',
+    if (publicidad) 'publicidad',
+  ];
+
+  /// El texto del marcador `{{permisos}}`.
+  String get texto => [
+    '${clinico ? '[X]' : '[ ]'} Registro clínico: documentar mi evolución y '
+        'los resultados en mi historia clínica.',
+    '${docencia ? '[X]' : '[ ]'} Docencia o publicación académica, sin mi '
+        'rostro ni rasgos que me identifiquen.',
+    '${publicidad ? '[X]' : '[ ]'} Publicidad o redes sociales.',
+  ].join('\n');
+
+  Map<String, Object?> aMapa() => {
+    'clinico': clinico,
+    'docencia': docencia,
+    'publicidad': publicidad,
+  };
+
+  static PermisosImagen desdeMapa(Map<String, Object?> m) => PermisosImagen(
+    clinico: m.booleano('clinico'),
+    docencia: m.booleano('docencia'),
+    publicidad: m.booleano('publicidad'),
+  );
+}
+
 enum EstadoDocumento {
   vigente('Vigente'),
   revocado('Revocado'),
@@ -79,6 +124,10 @@ class DocumentoConsultorio {
   DateTime get fechaHora => datos.fecha('fechaHora')!;
   String get sha256Firma => datos.texto('sha256Firma');
   bool get vigente => estado == EstadoDocumento.vigente;
+
+  /// Usos autorizados de la imagen (solo el consentimiento de imagen).
+  PermisosImagen get permisos =>
+      PermisosImagen.desdeMapa(datos.mapa('permisos'));
 
   /// SHA-256 de [datos] en JSON canónico: la huella del documento.
   String get hash => sha256Canonico(datos);

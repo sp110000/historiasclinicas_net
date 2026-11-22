@@ -3,12 +3,31 @@ import '../../models/mapa.dart';
 /// Tipos de plantilla de documento. Las subfases siguientes agregan
 /// consentimientos, certificados, incapacidades, órdenes y remisiones.
 enum TipoPlantilla {
-  autorizacionDatos('Autorización de tratamiento de datos', 'AD'),
-  politicaPrivacidad('Política de tratamiento de datos personales', null);
+  autorizacionDatos(
+    'Autorización de tratamiento de datos',
+    'AD',
+    'Autorizacion_datos',
+  ),
+  consentimientoImagen(
+    'Consentimiento de uso de imagen',
+    'CIM',
+    'Consentimiento_imagen',
+  ),
+  politicaPrivacidad(
+    'Política de tratamiento de datos personales',
+    null,
+    'Politica_datos',
+  );
 
-  const TipoPlantilla(this.etiqueta, this.prefijo);
+  const TipoPlantilla(this.etiqueta, this.prefijo, this.baseArchivo);
 
   final String etiqueta;
+
+  /// Comienzo del nombre de sus PDF, solo ASCII.
+  final String baseArchivo;
+
+  /// Se firma con el paciente (en pantalla).
+  bool get conFirmaDelPaciente => prefijo != null;
 
   /// Prefijo del consecutivo de los documentos firmados con ella, o `null`
   /// si no lleva número (la política es una sola, con versión).
@@ -131,6 +150,7 @@ class Plantilla {
         titulo: tipo.etiqueta,
         cuerpo: switch (tipo) {
           TipoPlantilla.autorizacionDatos => _autorizacionBase.trim(),
+          TipoPlantilla.consentimientoImagen => _imagenBase.trim(),
           TipoPlantilla.politicaPrivacidad => _politicaBase.trim(),
         },
       ),
@@ -149,6 +169,9 @@ const marcadoresPlantilla = {
   'paciente': 'Nombre completo del paciente',
   'documentoPaciente': 'Tipo y número de documento del paciente',
   'fecha': 'Fecha del documento',
+  'permisos':
+      'Usos de la imagen que el paciente autoriza (consentimiento '
+      'de imagen)',
 };
 
 /// Reemplaza los `{{clave}}` de [cuerpo]. Un marcador sin valor queda como
@@ -179,6 +202,22 @@ b) Como titular tengo derecho a conocer, actualizar y rectificar mis datos; a so
 c) La historia clínica se conserva durante el tiempo que exige la ley, aun si revoco esta autorización.
 d) Mis datos no se venden ni se ceden a terceros, salvo por obligación legal o con mi autorización.
 e) Puedo ejercer mis derechos escribiendo a {{correo}} o llamando al {{telefono}}, y consultar la política de tratamiento de datos en el consultorio.
+
+Fecha: {{fecha}}
+''';
+
+const _imagenBase = '''
+Yo, {{paciente}}, identificado(a) con {{documentoPaciente}}, autorizo a {{responsable}}, identificado(a) con {{documentoResponsable}}, para tomar fotografías de mi cuerpo durante mi atención y para usarlas solo en los usos que marco a continuación:
+
+{{permisos}}
+
+Declaro que se me informó que:
+
+a) El registro clínico es necesario para documentar mi evolución y los resultados de los procedimientos; las fotografías hacen parte de mi historia clínica y se guardan cifradas, con la misma reserva.
+b) Para docencia o publicaciones académicas se usan sin mi rostro ni rasgos que me identifiquen.
+c) Para publicidad o redes sociales solo se usan si lo marqué expresamente.
+d) Puedo revocar en cualquier momento los usos de docencia y publicidad, escribiendo a {{correo}} o llamando al {{telefono}}. La revocación no afecta lo ya publicado de buena fe antes de ella, ni las fotografías que deben conservarse como parte de la historia clínica.
+e) No recibo pago por estas autorizaciones y negarme a las de docencia o publicidad no cambia mi atención.
 
 Fecha: {{fecha}}
 ''';

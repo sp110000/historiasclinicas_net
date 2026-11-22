@@ -44,6 +44,7 @@ class FichaPaciente {
     this.notas = '',
     this.unidaEn,
     this.autorizacionDatosId,
+    this.consentimientoImagenId,
   });
 
   static const coleccion = 'pacientes';
@@ -78,6 +79,9 @@ class FichaPaciente {
 
   /// Autorización de tratamiento de datos vigente (documento firmado).
   final String? autorizacionDatosId;
+
+  /// Consentimiento de uso de imagen vigente (documento firmado).
+  final String? consentimientoImagenId;
   final DateTime creado;
   final DateTime actualizado;
 
@@ -196,6 +200,7 @@ class FichaPaciente {
     String? notas,
     Object? unidaEn = sin,
     Object? autorizacionDatosId = sin,
+    Object? consentimientoImagenId = sin,
     DateTime? actualizado,
   }) => FichaPaciente(
     id: id,
@@ -222,6 +227,10 @@ class FichaPaciente {
     notas: notas ?? this.notas,
     unidaEn: cambio(unidaEn, this.unidaEn),
     autorizacionDatosId: cambio(autorizacionDatosId, this.autorizacionDatosId),
+    consentimientoImagenId: cambio(
+      consentimientoImagenId,
+      this.consentimientoImagenId,
+    ),
   );
 
   Map<String, Object?> aMapa() => compacto({
@@ -248,6 +257,7 @@ class FichaPaciente {
     'notas': notas,
     'unidaEn': unidaEn,
     'autorizacionDatosId': autorizacionDatosId,
+    'consentimientoImagenId': consentimientoImagenId,
     'creado': creado.toUtc().toIso8601String(),
     'actualizado': actualizado.toUtc().toIso8601String(),
   });
@@ -282,6 +292,7 @@ class FichaPaciente {
         notas: m.texto('notas'),
         unidaEn: m.textoONulo('unidaEn'),
         autorizacionDatosId: m.textoONulo('autorizacionDatosId'),
+        consentimientoImagenId: m.textoONulo('consentimientoImagenId'),
         creado: DateTime.parse(m['creado']! as String).toLocal(),
         actualizado: DateTime.parse(m['actualizado']! as String).toLocal(),
       );

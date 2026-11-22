@@ -112,6 +112,14 @@ class DocumentosConsultorio {
       ..sort((a, b) => b.fechaHora.compareTo(a.fechaHora));
   }
 
+  /// El consentimiento de imagen vigente de la ficha (con el uso clínico),
+  /// o `null`: sin él no se toman fotos (pregunta 22).
+  DocumentoConsultorio? consentimientoImagenVigente(FichaPaciente ficha) {
+    final id = (_indice.fichaActiva(ficha.id) ?? ficha).consentimientoImagenId;
+    final d = id == null ? null : _documentos[id];
+    return d != null && d.vigente && d.permisos.clinico ? d : null;
+  }
+
   Future<Uint8List?> pdfDe(String id) =>
       _repo.leerBinario(DocumentoConsultorio.tipoBinarioPdf, id);
 
@@ -147,10 +155,7 @@ class DocumentosConsultorio {
     'fecha': formatoFecha(fecha),
   };
 
-  /// Firma la autorización de tratamiento de datos de [ficha] con la
-  /// plantilla vigente. Guarda el documento, la firma y el PDF (cifrados) y
-  /// deja la autorización ligada a la ficha. Lanza [StateError] si la
-  /// plantilla no está aprobada.
+  /// Firma la autorización de tratamiento de datos de [ficha].
   Future<DocumentoFirmado> firmarAutorizacion({
     required FichaPaciente ficha,
     required Uint8List firmaPng,
@@ -159,8 +164,41 @@ class DocumentosConsultorio {
     bool incluirFirma = true,
     bool incluirSello = true,
     FuentesPdf? fuentes,
+  }) => firmarDocumento(
+    TipoPlantilla.autorizacionDatos,
+    ficha: ficha,
+    firmaPng: firmaPng,
+    medico: medico,
+    pais: pais,
+    incluirFirma: incluirFirma,
+    incluirSello: incluirSello,
+    fuentes: fuentes,
+  );
+
+  /// Firma un documento de [tipo] para [ficha] con la plantilla vigente.
+  /// Guarda el documento, la firma y el PDF (cifrados) y lo deja ligado a
+  /// la ficha. El consentimiento de imagen exige [permisos] con el uso
+  /// clínico. Lanza [StateError] si la plantilla no está aprobada.
+  Future<DocumentoFirmado> firmarDocumento(
+    TipoPlantilla tipo, {
+    required FichaPaciente ficha,
+    required Uint8List firmaPng,
+    required Medico medico,
+    required Pais pais,
+    PermisosImagen? permisos,
+    bool incluirFirma = true,
+    bool incluirSello = true,
+    FuentesPdf? fuentes,
   }) async {
-    const tipo = TipoPlantilla.autorizacionDatos;
+    if (!tipo.conFirmaDelPaciente) {
+      throw StateError('«${tipo.etiqueta}» no se firma con el paciente.');
+    }
+    final imagen = tipo == TipoPlantilla.consentimientoImagen;
+    if (imagen && !(permisos?.clinico ?? false)) {
+      throw StateError(
+        'El consentimiento de imagen necesita, al menos, el uso clínico.',
+      );
+    }
     final version = plantilla(tipo).vigente;
     if (version == null) {
       throw StateError(
@@ -177,10 +215,10 @@ class DocumentosConsultorio {
       firma: incluirFirma,
       sello: incluirSello,
     );
-    final contenido = rellenarPlantilla(
-      version.cuerpo,
-      valores(medico, ficha: ficha, fecha: ahora),
-    );
+    final contenido = rellenarPlantilla(version.cuerpo, {
+      ...valores(medico, ficha: ficha, fecha: ahora),
+      if (imagen) 'permisos': permisos!.texto,
+    });
     final documento = DocumentoConsultorio(
       id: id,
       creado: ahora,
@@ -198,6 +236,7 @@ class DocumentosConsultorio {
         'fechaHora': fechaHoraIso(ahora),
         'contenido': contenido,
         'sha256Firma': sha256.convert(firmaPng).toString(),
+        if (imagen) 'permisos': permisos!.aMapa(),
         if (medico.configurado) 'autor': copia.autor,
       },
     );
@@ -226,7 +265,12 @@ class DocumentosConsultorio {
     await _repo.guardarBinario(DocumentoConsultorio.tipoBinarioPdf, id, pdf);
     await _repo.guardar(DocumentoConsultorio.coleccion, id, documento.aMapa());
     _documentos[id] = documento;
-    await _indice.guardarFicha(ficha.copyWith(autorizacionDatosId: id));
+    final actual = _indice.fichaActiva(ficha.id) ?? ficha;
+    await _indice.guardarFicha(
+      imagen
+          ? actual.copyWith(consentimientoImagenId: id)
+          : actual.copyWith(autorizacionDatosId: id),
+    );
     await registrarEnBitacora(
       _repo,
       AccionBitacora.firmarDocumento,
@@ -291,6 +335,9 @@ class DocumentosConsultorio {
     final activa = _indice.fichaActiva(d.pacienteId);
     if (activa != null && activa.autorizacionDatosId == id) {
       await _indice.guardarFicha(activa.copyWith(autorizacionDatosId: null));
+    }
+    if (activa != null && activa.consentimientoImagenId == id) {
+      await _indice.guardarFicha(activa.copyWith(consentimientoImagenId: null));
     }
     await registrarEnBitacora(
       _repo,

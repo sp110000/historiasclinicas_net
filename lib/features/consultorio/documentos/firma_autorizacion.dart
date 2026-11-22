@@ -24,22 +24,43 @@ final exportarFirmaProvider =
           (c) => c.exportarPng(),
     );
 
-/// Pide la autorización de tratamiento de datos de [ficha]: el paciente lee
-/// el texto de la plantilla vigente, lo confirma y firma en pantalla. Al
-/// firmar se descarga el PDF y queda en la ficha.
+/// Pide la autorización de tratamiento de datos de [ficha].
 Future<void> pedirAutorizacionDatos(
   BuildContext context, {
   required FichaPaciente ficha,
+}) => pedirFirmaDocumento(
+  context,
+  ficha: ficha,
+  tipo: TipoPlantilla.autorizacionDatos,
+);
+
+/// Pide el consentimiento de uso de imagen de [ficha], con sus tres usos.
+Future<void> pedirConsentimientoImagen(
+  BuildContext context, {
+  required FichaPaciente ficha,
+}) => pedirFirmaDocumento(
+  context,
+  ficha: ficha,
+  tipo: TipoPlantilla.consentimientoImagen,
+);
+
+/// El paciente lee el texto de la plantilla vigente de [tipo], lo confirma
+/// y firma en pantalla. Al firmar se descarga el PDF y queda en la ficha.
+Future<void> pedirFirmaDocumento(
+  BuildContext context, {
+  required FichaPaciente ficha,
+  required TipoPlantilla tipo,
 }) => showDialog<void>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => _DialogoAutorizacion(ficha: ficha),
+  builder: (_) => _DialogoAutorizacion(ficha: ficha, tipo: tipo),
 );
 
 class _DialogoAutorizacion extends ConsumerStatefulWidget {
-  const _DialogoAutorizacion({required this.ficha});
+  const _DialogoAutorizacion({required this.ficha, required this.tipo});
 
   final FichaPaciente ficha;
+  final TipoPlantilla tipo;
 
   @override
   ConsumerState<_DialogoAutorizacion> createState() =>
@@ -49,6 +70,16 @@ class _DialogoAutorizacion extends ConsumerStatefulWidget {
 class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
   final _firma = ControladorFirma();
   var _leido = false;
+  var _docencia = false;
+  var _publicidad = false;
+
+  bool get _imagen => widget.tipo == TipoPlantilla.consentimientoImagen;
+
+  PermisosImagen get _permisos => PermisosImagen(
+    clinico: true,
+    docencia: _docencia,
+    publicidad: _publicidad,
+  );
   var _incluirFirma = true;
   var _incluirSello = true;
   var _firmando = false;
@@ -81,11 +112,13 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
       final r = await ref
           .read(servicioConsultorioProvider)
           .documentos
-          .firmarAutorizacion(
+          .firmarDocumento(
+            widget.tipo,
             ficha: widget.ficha,
             firmaPng: png,
             medico: ref.read(medicoProvider),
             pais: ref.read(paisProvider),
+            permisos: _imagen ? _permisos : null,
             incluirFirma: _incluirFirma,
             incluirSello: _incluirSello,
           );
@@ -93,7 +126,7 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
       ref.read(descargarPdfProvider)(
         r.pdf,
         nombreArchivoDocumento(
-          'Autorizacion_datos',
+          widget.tipo.baseArchivo,
           apellido: widget.ficha.primerApellido,
           numero: numero,
         ),
@@ -105,8 +138,8 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
       mensajero.showSnackBar(
         SnackBar(
           content: Text(
-            'Autorización firmada ($numero). El PDF se descargó y quedó en '
-            'la ficha.',
+            'Documento firmado: ${widget.tipo.etiqueta} ($numero). El PDF '
+            'se descargó y quedó en la ficha.',
           ),
         ),
       );
@@ -123,7 +156,7 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
   @override
   Widget build(BuildContext context) {
     final s = ref.read(servicioConsultorioProvider);
-    final plantilla = s.documentos.plantilla(TipoPlantilla.autorizacionDatos);
+    final plantilla = s.documentos.plantilla(widget.tipo);
     final version = plantilla.vigente;
     final medico = ref.watch(medicoProvider);
     final movil = MediaQuery.sizeOf(context).width < 600;
@@ -131,10 +164,10 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
     final List<Widget> contenido;
     if (version == null) {
       contenido = [
-        const Text(
-          'La plantilla de autorización de tratamiento de datos está en '
-          'borrador. Revísala con tu abogado (VERIFICAR) y apruébala en '
-          'Ajustes → Plantillas antes de usarla.',
+        Text(
+          'La plantilla «${widget.tipo.etiqueta}» está en borrador. '
+          'Revísala con tu abogado (VERIFICAR) y apruébala en Ajustes → '
+          'Plantillas antes de usarla.',
         ),
       ];
     } else if (!medico.configurado) {
@@ -146,14 +179,14 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
         ),
       ];
     } else {
-      final texto = rellenarPlantilla(
-        version.cuerpo,
-        s.documentos.valores(
+      final texto = rellenarPlantilla(version.cuerpo, {
+        ...s.documentos.valores(
           medico,
           ficha: widget.ficha,
           fecha: s.reloj.ahora(),
         ),
-      );
+        if (_imagen) 'permisos': _permisos.texto,
+      });
       contenido = [
         Text(
           '${widget.ficha.nombreCompleto} · ${widget.ficha.documentoTexto}',
@@ -163,6 +196,33 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
           'Plantilla versión ${version.version}',
           style: const TextStyle(fontSize: 13, color: ColoresMarca.textoSuave),
         ),
+        if (_imagen) ...[
+          const SizedBox(height: 10),
+          const Text('USOS QUE AUTORIZA', style: EstilosMarca.rotulo),
+          const CheckboxListTile(
+            value: true,
+            onChanged: null,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text('Registro clínico'),
+            subtitle: Text('Obligatorio para tomar fotos.'),
+          ),
+          CheckboxListTile(
+            value: _docencia,
+            onChanged: (v) => setState(() => _docencia = v ?? false),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('Docencia o publicación académica'),
+            subtitle: const Text('Sin rostro ni rasgos que lo identifiquen.'),
+          ),
+          CheckboxListTile(
+            value: _publicidad,
+            onChanged: (v) => setState(() => _publicidad = v ?? false),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('Publicidad o redes sociales'),
+          ),
+        ],
         const SizedBox(height: 10),
         Container(
           constraints: BoxConstraints(maxHeight: movil ? 260 : 300),
@@ -232,7 +292,7 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
         !_firmando;
     return AlertDialog(
       title: TituloDialogo(
-        version?.titulo ?? TipoPlantilla.autorizacionDatos.etiqueta,
+        version?.titulo ?? widget.tipo.etiqueta,
         icono: Icons.privacy_tip_outlined,
       ),
       insetPadding: EdgeInsets.symmetric(

@@ -722,6 +722,8 @@ class IndicePacientes {
       ].where((n) => n.trim().isNotEmpty).join('\n\n'),
       autorizacionDatosId:
           destino.autorizacionDatosId ?? origen.autorizacionDatosId,
+      consentimientoImagenId:
+          destino.consentimientoImagenId ?? origen.consentimientoImagenId,
       actualizado: ahora,
     );
     final nuevoOrigen = origen.copyWith(

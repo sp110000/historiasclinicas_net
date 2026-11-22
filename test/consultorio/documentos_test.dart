@@ -247,6 +247,70 @@ void main() {
     });
   });
 
+  group('Consentimiento de uso de imagen', () {
+    test('exige el uso clínico, guarda los permisos y se revoca', () async {
+      final b = BancoConsultorio();
+      await b.servicio.crear(fraseDePrueba);
+      final r = await b.servicio.registrarHistoria(
+        HistoriaPendiente(
+          datos: historiaSintetica(),
+          revision: 1,
+          origen: OrigenArchivo.importado,
+        ),
+      );
+      final docs = b.servicio.documentos;
+      await docs.aprobar(TipoPlantilla.consentimientoImagen);
+      Future<({DocumentoConsultorio documento, Uint8List pdf})> firmar(
+        PermisosImagen? p,
+      ) => docs.firmarDocumento(
+        TipoPlantilla.consentimientoImagen,
+        ficha: b.servicio.indice.ficha(r!.pacienteId)!,
+        firmaPng: firmaDePrueba,
+        medico: medicoCompleto(),
+        pais: Pais.colombia,
+        permisos: p,
+        fuentes: fuentes,
+      );
+      expect(() => firmar(null), throwsStateError);
+      expect(
+        () => firmar(const PermisosImagen(docencia: true)),
+        throwsStateError,
+      );
+      expect(
+        docs.consentimientoImagenVigente(
+          b.servicio.indice.ficha(r!.pacienteId)!,
+        ),
+        isNull,
+      );
+
+      final f = await firmar(
+        const PermisosImagen(clinico: true, publicidad: true),
+      );
+      expect(f.documento.numero, 'CIM-000001');
+      expect(f.documento.permisos.publicidad, isTrue);
+      expect(f.documento.contenido, contains('[X] Publicidad'));
+      expect(f.documento.contenido, contains('[ ] Docencia'));
+      final ficha = b.servicio.indice.ficha(r.pacienteId)!;
+      expect(ficha.consentimientoImagenId, f.documento.id);
+      expect(ficha.autorizacionDatosId, isNull, reason: 'son independientes');
+      expect(docs.consentimientoImagenVigente(ficha)!.id, f.documento.id);
+      final texto = textoPdf(f.pdf);
+      if (texto != null) {
+        expect(texto, contains('CONSENTIMIENTO DE USO DE IMAGEN'));
+        expect(texto, contains('CIM-000001'));
+      }
+
+      await docs.cambiarEstado(
+        f.documento.id,
+        EstadoDocumento.revocado,
+        motivo: 'Retira la publicidad',
+      );
+      final sin = b.servicio.indice.ficha(r.pacienteId)!;
+      expect(sin.consentimientoImagenId, isNull);
+      expect(docs.consentimientoImagenVigente(sin), isNull);
+    });
+  });
+
   group('Receta con receta.json', () {
     final copia = instantaneaMedico(medicoEjemplo(), pais: Pais.colombia);
     final documento = DocumentoReceta(

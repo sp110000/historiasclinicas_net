@@ -261,6 +261,8 @@ class _Encabezado extends ConsumerWidget {
           ],
           const SizedBox(height: 10),
           LineaAutorizacion(ficha: f),
+          const SizedBox(height: 6),
+          LineaConsentimientoImagen(ficha: f),
           if (f.notas.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -382,6 +384,11 @@ class _Acciones extends ConsumerWidget {
         Icons.privacy_tip_outlined,
         'Autorización de datos',
         () => pedirAutorizacionDatos(context, ficha: ficha),
+      ),
+      (
+        Icons.photo_camera_outlined,
+        'Consentimiento de imagen',
+        () => pedirConsentimientoImagen(context, ficha: ficha),
       ),
       (Icons.edit_outlined, 'Editar datos', () => _editar(context)),
       (Icons.merge_type, 'Unir con otra ficha', () => _unir(context, ref)),
