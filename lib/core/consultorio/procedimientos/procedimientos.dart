@@ -649,6 +649,13 @@ String textoValoracion(
   ].where((s) => s.isNotEmpty).join(' ');
 }
 
+/// [t] sin espacios a los lados y con un solo punto final (el médico suele
+/// escribirlo; así no queda «..» en el texto sellado).
+String _frase(String t) {
+  final limpio = t.trim().replaceFirst(RegExp(r'[\s.;]+$'), '');
+  return limpio.isEmpty ? '' : '$limpio.';
+}
+
 String _lote(LoteSesion l) =>
     'lote ${l.lote.trim()}, vence ${l.vence == null ? '—' : formatoFecha(l.vence!)}';
 
@@ -681,10 +688,10 @@ String textoSesion(
     if (s.insumos.isNotEmpty)
       'Insumos: ${s.insumos.map((i) => '${i.nombre} × ${formatoNumero(i.cantidad)} (${_lote(i.lote)})').join('; ')}.',
     'Duración: ${s.duracionMin} min.',
-    'Eventos adversos: ${s.eventosAdversos.trim()}.',
+    'Eventos adversos: ${_frase(s.eventosAdversos)}',
     if (s.indicaciones.trim().isNotEmpty)
-      'Indicaciones: ${s.indicaciones.trim().replaceAll('\n', '; ')}.',
-    if (s.poliza.trim().isNotEmpty) 'Póliza: ${s.poliza.trim()}.',
+      'Indicaciones: ${_frase(s.indicaciones.replaceAll('\n', '; '))}',
+    if (s.poliza.trim().isNotEmpty) 'Póliza: ${_frase(s.poliza)}',
     for (final a in s.avisos) 'Aviso: $a',
     if (s.control != null) 'Control: ${formatoFecha(s.control!)}.',
   ].join(' ');

@@ -11,6 +11,7 @@ import '../../../core/widgets/titulo_dialogo.dart';
 import '../../medico/medico_provider.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../estado/consultorio_provider.dart';
+import '../widgets/chip_seleccion.dart';
 
 /// Consentimiento informado por plan de tratamiento (pregunta 39): primero
 /// el plan (zonas, sesiones y producto) y luego la firma del paciente.
@@ -107,10 +108,10 @@ class _DialogoPlanState extends ConsumerState<_DialogoPlan> {
                 runSpacing: 8,
                 children: [
                   for (final z in d.zonas)
-                    FilterChip(
-                      label: Text(z),
-                      selected: _plan.zonas.contains(z),
-                      onSelected: (si) => setState(
+                    ChipSeleccion(
+                      texto: z,
+                      seleccionado: _plan.zonas.contains(z),
+                      alCambiar: (si) => setState(
                         () => _plan = _plan.copyWith(
                           zonas: si
                               ? [..._plan.zonas, z]

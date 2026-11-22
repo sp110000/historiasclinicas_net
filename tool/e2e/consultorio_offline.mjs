@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.2) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.3) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -18,8 +18,10 @@
 // firmar la autorización de datos, evolución y receta desde la ficha; luego
 // (5.2) mediciones, consentimiento de imagen, fotos de antes y después
 // (con el reloj del navegador fijado), comparación y cortina, informe de
-// seguimiento y fotos en PDF; y comprobar que nada de los pacientes queda
-// en claro. Falla si hay
+// seguimiento y fotos en PDF; (5.3) protocolo, programa de peso con GLP-1,
+// valoración, consentimiento informado y sesión (bloqueada sin
+// consentimiento y con un lote vencido, luego sellada); y comprobar que
+// nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
 // (incluida la CSP).
 
@@ -781,6 +783,295 @@ await context.close();
   await p.keyboard.press('Enter');
   await texto(p, 'Ficha del paciente').waitFor();
   paso('Ajustes: tarjeta «Equipo secundario» (en el principal, «Combinar un paquete»)');
+
+  // ─────────────── 4. Programa de peso, estética y sesión (5.3) ───────────────
+  // Todos los elementos con ese nombre exacto (chips de un selector).
+  const todos = (nombre) =>
+    p
+      .getByRole('button', { name: nombre, exact: true })
+      .or(p.getByRole('checkbox', { name: nombre, exact: true }))
+      .or(p.getByRole('radio', { name: nombre, exact: true }));
+  // En las páginas largas, el árbol de accesibilidad puede no seguir al
+  // desplazamiento: se baja o se sube con la rueda hasta que el elemento
+  // esté de verdad a la vista (debajo del aviso y la barra) y solo entonces
+  // se le hace clic.
+  async function aLaVista(locator) {
+    let antes = null;
+    for (let i = 0; i < 50; i++) {
+      if (await locator.count()) {
+        const c = await locator.first().boundingBox().catch(() => null);
+        const alto = p.viewportSize().height;
+        if (c && c.y >= 200 && c.y + Math.min(c.height, 50) <= alto - 70) return;
+        // Ya no se mueve (principio o final de la página): basta con que se
+        // vea entero.
+        if (c && antes && Math.abs(c.y - antes.y) < 1 && c.y >= 185 && c.y + c.height <= alto) return;
+        antes = c;
+        await p.mouse.move(700, Math.min(600, alto - 100));
+        await p.mouse.wheel(0, !c || c.y > alto / 2 ? 280 : -280);
+      } else {
+        await p.mouse.move(700, 600);
+        await p.mouse.wheel(0, 350);
+      }
+      await p.waitForTimeout(200);
+    }
+    throw new Error(`No se pudo ver: ${locator}`);
+  }
+  const alcanzar = (locator) => aLaVista(locator);
+  // Texto visible o etiqueta de accesibilidad (Flutter une los textos de un
+  // bloque en una sola etiqueta).
+  const conTexto = (t) =>
+    p.getByText(t, { exact: false }).or(p.locator(`flt-semantics[aria-label*="${t.replaceAll('"', '\\"')}"]`)).first();
+  // Escribe sin tocar otros campos: no borra nada si el foco no está en el
+  // campo correcto.
+  async function escribirAbajo(etiqueta, valor) {
+    const c = campo(p, etiqueta);
+    for (let intento = 0; intento < 5; intento++) {
+      await aLaVista(c);
+      await p.waitForTimeout(120 + intento * 200);
+      await c.click();
+      await p.waitForTimeout(120 + intento * 200);
+      if (!(await c.evaluate((el) => document.activeElement === el))) continue;
+      await p.keyboard.press('Control+A');
+      await p.keyboard.press('Delete');
+      await c.fill(valor);
+      await p.waitForTimeout(100);
+      if (await c.evaluate((el, v) => document.activeElement === el && el.value === v, valor)) return;
+    }
+    throw new Error(`No se pudo escribir en "${etiqueta}"`);
+  }
+  async function hacerClic(locator) {
+    await aLaVista(locator);
+    await locator.first().click();
+    await p.waitForTimeout(300);
+  }
+  const tocarAbajo = (nombre) => hacerClic(exacto(nombre));
+  async function alInicio() {
+    await p.mouse.move(700, 500);
+    for (let i = 0; i < 6; i++) await p.mouse.wheel(0, -3000);
+    await p.waitForTimeout(400);
+  }
+  // Pulsa todos los chips [nombre] de la página (o del diálogo), en orden.
+  async function pulsarTodosBajando(nombre) {
+    const n = await todos(nombre).count();
+    for (let i = 0; i < n; i++) {
+      const l = todos(nombre).nth(i);
+      await aLaVista(l);
+      await l.click();
+      await p.waitForTimeout(80);
+    }
+    return n;
+  }
+  async function abrirFicha(documento) {
+    await pulsar(p, 'Pacientes');
+    await escribir(p, 'Buscar paciente', documento);
+    await p.keyboard.press('Enter');
+    await texto(p, 'Ficha del paciente').waitFor();
+  }
+  async function aprobarConfirmando() {
+    await p.getByRole('button', { name: 'Aprobar', exact: true }).click();
+    await p.waitForTimeout(700);
+  }
+
+  // Ajustes: consentimiento informado, política, plan, protocolo y prestador.
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Plantillas de documentos').waitFor();
+  await pulsar(p, 'Aprobar v1'); // La primera pendiente: el consentimiento informado.
+  await texto(p, 'Consentimiento informado de procedimiento').waitFor();
+  await aprobarConfirmando();
+  await pulsar(p, 'Aprobar v1'); // La política.
+  await aprobarConfirmando();
+  await hacerClic(p.getByRole('button', { name: 'Aprobar v1' })); // «Déficit moderado».
+  await texto(p, 'Déficit moderado').waitFor();
+  await aprobarConfirmando();
+  await hacerClic(p.getByRole('button', { name: 'Editar borrador' }).last());
+  await texto(p, 'Hidrolipoclasia · borrador v1').waitFor({ timeout: 15000 });
+  // Protocolo sintético de prueba (no es una recomendación clínica).
+  await escribirAbajo('Componentes de la solución (uno por línea)', 'Componente A de prueba\nComponente B de prueba');
+  await escribirAbajo('Volumen máximo por zona', '500');
+  await escribirAbajo('Volumen máximo por sesión', '1000');
+  await escribirAbajo('Intervalo entre sesiones', '7');
+  await escribirAbajo('Número de sesiones', '4');
+  await escribirAbajo('Días hasta el control', '7');
+  await hacerClic(p.getByRole('button', { name: 'Quitar el anestésico' }).last());
+  await escribirAbajo('Anestésico', 'Anestésico de prueba');
+  await escribirAbajo('Concentración', '20');
+  await escribirAbajo('Máximo', '7');
+  await escribirAbajo('Indicaciones posteriores', 'Indicaciones de prueba.');
+  await escribirAbajo('Riesgos (frecuentes y graves)', 'Riesgos de prueba.');
+  await escribirAbajo('Alternativas', 'Alternativas de prueba.');
+  await captura(p, 'h0_editor_protocolo.png');
+  await tocarAbajo('Guardar borrador');
+  await texto(p, 'Borrador v1 guardado').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Aprobar v1' }).last());
+  await texto(p, '¿Aprobar la versión 1?').waitFor();
+  await aprobarConfirmando();
+  if (await p.getByText(/Para aprobarla falta/).count()) {
+    throw new Error('La plantilla del procedimiento no se aprobó');
+  }
+  await escribirAbajo('Código de prestador (REPS)', '00000-PRUEBA');
+  await escribirAbajo('Habilitación del servicio', 'Servicio de prueba');
+  await escribirAbajo('Aseguradora de la póliza', 'Aseguradora de prueba');
+  await escribirAbajo('Número de la póliza', 'P-0001');
+  await hacerClic(p.getByRole('button', { name: 'Guardar datos del prestador' }));
+  await texto(p, 'Datos del prestador guardados').waitFor();
+  paso('Ajustes: consentimiento informado y plan aprobados; protocolo de hidrolipoclasia escrito y aprobado; prestador y póliza');
+
+  // Programa de peso (Peña): meta, plan, contraindicaciones y GLP-1.
+  await abrirFicha('1032456789');
+  await tocar('Peso');
+  await texto(p, 'Sin programa de peso.').waitFor();
+  await tocar('Iniciar programa');
+  await escribir(p, 'Peso meta', '58');
+  await escribir(p, 'Proteína indicada', '1,2 g/kg/día');
+  await p.getByText('Sin plan').first().click();
+  await p.waitForTimeout(400);
+  await p
+    .getByRole('menuitem', { name: /Déficit moderado \(v1\)/ })
+    .or(p.getByRole('option', { name: /Déficit moderado \(v1\)/ }))
+    .or(p.locator('flt-semantics[aria-label*="Déficit moderado (v1)"]'))
+    .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: 'Déficit moderado (v1)' }))
+    .last()
+    .click();
+  await p.waitForTimeout(400);
+  await todos('Iniciar programa').last().click();
+  await texto(p, 'PROGRAMA DE PESO · desde').waitFor();
+  await tocar('Revisar contraindicaciones');
+  await texto(p, 'Contraindicaciones del GLP-1').waitFor();
+  await pulsarTodosBajando('No');
+  await pulsar(p, 'Guardar revisión');
+  await texto(p, 'Contraindicaciones revisadas el').waitFor();
+  await tocar('Iniciar GLP-1');
+  await texto(p, 'Invima 2019M-0019473').waitFor();
+  await escribir(p, 'Dosis', '0,25');
+  await todos('Iniciar').last().click();
+  await texto(p, 'Dosis  ').waitFor();
+  await alInicio();
+  await alcanzar(conTexto('PROGRAMA DE PESO · desde'));
+  await captura(p, 'w1_programa_peso.png');
+  paso('Programa de peso: meta 58 kg, plan «Déficit moderado», contraindicaciones en «no» y semaglutida 0,25 mg (copiada a la evolución)');
+
+  // Valoración estética (Muñoz).
+  await abrirFicha('52222333');
+  await tocar('Estética');
+  await texto(p, 'Sin valoración').waitFor();
+  await tocar('Nueva valoración');
+  await texto(p, 'Valoración · Hidrolipoclasia').waitFor();
+  await tocarAbajo('Abdomen inferior');
+  await tocarAbajo('Flancos');
+  // Todo en «No» y en 0 (contraindicaciones, SCOFF, DCQ; también la grasa
+  // pinzable y la flacidez de las zonas, que se corrigen después).
+  await pulsarTodosBajando('No');
+  await pulsarTodosBajando('0');
+  await hacerClic(todos('Sí').nth(0)); // Grasa pinzable: Abdomen inferior.
+  await hacerClic(todos('Sí').nth(1)); // Grasa pinzable: Flancos.
+  await escribirAbajo('Pinzable (Abdomen inferior)', '3');
+  await escribirAbajo('Pinzable (Flancos)', '2');
+  await tocarAbajo('Realistas');
+  await tocarAbajo('Apto');
+  await texto(p, 'Vale 90 días desde hoy').waitFor();
+  await alInicio();
+  await captura(p, 'v1_valoracion.png');
+  await aLaVista(todos('Sellar valoración en la historia'));
+  const hv2 = await descargar(p, () => todos('Sellar valoración en la historia').first().click());
+  if (path.basename(hv2) !== 'Historia_MUNOZ_52222333_v2.pdf') throw new Error(`Historia: ${path.basename(hv2)}`);
+  await texto(p, 'Ficha del paciente').waitFor();
+  paso(`Valoración «apto» sellada como evolución → ${path.basename(hv2)}`);
+
+  // Sesión sin consentimiento: el botón dice por qué.
+  await tocar('Estética');
+  await tocarAbajo('Registrar sesión');
+  await texto(p, 'Falta el consentimiento firmado.').waitFor();
+  await captura(p, 's0_sesion_sin_consentimiento.png');
+  if (await p.getByRole('button', { name: 'Sellar sesión' }).isEnabled()) {
+    throw new Error('Sin consentimiento se puede sellar la sesión');
+  }
+  paso('Sesión bloqueada por falta de consentimiento: «Falta el consentimiento firmado.»');
+
+  // Consentimiento informado con firma.
+  await pulsar(p, 'Volver a la ficha');
+  await texto(p, 'Ficha del paciente').waitFor();
+  await tocar('Estética');
+  await tocarAbajo('Firmar consentimiento');
+  await texto(p, 'Plan de tratamiento · Hidrolipoclasia').waitFor();
+  await pulsar(p, 'Continuar a la firma');
+  await texto(p, 'Hidrolipoclasia, en Abdomen inferior, Flancos, en 4 sesiones').waitFor();
+  await p.getByRole('checkbox', { name: /El paciente leyó/ }).click();
+  await firmarEnPantalla();
+  await captura(p, 'c1_consentimiento_informado.png');
+  const ci = await descargar(p, () => pulsar(p, 'Firmar y descargar PDF'));
+  if (path.basename(ci) !== 'Consentimiento_informado_MUNOZ_CI-000001.pdf') throw new Error(`CI: ${path.basename(ci)}`);
+  await texto(p, 'CI-000001 · 4 sesiones').waitFor();
+  paso(`Consentimiento informado por plan (4 sesiones, abdomen inferior y flancos) firmado → ${path.basename(ci)}`);
+
+  // Sesión: un lote vencido bloquea; corregido, se sella.
+  await tocarAbajo('Registrar sesión');
+  await texto(p, 'Sesión 1 de 4 · Hidrolipoclasia').waitFor();
+  // Solo la lista de verificación (los chips de zona también son casillas).
+  const verificacion = [
+    'Consentimiento vigente',
+    'Valoración vigente',
+    'Mayor de edad',
+    'Alergias revisadas',
+    'Anticoagulación descartada',
+    'Embarazo descartado',
+    'Sin infección en la zona',
+    'Signos vitales tomados',
+    'Lotes vigentes',
+    'Equipo verificado',
+    'Emulsión lipídica y protocolo de toxicidad disponibles',
+  ];
+  for (const item of verificacion) {
+    const c = p.getByRole('checkbox', { name: item, exact: true });
+    if (!(await c.isChecked())) await hacerClic(c);
+    if (!(await c.isChecked())) throw new Error(`«${item}» sin marcar`);
+  }
+  await escribirAbajo('Volumen (Abdomen inferior)', '300');
+  await escribirAbajo('Volumen (Flancos)', '200');
+  for (const n of ['Componente A de prueba', 'Componente B de prueba']) {
+    await escribirAbajo(`Lote (${n})`, 'C-0001');
+    await escribirAbajo(`Vence (${n})`, '31/03/2027');
+  }
+  await escribirAbajo('Volumen del anestésico', '10');
+  await escribirAbajo('Lote (Anestésico de prueba)', 'L2345');
+  await escribirAbajo('Vence (Anestésico de prueba)', '01/11/2026');
+  await escribirAbajo('Peso de hoy', '64');
+  await escribirAbajo('Duración', '45');
+  await texto(p, 'El lote L2345 de «Anestésico de prueba» venció el 01/11/2026.').waitFor();
+  await aLaVista(campo(p, 'Volumen del anestésico'));
+  await captura(p, 's1_sesion_lote_vencido.png');
+  paso('Sesión bloqueada por lote vencido: «El lote L2345 … venció el 01/11/2026.»');
+  await escribirAbajo('Vence (Anestésico de prueba)', '31/03/2027');
+  await texto(p, 'Lista para sellar').waitFor();
+  await texto(p, '200 mg · 3,1 mg/kg').waitFor();
+  await captura(p, 's2_sesion.png');
+  await alInicio();
+  await p.setViewportSize({ width: 820, height: 1180 });
+  await p.waitForTimeout(900);
+  await captura(p, 's3_sesion_tableta.png');
+  await p.setViewportSize({ width: 320, height: 640 });
+  await p.waitForTimeout(900);
+  await captura(p, 's4_sesion_320.png');
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  await p.waitForTimeout(900);
+  const hv3 = await descargar(p, () => pulsar(p, 'Sellar sesión'));
+  if (path.basename(hv3) !== 'Historia_MUNOZ_52222333_v3.pdf') throw new Error(`Historia: ${path.basename(hv3)}`);
+  try {
+    const t = execFileSync('pdftotext', [hv3, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+    for (const esperado of ['Valoración para Hidrolipoclasia', 'Sesión 1 de 4 de Hidrolipoclasia', 'Anestésico de prueba 20 mg/mL, 10 mL', 'lote L2345, vence 31/03/2027', '200 mg · 3,1 mg/kg']) {
+      if (!t.includes(esperado)) throw new Error(`La historia no dice «${esperado}»`);
+    }
+    const paginas = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [hv3], { encoding: 'utf8' }))[1]);
+    execFileSync('pdftoppm', ['-r', '90', '-png', '-f', String(paginas), '-l', String(paginas), '-singlefile', hv3, path.join(OUT, 'pdf_historia_sesion')]);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  await texto(p, 'Ficha del paciente').waitFor();
+  await tocar('Estética');
+  await alcanzar(conTexto('Sesión 1 de 4 ·'));
+  await captura(p, 'e1_estetica_ficha.png');
+  paso(`Sesión sellada como evolución (lotes, dosis en mg/kg y control) → ${path.basename(hv3)}`);
+  // Lo que sigue (móvil) es con la ficha de Peña, la que tiene fotos.
+  await abrirFicha('1032456789');
 
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
   const enClaro = await p.evaluate(

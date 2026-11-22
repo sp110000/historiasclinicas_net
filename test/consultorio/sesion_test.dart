@@ -368,8 +368,7 @@ void main() {
       expect(e.permiteSellar, isTrue);
       expect(
         e.avisos.single,
-        'Sin certificación vigente para «Lipólisis por infiltración»: se '
-        'registrará el aviso.',
+        'Sin certificación vigente para «Lipólisis por infiltración».',
       );
     });
 
@@ -447,6 +446,15 @@ void main() {
         ),
       );
       expect(texto, contains('Eventos adversos: Ninguno.'));
+      // Lo que el médico escribe con punto final no queda con «..».
+      expect(texto, contains('Indicaciones: Indicaciones de prueba. '));
+      expect(texto, isNot(contains('..')));
+      expect(
+        texto,
+        contains(
+          'Aviso: Sin certificación vigente para «Lipólisis por infiltración».',
+        ),
+      );
       expect(texto, contains('Control: 28/11/2026.'));
       // La evolución lleva el próximo control.
       expect(
@@ -629,6 +637,36 @@ void main() {
       expect(find.text('Sin consentimiento'), findsOneWidget);
       expect(find.text('Falta el consentimiento firmado.'), findsOneWidget);
       expect(sellar(t).onPressed, isNull);
+      await t.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('«Peso de hoy» sigue a la vista mientras se escribe', (
+      t,
+    ) async {
+      final b = BancoConsultorio();
+      await b.servicio.crear(fraseDePrueba);
+      final r = await b.servicio.registrarHistoria(
+        HistoriaPendiente(
+          datos: historiaSintetica(),
+          revision: 1,
+          origen: OrigenArchivo.importado,
+        ),
+      );
+      final id = r!.pacienteId;
+      // Sin medición reciente: el peso de la historia es del 02/10/2026.
+      await aprobarHidrolipoclasia(b);
+      await valorarAptoDePrueba(b, id);
+      await consentimientoDePrueba(b, id);
+      await montar(t, b, '/pacientes/$id/sesion/hidrolipoclasia');
+      expect(find.text('Peso 64,5 kg del 02/10/2026.'), findsOneWidget);
+      await escribir(t, 'Peso de hoy', '6');
+      expect(find.text('Peso de hoy'), findsOneWidget);
+      await escribir(t, 'Peso de hoy', '64');
+      expect(find.text('Peso de hoy'), findsOneWidget);
+      expect(find.text('Peso 64 kg del 21/11/2026.'), findsOneWidget);
+      // Borrarlo devuelve el peso anterior.
+      await escribir(t, 'Peso de hoy', '');
+      expect(find.text('Peso 64,5 kg del 02/10/2026.'), findsOneWidget);
       await t.pump(const Duration(seconds: 5));
     });
 

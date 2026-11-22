@@ -120,7 +120,7 @@ class _EditorProcedimientoPageState
                 alCambiar: (v) => _poner(_d.copyWith(nombre: v.trim())),
               ),
               CampoTexto(
-                etiqueta: 'Familia de técnicas (certificaciones)',
+                etiqueta: 'Familia de técnicas (certificaciones, VERIFICAR)',
                 valorInicial: d.familia,
                 alCambiar: (v) => _poner(_d.copyWith(familia: v.trim())),
               ),

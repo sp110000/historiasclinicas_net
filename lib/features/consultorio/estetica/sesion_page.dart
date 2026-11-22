@@ -16,6 +16,7 @@ import '../../../core/widgets/campos.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
 import '../integracion/sellado.dart';
+import '../widgets/chip_seleccion.dart';
 import '../widgets/comunes.dart';
 import 'seccion_estetica.dart' show etiquetaValoracion;
 
@@ -41,6 +42,12 @@ class _SesionPageState extends ConsumerState<SesionPage> {
   DefinicionProcedimiento? _d;
   String? _sinPlantilla;
   var _registrarPeso = false;
+
+  /// Si al abrir no había un peso de los últimos 30 días, se pide el de hoy
+  /// (y el campo sigue a la vista mientras se escribe).
+  var _pedirPeso = false;
+  double? _pesoAnterior;
+  DateTime? _fechaPesoAnterior;
   var _sellando = false;
   String? _error;
 
@@ -51,8 +58,20 @@ class _SesionPageState extends ConsumerState<SesionPage> {
     final ficha = s.indice.ficha(widget.pacienteId);
     try {
       if (ficha == null) throw StateError('No existe la ficha.');
-      _s = s.procedimientos.nuevaSesion(ficha, widget.plantillaId);
+      final borrador = s.procedimientos.nuevaSesion(ficha, widget.plantillaId);
+      _s = borrador;
       _d = s.procedimientos.vigente(widget.plantillaId).definicion;
+      final a = s.reloj.ahora();
+      _pesoAnterior = borrador.pesoKg;
+      _fechaPesoAnterior = borrador.fechaPeso;
+      _pedirPeso =
+          borrador.fechaPeso == null ||
+          DateTime(
+                a.year,
+                a.month,
+                a.day,
+              ).difference(borrador.fechaPeso!).inDays >
+              diasVigenciaPeso;
     } on StateError catch (e) {
       _sinPlantilla = e.message;
     }
@@ -161,6 +180,11 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                         ],
                       ),
                     ),
+                  const Text(
+                    'Los avisos no impiden sellar; quedan en la evolución y '
+                    'en la bitácora.',
+                    style: TextStyle(color: ColoresMarca.textoSuave),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 _Seccion(
@@ -197,10 +221,10 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                       runSpacing: 8,
                       children: [
                         for (final z in d.zonas)
-                          FilterChip(
-                            label: Text(z),
-                            selected: s.zonas.any((x) => x.zona == z),
-                            onSelected: (si) => _poner(
+                          ChipSeleccion(
+                            texto: z,
+                            seleccionado: s.zonas.any((x) => x.zona == z),
+                            alCambiar: (si) => _poner(
                               s.copyWith(
                                 zonas: si
                                     ? [...s.zonas, ZonaSesion(zona: z)]
@@ -259,16 +283,16 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                     _Anestesico(
                       s: s,
                       d: d,
-                      hoy: servicio.reloj.ahora(),
+                      pedirPeso: _pedirPeso,
                       alCambiar: _poner,
                       alPesarHoy: (p) {
                         final a = servicio.reloj.ahora();
                         _registrarPeso = p != null;
                         _poner(
                           s.copyWith(
-                            pesoKg: p,
+                            pesoKg: p ?? _pesoAnterior,
                             fechaPeso: p == null
-                                ? null
+                                ? _fechaPesoAnterior
                                 : DateTime(a.year, a.month, a.day),
                           ),
                         );
@@ -590,14 +614,16 @@ class _Anestesico extends StatelessWidget {
   const _Anestesico({
     required this.s,
     required this.d,
-    required this.hoy,
+    required this.pedirPeso,
     required this.alCambiar,
     required this.alPesarHoy,
   });
 
   final Sesion s;
   final DefinicionProcedimiento d;
-  final DateTime hoy;
+
+  /// Muestra «Peso de hoy» (el último peso tenía más de 30 días o no había).
+  final bool pedirPeso;
   final ValueChanged<Sesion> alCambiar;
   final ValueChanged<double?> alPesarHoy;
 
@@ -616,10 +642,6 @@ class _Anestesico extends StatelessWidget {
         : fraccion >= avisoDosis
         ? ColoresMarca.aviso
         : ColoresMarca.estadoOk;
-    final pesoViejo =
-        s.fechaPeso == null ||
-        DateTime(hoy.year, hoy.month, hoy.day).difference(s.fechaPeso!).inDays >
-            diasVigenciaPeso;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -675,7 +697,7 @@ class _Anestesico extends StatelessWidget {
                       '${formatoFecha(s.fechaPeso!)}.',
             style: const TextStyle(color: ColoresMarca.textoSuave),
           ),
-          if (pesoViejo) ...[
+          if (pedirPeso) ...[
             const SizedBox(height: 6),
             CampoNumero(
               etiqueta: 'Peso de hoy',

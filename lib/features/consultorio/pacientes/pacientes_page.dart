@@ -16,6 +16,7 @@ import '../estado/pacientes_provider.dart';
 import 'dialogo_ficha.dart';
 import '../widgets/comunes.dart';
 import 'importacion.dart';
+import '../widgets/chip_seleccion.dart';
 
 /// Lista de pacientes con búsqueda y filtros.
 class PacientesPage extends ConsumerStatefulWidget {
@@ -335,17 +336,17 @@ class _Filtros extends StatelessWidget {
           spacing: 8,
           runSpacing: 6,
           children: [
-            FilterChip(
-              avatar: const Icon(Icons.alarm, size: 18),
-              label: Text('Controles vencidos ($vencidos)'),
-              selected: soloVencidos,
-              onSelected: alCambiarVencidos,
+            ChipSeleccion(
+              icono: Icons.alarm,
+              texto: 'Controles vencidos ($vencidos)',
+              seleccionado: soloVencidos,
+              alCambiar: alCambiarVencidos,
             ),
             for (final e in etiquetasUsadas)
-              FilterChip(
-                label: Text(e),
-                selected: etiquetas.contains(e),
-                onSelected: (si) => alCambiarEtiqueta(e, si),
+              ChipSeleccion(
+                texto: e,
+                seleccionado: etiquetas.contains(e),
+                alCambiar: (si) => alCambiarEtiqueta(e, si),
               ),
           ],
         ),

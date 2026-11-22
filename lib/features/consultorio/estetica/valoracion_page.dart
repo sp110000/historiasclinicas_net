@@ -14,6 +14,7 @@ import '../../../core/widgets/campos.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
 import '../integracion/sellado.dart';
+import '../widgets/chip_seleccion.dart';
 import '../widgets/comunes.dart';
 
 /// Valoración para un procedimiento estético con su plantilla vigente
@@ -279,10 +280,10 @@ class _Candidato extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final z in d.zonas)
-              FilterChip(
-                label: Text(z),
-                selected: seleccionadas.contains(z),
-                onSelected: (si) => alCambiar(
+              ChipSeleccion(
+                texto: z,
+                seleccionado: seleccionadas.contains(z),
+                alCambiar: (si) => alCambiar(
                   v.copyWith(
                     zonas: si
                         ? [...v.zonas, ZonaValorada(zona: z)]

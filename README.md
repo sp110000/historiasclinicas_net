@@ -4,7 +4,7 @@ Historia clínica y receta en el navegador. Sin servidor, sin base de datos y si
 
 **Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
-**Fase 5, el consultorio (en curso):** índice de pacientes y datos de gestión en un almacén local cifrado, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público no cambia). Terminadas la 5.0 «Cimientos» (frase de acceso, código de recuperación, bloqueo, respaldo cifrado y Ajustes) la 5.1 «Pacientes» (índice de pacientes con búsqueda, importación de PDF, ficha longitudinal, autorización de tratamiento de datos firmada en pantalla, política de privacidad, recetas con `receta.json`, y borrador y receta en curso cifrados) y la 5.2 «Seguimiento y fotos» (mediciones con IMC e ICC y gráficas, consentimiento de uso de imagen, fotos cifradas sin EXIF con guía de encuadre, comparación y cortina, informe de seguimiento en PDF y paquete cifrado del equipo secundario). Plan y avance en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
+**Fase 5, el consultorio (en curso):** índice de pacientes y datos de gestión en un almacén local cifrado, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público no cambia). Terminadas la 5.0 «Cimientos» (frase de acceso, código de recuperación, bloqueo, respaldo cifrado y Ajustes) la 5.1 «Pacientes» (índice de pacientes con búsqueda, importación de PDF, ficha longitudinal, autorización de tratamiento de datos firmada en pantalla, política de privacidad, recetas con `receta.json`, y borrador y receta en curso cifrados) la 5.2 «Seguimiento y fotos» (mediciones con IMC e ICC y gráficas, consentimiento de uso de imagen, fotos cifradas sin EXIF con guía de encuadre, comparación y cortina, informe de seguimiento en PDF y paquete cifrado del equipo secundario) y la 5.3 (programa de peso con GLP-1 y contraindicaciones, plantilla declarativa de hidrolipoclasia con tu protocolo, valoración estética, consentimiento informado por plan, sesión con dosis en mg/kg y reglas de bloqueo, sellada en la historia, y certificaciones por técnica). Plan y avance en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
@@ -31,7 +31,7 @@ node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) 
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
 # Consultorio (bandera encendida):
 node tool/e2e/servidor.mjs 8766 build/web-consultorio &
-node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe (sin conexión)
+node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe; programa de peso, valoración, consentimiento y sesión (sin conexión)
 ```
 GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
@@ -46,7 +46,9 @@ lib/
     consultorio/    Fase 5 (bandera CONSULTORIO_ENABLED): almacén cifrado en IndexedDB, llavero y
                     AES-256-GCM, repositorio, migraciones, respaldo .hcrespaldo, hoja de recuperación;
                     índice de pacientes (fichas, historias, recetas), plantillas y documentos firmados;
-                    mediciones, fotos (sin EXIF), informe de seguimiento y paquete .hcpaquete
+                    mediciones, fotos (sin EXIF), informe de seguimiento y paquete .hcpaquete;
+                    programa de peso y GLP-1, plantillas de procedimiento, valoración,
+                    consentimiento informado, sesión y certificaciones; reglas puras (reglas/)
     imagenes/       firma, sello y logo: quitar fondo, recortar, reducir
     integridad/     JSON canónico y cadena SHA-256
     models/         historia, paciente, antecedentes, revisión por sistemas, signos, diagnósticos, evoluciones, médico
@@ -60,7 +62,8 @@ lib/
   features/
     consultorio/    Fase 5: contenedor (riel y menú), desbloqueo, Ajustes, respaldo, pacientes y ficha,
                     documentos (plantillas, autorización, consentimiento de imagen), seguimiento,
-                    fotos, equipo secundario, enganches con la historia y la receta
+                    fotos, equipo secundario, peso, estética (valoración, consentimiento, sesión),
+                    enganches con la historia y la receta
     historia/       pantalla, estado (Riverpod), formularios, evoluciones
     cie10/          estado del catálogo e importación
     medico/         datos del médico, firma (dibujada o subida), sello y logo

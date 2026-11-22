@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: 5.2 «Seguimiento y fotos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). La 5.0 y la 5.1 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
+> **Estado: 5.3 «Programa de peso, valoración estética, consentimiento y sesiones» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). La 5.0, la 5.1 y la 5.2 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para seguir:** el visto bueno de la 5.2. Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.3, dímelo.
+**Qué necesito de ti para seguir:** el visto bueno de la 5.3 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos del consentimiento, catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.4, dímelo.
 
 ---
 
@@ -31,7 +31,84 @@
 
 ## Avance
 
-### 5.2 Seguimiento y fotos ✅ (pendiente de tu visto bueno)
+### 5.3 Programa de peso, valoración estética, consentimiento y sesiones ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Programa de peso** (ficha → Peso):
+  - inicio, meta (peso, cintura y fecha) con el avance desde el inicio, y la meta en la gráfica del seguimiento (pregunta 27);
+  - proteína indicada (la cantidad la fijas tú) y el recordatorio de proteína y fuerza en la ficha y en las indicaciones impresas (pregunta 26);
+  - planes nutricional y de ejercicio tomados de **plantillas aprobadas** y ajustables por paciente. Las tres de fábrica traen solo los apartados en blanco («______»), sin cifras;
+  - **indicaciones en PDF** con tu firma.
+- **GLP-1** (pregunta 24):
+  - catálogo editable: semaglutida subcutánea y oral, liraglutida y tirzepatida. **Solo OZEMPIC® trae registro** (2019M-0019473, para diabetes tipo 2); los demás dicen «registro Invima sin confirmar» hasta que escribas el número;
+  - ningún esquema trae dosis: el esquema de titulación lo escribes y **lo apruebas** en Ajustes; aprobado, el cambio de dosis lo sugiere;
+  - inicio, cambios de dosis, tolerancia, **eventos adversos** (con «reportado a Invima») y suspensión. El inicio, los cambios, los eventos y la suspensión se agregan a la evolución en curso.
+- **Contraindicaciones del GLP-1** (pregunta 25): una absoluta en «sí» **o sin aclarar** impide iniciar; una precaución en «sí» o «no sabe» pide nota; embarazo, lactancia y anticoncepción solo se preguntan a mujeres (o si no hay sexo registrado). Todo VERIFICAR contra la ficha técnica.
+- **Plantilla declarativa de procedimiento** (Ajustes → Procedimientos; hidrolipoclasia de fábrica, en borrador):
+  - valoración: zonas, IMC desde el que avisa (30), vigencia del «apto» (90 días), contraindicaciones que dan «no apto» o «diferir», precauciones con nota, tamizajes y recomendaciones;
+  - **tamizajes SCOFF y DCQ solo con su estructura** (número de ítems, escala y corte, VERIFICAR); el texto de los ítems lo cargas tú (pregunta 30);
+  - **protocolo de la sesión vacío** (componentes, volumen máximo por zona y por sesión, intervalo, número de sesiones, anestésicos con concentración y máximo en mg/kg, lista de verificación, indicaciones y días hasta el control) y los riesgos y alternativas del consentimiento (pregunta 31). **Sin el protocolo completo la plantilla no se aprueba, y sin aprobar no se usa**. Agregar toxina o rellenos es agregar otra definición.
+- **Valoración** (ficha → Estética → «Nueva valoración»):
+  - candidato (peso, talla e IMC con aviso), zonas con grasa pinzable en cm, elasticidad y flacidez, expectativas, contraindicaciones, tamizajes y resultado;
+  - las contraindicaciones fijan el **resultado mínimo**; «no apto» y «diferir» piden motivo; «apto» vale 90 días; recomendación de una lista editable;
+  - **un menor de 18 años no puede tener valoración** (Ley 1799 de 2016, VERIFICAR) y sin fecha de nacimiento se pide en la ficha;
+  - **se sella como evolución** en la historia más reciente: se genera y **descarga la versión nueva del PDF** y queda en el índice (pregunta 29).
+- **Consentimiento informado por plan** (CI-, pregunta 39): plantilla en BORRADOR con los apartados del art. 16 del Proyecto de Ley 187 de 2026 (no es ley) y del art. 15 de la Ley 23 de 1981 (**VERIFICAR con tu abogado**). Cubre un plan (procedimiento, zonas, sesiones y producto) que viaja en `documento.json`; lleva tu registro, la certificación vigente, el REPS, la habilitación y la póliza. Se revoca o se anula con motivo; uno nuevo toma el número siguiente.
+- **Sesión** (ficha → Estética → «Registrar sesión», pregunta 35):
+  - lista de verificación previa (pregunta 33), zonas del consentimiento con su volumen, solución con lote y vencimiento, anestésico con la **dosis en mg y mg/kg** (con el peso de los últimos 30 días o el «peso de hoy», que queda como medición), equipo, insumos con lote, duración, eventos adversos, indicaciones y control;
+  - **reglas puras con pruebas por tabla.** Bloquean: plantilla sin aprobar, menor de 18, valoración que falta, «no apto», «diferir» o vencida, consentimiento que falta o revocado, zona fuera del consentimiento, más sesiones que el plan, lista incompleta, volumen sobre el máximo, peso viejo, **dosis por encima del máximo**, lote sin escribir o **vencido**. Avisan: dosis desde el 80 %, menos días que el intervalo, protocolo de otra versión que el consentimiento y técnica sin certificación;
+  - el botón de sellar va fijo abajo y **dice por qué** no se puede; en pantallas angostas, bloques plegables;
+  - **se sella como evolución con todo lo clínico** y el próximo control, y se descarga la versión nueva del PDF.
+- **Certificaciones por técnica** (Ajustes, pregunta 36): entidad, fecha, vigencia y soporte (PDF o foto, cifrado); se retiran sin borrarse. Sin certificación vigente, la sesión **avisa y queda en la bitácora**, sin bloquear.
+- **Prestador y póliza** (Ajustes, pregunta 34): código REPS, NIT, habilitación del servicio y póliza de complicaciones (o «sin póliza»), que se copian al consentimiento y a la sesión.
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **540 en verde** (469 en la 5.2). Las reglas van por tabla: contraindicaciones del GLP-1 (9 casos), edad y resultado mínimo de la valoración (8), y la sesión (16 bloqueos y 3 avisos): menor de 18, «no apto», «diferir», valoración vencida o faltante, consentimiento faltante o revocado, zona fuera del plan, más sesiones que el plan, plantilla sin aprobar, dosis por encima del máximo, lote vencido o sin escribir, peso viejo, lista incompleta, volumen sobre el máximo, dosis al 80 %, intervalo y técnica sin certificación (aviso registrado) |
+| Bandera apagada | La 5.3 no tocó ningún archivo compartido: el `main.dart.js` público **pesa lo mismo que en la 5.1 y la 5.2** (5.333.404 bytes) y no lleva el módulo (`verificar_compilacion.dart`) |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **5.945 KB** (5.752 KB en la 5.2: +193 KB) |
+| Contraste | Los textos y pastillas nuevos usan los colores del tema, ya probados (≥ 4,5:1). Los chips de selección (zonas, líneas de atención y filtros de la lista) ahora llevan el texto en blanco cuando están elegidos, con prueba |
+| 320 px | Programa de peso, valoración y sesión plegable sin desbordes, con prueba |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **37 de 37 pasos** (30 de antes y 7 nuevos). Aprobar el consentimiento informado y un plan; **escribir y aprobar el protocolo** (valores de prueba); prestador y póliza; **programa de peso** con la lista de contraindicaciones y semaglutida 0,25 mg; **valoración «apto»** sellada (historia v2); **sesión bloqueada sin consentimiento**; **consentimiento por plan** firmado en pantalla; **sesión bloqueada por un lote vencido**; corregida, **sellada** (historia v3, cuyo texto se lee con `pdftotext`: lote, dosis en mg/kg y control). 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.3**
+1. **Firmar cualquier documento que no fuera el consentimiento de imagen lo dejaba como «autorización de datos» de la ficha.** Con el consentimiento informado, firmar uno habría reemplazado la autorización. Ahora solo la autorización y el consentimiento de imagen tocan esos enlaces, con prueba.
+2. **La e2e borró sin querer la lista de verificación del protocolo:** al escribir en otro campo de una página larga, borraba con Ctrl+A aunque el foco no hubiera llegado, y la plantilla no se aprobó por la lista vacía. La app estaba bien; ahora la e2e solo escribe con el foco en el campo correcto, lleva cada elemento a la vista antes de hacer clic y comprueba la lista y la aprobación.
+3. Las pruebas de la 5.1 suponían tres plantillas de documentos y que «la última» era la política; ahora buscan dentro de la fila de cada una.
+4. **El campo «Peso de hoy» de la sesión desaparecía al escribir la primera cifra:** la pantalla decidía si pedirlo con el peso que se estaba escribiendo. Ahora lo decide al abrir la sesión y el campo sigue a la vista; borrar el peso devuelve el anterior. Lo encontró la e2e; tiene prueba de widgets.
+5. **Las zonas elegidas casi no se leían:** los chips de selección de Material dejaban el texto oscuro sobre el fondo petróleo. El tema es compartido con el sitio público, así que el arreglo va en un chip propio del consultorio (texto blanco, ≥ 4,5:1, con prueba), también en las líneas de atención y los filtros de la lista de pacientes de la 5.1.
+6. **Texto sellado de la sesión:** las indicaciones que terminaban en punto salían con «..», y el aviso de certificación decía «se registrará el aviso» dentro de la evolución ya sellada. Ahora cada frase lleva un solo punto y el aviso dice solo lo que falta; la pantalla aclara que los avisos quedan en la evolución y en la bitácora.
+7. **La familia de técnicas de fábrica decía «Lipólisis por infiltración (VERIFICAR)»** y ese nombre terminaba en el texto sellado. Ahora el VERIFICAR va en la etiqueta del editor y el nombre queda limpio.
+8. En la e2e, los chips de las zonas cuentan como casillas en el árbol de semántica y se marcaban con la lista de verificación; ahora la lista se recorre por el nombre de cada elemento.
+9. Durante la 5.3 se reinició el proceso de esta sesión; no se perdió nada (todo estaba en la rama o en el disco).
+
+**Desviaciones del plan**
+- **«No sabe» en una contraindicación absoluta también impide iniciar el GLP-1.** El plan decía solo «sí»; me pareció más prudente pedir que se aclare (por ejemplo, el embarazo).
+- **El motivo es obligatorio en «no apto» y «diferir»**, no en «apto», donde queda opcional.
+- **La lista de contraindicaciones del GLP-1 es fija en esta versión** (la de la pregunta 25, versión 1). Si la cambias, cada revisión guarda con qué versión se hizo; editarla en pantalla queda para la 5.8.
+- **El consentimiento no exige la valoración**, pero la sesión exige las dos. La ficha los muestra en ese orden.
+- **El intervalo entre sesiones y un protocolo de otra versión que el consentimiento avisan, no bloquean.** Si cambió la técnica o el producto, firma un consentimiento nuevo.
+- **La sesión se guarda solo al sellarla** (no hay borradores de sesión).
+- **Para sellar una valoración o una sesión,** la historia de ese paciente no puede tener cambios sin descargar en el editor (por ejemplo, una evolución en curso con el GLP-1); si los tiene, la app pide descargarla primero. Así la historia no se bifurca.
+- **Lotes escritos a mano:** un lote vencido ya bloquea, pero descontar del inventario llega en la 5.7, como estaba previsto. Las citas de procedimiento (y su regla de mayoría de edad) llegan con la agenda (5.5).
+- **El paquete del equipo secundario** sigue llevando fichas, mediciones, fotos y documentos (también un consentimiento informado firmado allí), pero no programas, valoraciones ni sesiones: esas se hacen en el principal.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):**
+  - [programa de peso](fase5/escritorio_programa_peso.png)
+  - [protocolo en Ajustes](fase5/escritorio_protocolo.png)
+  - [valoración](fase5/escritorio_valoracion.png)
+  - [consentimiento informado con firma](fase5/escritorio_consentimiento_informado.png)
+  - [sesión sin consentimiento](fase5/escritorio_sesion_sin_consentimiento.png) · [sesión con un lote vencido](fase5/escritorio_sesion_lote_vencido.png) · [sesión lista](fase5/escritorio_sesion.png)
+  - [ficha → Estética](fase5/escritorio_estetica_ficha.png)
+- **Tableta (820 px):** [sesión](fase5/tableta_sesion.png)
+- **320 px:** [sesión plegable](fase5/320_sesion.png)
+- **PDF:** [la sesión sellada en la historia](fase5/pdf_historia_sesion.png)
+
+### 5.2 Seguimiento y fotos ✅ (aprobada el 22/11/2026)
 
 **Qué incluye**
 - **Mediciones** (pestaña «Seguimiento» de la ficha):

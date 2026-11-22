@@ -10,6 +10,7 @@ import '../../../core/widgets/titulo_dialogo.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/chip_seleccion.dart';
 
 /// Crea una ficha a mano ([ficha] `null`) o edita sus datos
 /// administrativos. Devuelve la ficha guardada, o `null` si se cancela.
@@ -260,10 +261,10 @@ class _DialogoFichaState extends ConsumerState<_DialogoFicha> {
                 runSpacing: 6,
                 children: [
                   for (final l in LineaAtencion.values)
-                    FilterChip(
-                      label: Text(l.etiqueta),
-                      selected: f.lineas.contains(l),
-                      onSelected: (si) => _cambiar(
+                    ChipSeleccion(
+                      texto: l.etiqueta,
+                      seleccionado: f.lineas.contains(l),
+                      alCambiar: (si) => _cambiar(
                         (f) => f.copyWith(
                           lineas: si
                               ? {...f.lineas, l}

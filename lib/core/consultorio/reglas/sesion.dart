@@ -222,9 +222,7 @@ EvaluacionSesion evaluarSesion({
 
   // Certificación (pregunta 36: aviso registrado, no bloqueo).
   if (!certificada) {
-    avisos.add(
-      'Sin certificación vigente para «${d.familia}»: se registrará el aviso.',
-    );
+    avisos.add('Sin certificación vigente para «${d.familia}».');
   }
 
   if (s.duracionMin == null || s.duracionMin! <= 0) {

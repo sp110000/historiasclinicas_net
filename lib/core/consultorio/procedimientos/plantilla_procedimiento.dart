@@ -427,7 +427,7 @@ const hidrolipoclasiaBase = PlantillaProcedimiento(
       version: 1,
       definicion: DefinicionProcedimiento(
         nombre: 'Hidrolipoclasia',
-        familia: 'Lipólisis por infiltración (VERIFICAR)',
+        familia: 'Lipólisis por infiltración',
         imcMaximoAviso: 30,
         vigenciaDias: 90,
         zonas: [
