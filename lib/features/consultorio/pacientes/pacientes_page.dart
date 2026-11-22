@@ -103,13 +103,16 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
             IconButton(
               onPressed: () => importarPdfs(context, ref),
               icon: const Icon(Icons.upload_file_outlined),
-              tooltip: 'Importar PDF',
+              tooltip: 'Importar PDF (historias, documentos y recetas)',
             )
           else ...[
-            TextButton.icon(
-              onPressed: () => importarPdfs(context, ref),
-              icon: const Icon(Icons.upload_file_outlined),
-              label: const Text('Importar PDF'),
+            Tooltip(
+              message: 'Historias, documentos y recetas de la app',
+              child: TextButton.icon(
+                onPressed: () => importarPdfs(context, ref),
+                icon: const Icon(Icons.upload_file_outlined),
+                label: const Text('Importar PDF'),
+              ),
             ),
             const SizedBox(width: 4),
             FilledButton.icon(
@@ -494,8 +497,8 @@ class _Vacio extends StatelessWidget {
             const SizedBox(height: 6),
             const Text(
               'Se agregan solos cuando guardas o abres una historia. También '
-              'puedes importar en lote los PDF que ya tienes, o soltarlos '
-              'aquí.',
+              'puedes importar en lote los PDF de la app que ya tienes '
+              '(historias, documentos y recetas), o soltarlos aquí.',
               textAlign: TextAlign.center,
               style: TextStyle(color: ColoresMarca.textoSuave),
             ),

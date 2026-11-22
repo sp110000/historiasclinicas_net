@@ -8,8 +8,8 @@ import '../../../core/widgets/titulo_dialogo.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 
-/// Importa PDF de historias (elegidos o soltados) y muestra el informe.
-/// Sin [archivos], abre el selector.
+/// Importa PDF de la app (historias, documentos y recetas; elegidos o
+/// soltados) y muestra el informe. Sin [archivos], abre el selector.
 Future<void> importarPdfs(
   BuildContext context,
   WidgetRef ref, {
@@ -17,7 +17,7 @@ Future<void> importarPdfs(
 }) async {
   final elegidos = archivos ?? await ref.read(elegirPdfsProvider)();
   if (elegidos.isEmpty || !context.mounted) return;
-  final indice = ref.read(servicioConsultorioProvider).indice;
+  final servicio = ref.read(servicioConsultorioProvider);
   final avance = ValueNotifier<int>(0);
   final navegador = Navigator.of(context, rootNavigator: true);
   // El avance no se puede cerrar: termina solo.
@@ -31,7 +31,7 @@ Future<void> importarPdfs(
   );
   List<ResultadoImportacion> resultados;
   try {
-    resultados = await indice.importarVarios([
+    resultados = await servicio.importarArchivos([
       for (final a in elegidos) (nombre: a.nombre, bytes: a.bytes),
     ], alAvanzar: (hechos, _) => avance.value = hechos);
   } finally {
@@ -57,7 +57,7 @@ class _DialogoAvance extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const TituloDialogo(
-        'Importando historias',
+        'Importando archivos',
         icono: Icons.upload_file_outlined,
       ),
       content: ValueListenableBuilder<int>(
@@ -154,7 +154,7 @@ class _FilaInforme extends StatelessWidget {
       TipoImportacion.registrada => (
         Icons.check_circle_outline,
         ColoresMarca.estadoOk,
-        r.registro?.tipo.etiqueta ?? 'Importada',
+        r.registro?.tipo.etiqueta ?? r.mensaje,
       ),
       TipoImportacion.alterada => (
         Icons.gpp_bad_outlined,
@@ -174,7 +174,17 @@ class _FilaInforme extends StatelessWidget {
       TipoImportacion.noEsHistoria => (
         Icons.help_outline,
         ColoresMarca.aviso,
-        'No es una historia',
+        'No es compatible',
+      ),
+      TipoImportacion.sinFicha => (
+        Icons.person_off_outlined,
+        ColoresMarca.aviso,
+        'Sin ficha',
+      ),
+      TipoImportacion.rechazada => (
+        Icons.gpp_bad_outlined,
+        ColoresMarca.error,
+        'No coincide',
       ),
     };
     final detalle = switch (r.tipo) {

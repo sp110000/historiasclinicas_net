@@ -5,6 +5,7 @@ import '../ihce/reloj.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
+import 'documentos/lectura_adjuntos.dart';
 import 'peso/programas.dart';
 import 'procedimientos/procedimientos.dart';
 import 'seguimiento/seguimiento.dart';
@@ -371,6 +372,45 @@ class ServicioConsultorio {
   }
 
   Future<List<EntradaBitacora>> bitacora() => leerBitacora(repositorio);
+
+  /// Importa PDF de la app: historias, documentos (`documento.json`) y
+  /// recetas (`receta.json`). Cada documento o receta se verifica con su
+  /// huella y, si ya estaba, contra el registrado. Nunca lanza: el
+  /// resultado dice qué pasó con cada archivo.
+  Future<List<ResultadoImportacion>> importarArchivos(
+    List<({String nombre, Uint8List bytes})> archivos, {
+    void Function(int hechos, int total)? alAvanzar,
+  }) async {
+    final resultados = <ResultadoImportacion>[];
+    for (final (i, a) in archivos.indexed) {
+      final adjunto = leerAdjuntoConsultorio(a.bytes);
+      resultados.add(switch (adjunto?.clase) {
+        ClaseAdjunto.documento => await documentos.importarPdf(
+          a.bytes,
+          nombre: a.nombre,
+          datos: adjunto!.datos,
+          integro: adjunto.integro,
+        ),
+        ClaseAdjunto.receta => await indice.importarReceta(
+          a.bytes,
+          nombre: a.nombre,
+          datos: adjunto!.datos,
+          integra: adjunto.integro,
+        ),
+        null => await indice.importarPdf(a.bytes, nombre: a.nombre),
+      });
+      alAvanzar?.call(i + 1, archivos.length);
+      await Future<void>.delayed(Duration.zero);
+    }
+    final importados = resultados.where((r) => r.importada).length;
+    await registrarEnBitacora(
+      repositorio,
+      AccionBitacora.importarPdf,
+      fecha: reloj.ahora(),
+      resumen: '$importados de ${archivos.length} archivos',
+    );
+    return resultados;
+  }
 
   // ─────────────────────── Equipo secundario ───────────────────────
 

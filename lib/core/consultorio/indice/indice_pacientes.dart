@@ -5,12 +5,15 @@ import 'package:crypto/crypto.dart';
 
 import '../../ihce/reloj.dart';
 import '../../models/historia.dart';
+import '../../models/mapa.dart';
 import '../../pdf/adjunto_historia.dart';
 import '../../pdf/lector_adjunto.dart';
+import '../../receta/receta.dart' show ItemReceta;
 import '../../utils/ids.dart';
+import '../documentos/lectura_adjuntos.dart';
 import '../modelos/ficha_paciente.dart';
-import '../modelos/registro_receta.dart';
 import '../modelos/registro_historia.dart';
+import '../modelos/registro_receta.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
 import 'normalizar.dart';
@@ -56,7 +59,20 @@ class ResultadoRegistro {
 }
 
 /// Resultado de importar un archivo en lote.
-enum TipoImportacion { registrada, alterada, danada, noEsDeLaApp, noEsHistoria }
+enum TipoImportacion {
+  registrada,
+  alterada,
+  danada,
+  noEsDeLaApp,
+  noEsHistoria,
+
+  /// Un documento o una receta sin ficha a la que ligarlo.
+  sinFicha,
+
+  /// Un documento o una receta que no coincide con su huella o con el
+  /// registrado: no se importa.
+  rechazada,
+}
 
 class ResultadoImportacion {
   const ResultadoImportacion({
@@ -64,14 +80,20 @@ class ResultadoImportacion {
     required this.tipo,
     required this.mensaje,
     this.registro,
+    this.pacienteId,
   });
 
   final String nombre;
   final TipoImportacion tipo;
   final String mensaje;
+
+  /// El de una historia.
   final ResultadoRegistro? registro;
 
-  bool get importada => registro != null;
+  /// La ficha de un documento o una receta que quedó en el índice.
+  final String? pacienteId;
+
+  bool get importada => registro != null || pacienteId != null;
 }
 
 /// Filtro por la fecha de la última atención.
@@ -644,6 +666,93 @@ class IndicePacientes {
     if (nueva) _ponerFicha(ficha);
     _recetas[recetaId] = registro;
     return ficha.id;
+  }
+
+  /// La ficha de un paciente a partir de lo que trae un documento o una
+  /// receta: su id, la de su historia o la de su documento de identidad.
+  FichaPaciente? fichaParaAdjunto({
+    String pacienteId = '',
+    String historiaId = '',
+    String documento = '',
+  }) {
+    final porId = pacienteId.isEmpty ? null : fichaActiva(pacienteId);
+    if (porId != null) return porId;
+    final h = historiaId.isEmpty ? null : _historias[historiaId];
+    final porHistoria = h == null ? null : _activa(_fichas[h.pacienteId]);
+    if (porHistoria != null) return porHistoria;
+    final (tipo, numero) = partirDocumento(documento);
+    final clave = claveDocumento(tipo, numero);
+    return clave == null ? null : porClave(clave);
+  }
+
+  /// Importa una receta de la app (su `receta.json` ya leído). Una receta
+  /// que ya está no se duplica; sin ficha a la que ligarla no se importa.
+  Future<ResultadoImportacion> importarReceta(
+    Uint8List bytes, {
+    required String nombre,
+    required Map<String, Object?> datos,
+    required bool integra,
+  }) async {
+    if (!integra) {
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.rechazada,
+        mensaje:
+            'Los datos de la receta no coinciden con su huella: el archivo '
+            'se modificó. No se importó.',
+      );
+    }
+    final r = datos.mapa('receta');
+    final p = datos.mapa('paciente');
+    final id = r.texto('id');
+    final numero = r.textoONulo('numero');
+    final etiqueta = ['Receta', ?numero].join(' ');
+    final existente = _recetas[id];
+    if (existente != null) {
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.registrada,
+        mensaje: 'Ya estaba · $etiqueta',
+        pacienteId: existente.pacienteId,
+      );
+    }
+    final ficha = fichaParaAdjunto(
+      historiaId: r.texto('historiaId'),
+      documento: p.texto('documento'),
+    );
+    if (id.isEmpty || ficha == null) {
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.sinFicha,
+        mensaje:
+            'No hay una ficha de ${p.texto('nombre').isEmpty ? 'este paciente' : '«${p.texto('nombre')}»'}: '
+            'importa primero su historia o crea su ficha.',
+      );
+    }
+    final registro = RegistroReceta(
+      id: id,
+      pacienteId: ficha.id,
+      fecha: r.fecha('fecha') ?? reloj.ahora(),
+      numero: numero,
+      historiaId: r.texto('historiaId'),
+      items: [
+        for (final i in r.listaMapas('items')) ItemReceta.desdeMapa(i).resumen,
+      ],
+      indicaciones: r.texto('indicaciones'),
+      sha256Pdf: sha256.convert(bytes).toString(),
+      nombreArchivo: nombre,
+      tienePdf: true,
+      actualizado: reloj.ahora(),
+    );
+    await _repo.guardarBinario(RegistroReceta.tipoBinarioPdf, id, bytes);
+    await _repo.guardar(RegistroReceta.coleccion, id, registro.aMapa());
+    _recetas[id] = registro;
+    return ResultadoImportacion(
+      nombre: nombre,
+      tipo: TipoImportacion.registrada,
+      mensaje: 'Receta nueva · $etiqueta',
+      pacienteId: ficha.id,
+    );
   }
 
   // ─────────────────────────── Fichas ───────────────────────────

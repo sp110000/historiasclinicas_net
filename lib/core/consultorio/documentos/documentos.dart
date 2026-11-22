@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 
 import '../../ihce/reloj.dart';
+import '../../integridad/json_canonico.dart';
 import '../../models/mapa.dart';
 import '../../models/medico.dart';
 import '../../pais/perfil_pais.dart';
@@ -186,7 +187,9 @@ class DocumentosConsultorio {
   /// reciente al más viejo.
   List<DocumentoConsultorio> documentosDe(String pacienteId) {
     final ids = _indice.idsUnidos(pacienteId);
-    return _documentos.values.where((d) => ids.contains(d.pacienteId)).toList()
+    return _documentos.values
+        .where((d) => ids.contains(d.fichaEfectiva))
+        .toList()
       ..sort((a, b) => b.fechaHora.compareTo(a.fechaHora));
   }
 
@@ -617,6 +620,126 @@ class DocumentosConsultorio {
     return (documento: documento, pdf: pdf);
   }
 
+  // ──────────────────────── Importar y verificar ────────────────────────
+
+  /// Importa (o verifica) un documento de la app con su `documento.json` ya
+  /// leído. Si ya está, comprueba que sea el mismo; si no, lo agrega a la
+  /// ficha del paciente con su PDF exacto. Nunca lanza.
+  Future<ResultadoImportacion> importarPdf(
+    Uint8List bytes, {
+    required String nombre,
+    required Map<String, Object?> datos,
+    required bool integro,
+  }) async {
+    final numero = datos.texto('numero');
+    final tipo = TipoPlantilla.values.asNameMap()[datos.texto('tipo')];
+    if (!integro) {
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.rechazada,
+        mensaje:
+            'Los datos del documento ${numero.isEmpty ? '' : '$numero '}no '
+            'coinciden con su huella: el archivo se modificó. No se importó.',
+      );
+    }
+    if (tipo == null || tipo.prefijo == null || numero.isEmpty) {
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.noEsHistoria,
+        mensaje: 'Tiene datos de la app, pero no es un documento compatible.',
+      );
+    }
+    final hash = sha256Canonico(datos);
+    final existente = _documentos.values
+        .where((d) => d.numero == numero)
+        .firstOrNull;
+    if (existente != null) {
+      if (existente.hash != hash) {
+        return ResultadoImportacion(
+          nombre: nombre,
+          tipo: TipoImportacion.rechazada,
+          mensaje:
+              'Ya hay un $numero distinto en el consultorio: este PDF no '
+              'coincide con el registrado. No se importó.',
+        );
+      }
+      if (!existente.tienePdf) {
+        await _repo.guardarBinario(
+          DocumentoConsultorio.tipoBinarioPdf,
+          existente.id,
+          bytes,
+        );
+        final con = existente.copyWith(tienePdf: true);
+        await _repo.guardar(
+          DocumentoConsultorio.coleccion,
+          con.id,
+          con.aMapa(),
+        );
+        _documentos[con.id] = con;
+      }
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.registrada,
+        mensaje: 'Ya estaba, íntegro · $numero',
+        pacienteId: existente.fichaEfectiva,
+      );
+    }
+    final paciente = datos.mapa('paciente');
+    final ficha = _indice.fichaParaAdjunto(
+      pacienteId: datos.texto('pacienteId'),
+      documento: paciente.texto('documento'),
+    );
+    if (ficha == null) {
+      final quien = paciente.texto('nombre');
+      return ResultadoImportacion(
+        nombre: nombre,
+        tipo: TipoImportacion.sinFicha,
+        mensaje:
+            'No hay una ficha de ${quien.isEmpty ? 'este paciente' : '«$quien»'}: '
+            'importa primero su historia o crea su ficha.',
+      );
+    }
+    final id = nuevoUuid();
+    final documento = DocumentoConsultorio(
+      id: id,
+      datos: datos,
+      creado: reloj.ahora(),
+      tienePdf: true,
+      fichaId: ficha.id == datos.texto('pacienteId') ? null : ficha.id,
+    );
+    await _repo.guardarBinario(DocumentoConsultorio.tipoBinarioPdf, id, bytes);
+    await _repo.guardar(DocumentoConsultorio.coleccion, id, documento.aMapa());
+    _documentos[id] = documento;
+    await _alcanzarConsecutivo(numero);
+    if (tipo == TipoPlantilla.autorizacionDatos &&
+        ficha.autorizacionDatosId == null) {
+      await _indice.guardarFicha(ficha.copyWith(autorizacionDatosId: id));
+    } else if (tipo == TipoPlantilla.consentimientoImagen &&
+        documento.permisos.clinico &&
+        ficha.consentimientoImagenId == null) {
+      await _indice.guardarFicha(ficha.copyWith(consentimientoImagenId: id));
+    }
+    return ResultadoImportacion(
+      nombre: nombre,
+      tipo: TipoImportacion.registrada,
+      mensaje: 'Documento nuevo · $numero',
+      pacienteId: ficha.id,
+    );
+  }
+
+  /// Un documento importado de este equipo («CE-000007») con un número
+  /// mayor que el consecutivo lo adelanta: así el siguiente no lo repite.
+  Future<void> _alcanzarConsecutivo(String numero) async {
+    final m = RegExp(r'^([A-Z]+)-([A-Z]*)(\d+)$').firstMatch(numero);
+    if (m == null || m.group(2) != serie) return;
+    final clave = '${m.group(1)}$serie';
+    final n = int.parse(m.group(3)!);
+    final r = await _repo.leer(coleccionConsecutivos, clave);
+    if (n > (r?.entero('ultimo') ?? 0)) {
+      await _repo.guardar(coleccionConsecutivos, clave, {'ultimo': n});
+    }
+  }
+
   /// PDF de la política de tratamiento de datos (versión vigente), para
   /// imprimir y exhibir. Lanza [StateError] si no está aprobada.
   Future<Uint8List> politicaPdf({
@@ -669,7 +792,7 @@ class DocumentosConsultorio {
     );
     await _repo.guardar(DocumentoConsultorio.coleccion, id, nuevo.aMapa());
     _documentos[id] = nuevo;
-    final activa = _indice.fichaActiva(d.pacienteId);
+    final activa = _indice.fichaActiva(d.fichaEfectiva);
     if (activa != null && activa.autorizacionDatosId == id) {
       await _indice.guardarFicha(activa.copyWith(autorizacionDatosId: null));
     }

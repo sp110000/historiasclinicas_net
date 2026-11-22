@@ -103,6 +103,7 @@ class DocumentoConsultorio {
     this.cambioEstado,
     this.motivoEstado = '',
     this.tienePdf = false,
+    this.fichaId,
   });
 
   static const coleccion = 'documentos';
@@ -116,6 +117,14 @@ class DocumentoConsultorio {
   final DateTime? cambioEstado;
   final String motivoEstado;
   final bool tienePdf;
+
+  /// La ficha a la que se ligó al importarlo, si no es la de [datos] (en
+  /// otro equipo, la ficha del mismo paciente tiene otro id). Lo sellado
+  /// no cambia.
+  final String? fichaId;
+
+  /// La ficha del documento: [fichaId] o la sellada.
+  String get fichaEfectiva => fichaId ?? pacienteId;
 
   TipoPlantilla get tipo => TipoPlantilla.values.byName(datos.texto('tipo'));
   String get numero => datos.texto('numero');
@@ -167,6 +176,7 @@ class DocumentoConsultorio {
     cambioEstado: cambioEstado ?? this.cambioEstado,
     motivoEstado: motivoEstado ?? this.motivoEstado,
     tienePdf: tienePdf ?? this.tienePdf,
+    fichaId: fichaId,
   );
 
   Map<String, Object?> aMapa() => compacto({
@@ -176,6 +186,7 @@ class DocumentoConsultorio {
     'cambioEstado': cambioEstado?.toUtc().toIso8601String(),
     'motivoEstado': motivoEstado,
     'tienePdf': tienePdf ? true : null,
+    'fichaId': fichaId,
   });
 
   static DocumentoConsultorio desdeMapa(String id, Map<String, Object?> m) =>
@@ -189,6 +200,7 @@ class DocumentoConsultorio {
             : DateTime.parse(m['cambioEstado']! as String).toLocal(),
         motivoEstado: m.texto('motivoEstado'),
         tienePdf: m.booleano('tienePdf'),
+        fichaId: m.textoONulo('fichaId'),
       );
 }
 
