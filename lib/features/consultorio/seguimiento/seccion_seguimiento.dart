@@ -53,10 +53,9 @@ class _SeccionSeguimientoState extends ConsumerState<SeccionSeguimiento> {
   @override
   Widget build(BuildContext context) {
     ref.watch(versionIndiceProvider);
-    final mediciones = ref
-        .read(servicioConsultorioProvider)
-        .seguimiento
-        .medicionesDe(widget.ficha.id);
+    final servicio = ref.read(servicioConsultorioProvider);
+    final mediciones = servicio.seguimiento.medicionesDe(widget.ficha.id);
+    final programa = servicio.peso.programaDe(widget.ficha.id);
     final puntos = [
       for (final m in mediciones)
         if (_serie.de(m) case final v?) (fecha: m.fecha, valor: v),
@@ -126,6 +125,12 @@ class _SeccionSeguimientoState extends ConsumerState<SeccionSeguimiento> {
                   nombre: _serie.etiqueta,
                   unidad: _serie.unidad,
                   decimales: _serie.decimales,
+                  // Meta del programa de peso (pregunta 27), si la hay.
+                  meta: switch (_serie) {
+                    SerieSeguimiento.peso => programa?.metaPeso,
+                    SerieSeguimiento.cintura => programa?.metaCintura,
+                    _ => null,
+                  },
                 ),
               ],
             ),

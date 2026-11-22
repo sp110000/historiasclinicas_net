@@ -15,7 +15,9 @@ import 'package:historiasclinicas_net/core/widgets/lienzo_firma.dart';
 import 'package:historiasclinicas_net/features/consultorio/documentos/firma_autorizacion.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/consultorio_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/pacientes_provider.dart';
+import 'package:historiasclinicas_net/features/consultorio/documentos/plantillas_ajustes.dart';
 import 'package:historiasclinicas_net/features/consultorio/rutas_consultorio.dart';
+import 'package:historiasclinicas_net/features/consultorio/widgets/editor_versionado.dart';
 import 'package:historiasclinicas_net/features/medico/medico_provider.dart';
 import 'package:historiasclinicas_net/features/receta/estado/receta_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -107,7 +109,14 @@ void main() {
     await b.servicio.crear(fraseDePrueba);
     await _montar(t, banco: b, ruta: '/ajustes');
     expect(find.text('Plantillas de documentos'), findsOneWidget);
-    expect(find.text('v1 en borrador (sin aprobar)'), findsNWidgets(3));
+    // Solo las de documentos (Ajustes tiene otras plantillas más abajo).
+    expect(
+      find.descendant(
+        of: find.byType(TarjetaPlantillas),
+        matching: find.text('v1 en borrador (sin aprobar)'),
+      ),
+      findsNWidgets(3),
+    );
     expect(find.text('Descargar PDF para exhibir'), findsNothing);
 
     // Editar la autorización: el borrador cambia, sigue sin aprobar.
@@ -132,8 +141,17 @@ void main() {
       isTrue,
     );
 
-    // La política (la última), aprobada, se descarga en PDF.
-    await _pulsar(t, find.text('Aprobar v1').last);
+    // La política, aprobada, se descarga en PDF.
+    await _pulsar(
+      t,
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('Política de tratamiento de datos personales'),
+          matching: find.byType(FilaVersionada),
+        ),
+        matching: find.text('Aprobar v1'),
+      ),
+    );
     await _pulsar(t, find.widgetWithText(FilledButton, 'Aprobar'));
     await _pulsar(t, find.text('Descargar PDF para exhibir'));
     expect(descargas.single.$1, 'Politica_tratamiento_datos_v1.pdf');
