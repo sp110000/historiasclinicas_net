@@ -14,6 +14,7 @@ import '../desbloqueo/panel_codigo.dart';
 import '../documentos/plantillas_ajustes.dart';
 import '../estado/consultorio_provider.dart';
 import '../estetica/ajustes_procedimientos.dart';
+import '../estetica/certificaciones.dart';
 import '../peso/ajustes_peso.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
@@ -44,6 +45,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           TarjetaProgramaPeso(),
           SizedBox(height: 16),
           TarjetaProcedimientos(),
+          SizedBox(height: 16),
+          TarjetaCertificaciones(),
           SizedBox(height: 16),
           TarjetaPrestador(),
           SizedBox(height: 16),

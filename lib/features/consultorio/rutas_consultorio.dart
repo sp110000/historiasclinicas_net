@@ -5,6 +5,7 @@ import '../medico/medico_page.dart';
 import '../receta/receta_page.dart';
 import 'ajustes/ajustes_page.dart';
 import 'estetica/editor_procedimiento_page.dart';
+import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
 import 'pacientes/ficha_page.dart';
 import 'pacientes/pacientes_page.dart';
@@ -39,6 +40,13 @@ GoRouter crearRouterConsultorio({String ubicacionInicial = '/'}) => GoRouter(
               builder: (context, state) =>
                   FichaPage(id: state.pathParameters['id']!),
               routes: [
+                GoRoute(
+                  path: 'sesion/:plantilla',
+                  builder: (context, state) => SesionPage(
+                    pacienteId: state.pathParameters['id']!,
+                    plantillaId: state.pathParameters['plantilla']!,
+                  ),
+                ),
                 GoRoute(
                   path: 'valoracion/:plantilla',
                   builder: (context, state) => ValoracionPage(

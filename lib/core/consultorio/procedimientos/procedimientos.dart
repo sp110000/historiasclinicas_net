@@ -16,10 +16,14 @@ import '../modelos/configuracion.dart';
 import '../modelos/ficha_paciente.dart';
 import '../modelos/medicion.dart';
 import '../reglas/estetica.dart';
+import '../reglas/sesion.dart';
+import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
 import '../seguimiento/seguimiento.dart';
+import 'certificacion.dart';
 import 'plan_tratamiento.dart';
 import 'plantilla_procedimiento.dart';
+import 'sesion.dart';
 import 'valoracion.dart';
 
 /// Plantillas de procedimiento, valoraciones (y, desde la 5.3c, el
@@ -43,13 +47,31 @@ class ProcedimientosConsultorio {
 
   final _plantillas = <String, PlantillaProcedimiento>{};
   final _valoraciones = <String, Valoracion>{};
+  final _certificaciones = <String, Certificacion>{};
+  final _sesiones = <String, Sesion>{};
 
   Future<void> cargar() async {
     final p = await _repo.leerColeccionTolerante(
       PlantillaProcedimiento.coleccion,
     );
     final v = await _repo.leerColeccionTolerante(Valoracion.coleccion);
+    final c = await _repo.leerColeccionTolerante(Certificacion.coleccion);
+    final ss = await _repo.leerColeccionTolerante(Sesion.coleccion);
     olvidar();
+    for (final e in c.registros.entries) {
+      try {
+        _certificaciones[e.key] = Certificacion.desdeMapa(e.key, e.value);
+      } on Object {
+        // Ilegible: se ignora (el respaldo conserva el original).
+      }
+    }
+    for (final e in ss.registros.entries) {
+      try {
+        _sesiones[e.key] = Sesion.desdeMapa(e.key, e.value);
+      } on Object {
+        // Ídem.
+      }
+    }
     for (final e in p.registros.entries) {
       try {
         _plantillas[e.key] = PlantillaProcedimiento.desdeMapa(e.key, e.value);
@@ -69,6 +91,8 @@ class ProcedimientosConsultorio {
   void olvidar() {
     _plantillas.clear();
     _valoraciones.clear();
+    _certificaciones.clear();
+    _sesiones.clear();
   }
 
   // ─────────────────────────── Plantillas ───────────────────────────
@@ -286,8 +310,248 @@ class ProcedimientosConsultorio {
     };
   }
 
-  /// Texto de la certificación en la técnica (5.3d); vacío si no hay.
-  String Function(String familia) certificacionPara = (_) => '';
+  /// Texto de la certificación vigente en la técnica para el
+  /// consentimiento; vacío si no hay.
+  String certificacionPara(String familia) {
+    final c = certificacionVigente(familia);
+    if (c == null) return '';
+    return '${c.familia}, ${c.entidad}, desde el ${formatoFecha(c.fecha)}'
+        '${c.vigenteHasta == null ? '' : ' (vigente hasta el ${formatoFecha(c.vigenteHasta!)})'}';
+  }
+
+  // ─────────────────────────── Certificaciones ───────────────────────────
+
+  /// Las certificaciones (también las retiradas), de la más reciente a la
+  /// más vieja.
+  List<Certificacion> get certificaciones =>
+      _certificaciones.values.toList()
+        ..sort((a, b) => b.fecha.compareTo(a.fecha));
+
+  /// La certificación vigente hoy para [familia], o `null`.
+  Certificacion? certificacionVigente(String familia) {
+    final clave = claveFamilia(familia);
+    final hoy = reloj.ahora();
+    return certificaciones
+        .where((c) => claveFamilia(c.familia) == clave && c.vigenteEn(hoy))
+        .firstOrNull;
+  }
+
+  /// Registra una certificación (sin [Certificacion.id]) con su soporte
+  /// opcional (PDF o foto, cifrado).
+  Future<Certificacion> guardarCertificacion(
+    Certificacion c, {
+    Uint8List? soporte,
+    String? tipoSoporte,
+  }) async {
+    if (c.familia.trim().isEmpty) throw StateError('Escribe la técnica.');
+    if (c.entidad.trim().isEmpty) throw StateError('Escribe la entidad.');
+    if (c.vigenteHasta != null && c.vigenteHasta!.isBefore(c.fecha)) {
+      throw StateError('La vigencia termina antes de la fecha.');
+    }
+    final id = c.id.isEmpty ? nuevoUuid() : c.id;
+    if (soporte != null) {
+      await _repo.guardarBinario(Certificacion.tipoBinario, id, soporte);
+    }
+    final guardada = c.copyWith(
+      id: id,
+      soporte: soporte == null ? c.soporte : tipoSoporte,
+    );
+    await _repo.guardar(Certificacion.coleccion, id, guardada.aMapa());
+    _certificaciones[id] = guardada;
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.guardarCertificacion,
+      fecha: reloj.ahora(),
+    );
+    return guardada;
+  }
+
+  Future<Uint8List?> soporteCertificacion(String id) =>
+      _repo.leerBinario(Certificacion.tipoBinario, id);
+
+  /// La retira (no se borra; queda con fecha).
+  Future<void> retirarCertificacion(String id) async {
+    final c = _certificaciones[id];
+    if (c == null || c.retiradaEn != null) return;
+    final r = c.copyWith(retiradaEn: reloj.ahora());
+    await _repo.guardar(Certificacion.coleccion, id, r.aMapa());
+    _certificaciones[id] = r;
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.retirarCertificacion,
+      fecha: reloj.ahora(),
+    );
+  }
+
+  // ─────────────────────────── Sesiones ───────────────────────────
+
+  Sesion? sesion(String id) => _sesiones[id];
+
+  /// Las sesiones selladas de la ficha (y de las unidas), de la más vieja
+  /// a la más reciente.
+  List<Sesion> sesionesDe(String pacienteId, {String? plantillaId}) {
+    final ids = _indice.idsUnidos(pacienteId);
+    return [
+      for (final s in _sesiones.values)
+        if (ids.contains(s.pacienteId) &&
+            (plantillaId == null || s.plantillaId == plantillaId))
+          s,
+    ]..sort((a, b) => a.fecha.compareTo(b.fecha));
+  }
+
+  /// Borrador de una sesión nueva: el plan del consentimiento vigente (sus
+  /// zonas y el número de la sesión), el protocolo (componentes,
+  /// anestésico, indicaciones y control), el último peso y la póliza.
+  /// Lanza [StateError] si la plantilla no está aprobada.
+  Sesion nuevaSesion(FichaPaciente ficha, String plantillaId) {
+    final v = vigente(plantillaId);
+    final d = v.definicion;
+    final ahora = reloj.ahora();
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final consentimiento = consentimientoVigente(ficha.id, plantillaId);
+    final plan = consentimiento?.plan;
+    final hechas = consentimiento == null
+        ? 0
+        : sesionesDe(
+            ficha.id,
+            plantillaId: plantillaId,
+          ).where((s) => s.consentimientoId == consentimiento.id).length;
+    final valoracion = ultimaValoracion(valoracionesDe(ficha.id), plantillaId);
+    Medicion? conPeso;
+    for (final m in _seguimiento.medicionesDe(ficha.id).reversed) {
+      if (m.peso != null) {
+        conPeso = m;
+        break;
+      }
+    }
+    final a = d.anestesicos.firstOrNull;
+    return Sesion(
+      id: '',
+      pacienteId: ficha.id,
+      plantillaId: plantillaId,
+      version: v.version,
+      fecha: ahora,
+      numero: hechas + 1,
+      sesionesPlan: plan?.sesiones ?? d.numeroSesiones ?? 1,
+      valoracionId: valoracion?.id,
+      consentimientoId: consentimiento?.id,
+      consentimientoNumero: consentimiento?.numero ?? '',
+      verificacion: {for (final i in d.listaVerificacion) i: false},
+      zonas: [
+        for (final z in plan?.zonas ?? const <String>[]) ZonaSesion(zona: z),
+      ],
+      componentes: [for (final c in d.componentes) ComponenteSesion(nombre: c)],
+      anestesico: a == null
+          ? null
+          : AnestesicoSesion(
+              nombre: a.nombre,
+              concentracionMgMl: a.concentracionMgMl ?? 0,
+              maximoMgKg: a.maximoMgKg ?? 0,
+            ),
+      pesoKg: conPeso?.peso,
+      fechaPeso: conPeso == null
+          ? null
+          : DateTime(
+              conPeso.fecha.year,
+              conPeso.fecha.month,
+              conPeso.fecha.day,
+            ),
+      indicaciones: d.indicacionesPosteriores,
+      control: d.diasControl == null
+          ? null
+          : hoy.add(Duration(days: d.diasControl!)),
+      poliza: _configuracion().textoPoliza,
+    );
+  }
+
+  /// Aplica las reglas a [s] (ver [evaluarSesion]).
+  EvaluacionSesion evaluar(Sesion s, FichaPaciente ficha) {
+    final p = plantilla(s.plantillaId);
+    if (p == null) {
+      return const EvaluacionSesion(
+        bloqueos: ['No existe el procedimiento.'],
+        avisos: [],
+      );
+    }
+    final familia = (p.vigente ?? p.ultima).definicion.familia;
+    return evaluarSesion(
+      s: s,
+      ficha: ficha,
+      plantilla: p,
+      valoracion: ultimaValoracion(valoracionesDe(ficha.id), s.plantillaId),
+      consentimientos: consentimientosDe(ficha.id, s.plantillaId),
+      anterior: sesionesDe(ficha.id, plantillaId: s.plantillaId).lastOrNull,
+      certificada: certificacionVigente(familia) != null,
+      ahora: reloj.ahora(),
+    );
+  }
+
+  /// Sella la sesión como evolución en la historia (pregunta 35) y la
+  /// guarda. Con [registrarPeso], el peso de hoy queda como medición.
+  /// Lanza [StateError] con el primer bloqueo. Sin certificación vigente,
+  /// el aviso queda en la sesión y en la bitácora (pregunta 36).
+  Future<(Sesion, EvolucionSellada)> sellarSesion(
+    Sesion s,
+    FichaPaciente ficha, {
+    required Medico medico,
+    required Pais pais,
+    bool registrarPeso = false,
+    FuentesPdf? fuentes,
+  }) async {
+    if (s.sellada) throw StateError('La sesión ya está sellada.');
+    final e = evaluar(s, ficha);
+    if (!e.permiteSellar) throw StateError(e.bloqueos.first);
+    final ahora = reloj.ahora();
+    final version = vigente(s.plantillaId);
+    if (version.version != s.version) {
+      throw StateError(
+        'La plantilla cambió de versión: empieza la sesión de nuevo.',
+      );
+    }
+    final certificada =
+        certificacionVigente(version.definicion.familia) != null;
+    final lista = s.copyWith(fecha: ahora, avisos: e.avisos);
+    if (registrarPeso && s.pesoKg != null) {
+      await _seguimiento.guardarMedicion(
+        Medicion(
+          id: '',
+          pacienteId: ficha.id,
+          fecha: ahora,
+          creado: ahora,
+          peso: s.pesoKg,
+          notas: 'Tomado para la ${s.titulo.toLowerCase()}',
+        ),
+      );
+    }
+    final sellada = await sellarEvolucionEnHistoria(
+      _indice,
+      pacienteId: ficha.id,
+      texto: textoSesion(lista, version.definicion, version: version.version),
+      medico: medico,
+      pais: pais,
+      ahora: ahora,
+      proximoControl: s.control,
+      fuentes: fuentes,
+    );
+    final id = nuevoUuid();
+    final guardada = lista.copyWith(
+      id: id,
+      historiaId: sellada.historiaId,
+      revision: sellada.revision,
+      huellaEvolucion: sellada.huella,
+    );
+    await _repo.guardar(Sesion.coleccion, id, guardada.aMapa());
+    _sesiones[id] = guardada;
+    await registrarEnBitacora(
+      _repo,
+      certificada
+          ? AccionBitacora.sellarSesion
+          : AccionBitacora.sesionSinCertificacion,
+      fecha: ahora,
+      resumen: certificada ? '' : version.definicion.familia,
+    );
+    return (guardada, sellada);
+  }
 
   /// Problemas del plan antes de firmar. Vacía: se puede.
   List<String> problemasPlan(PlanTratamiento plan) {
@@ -383,6 +647,47 @@ String textoValoracion(
     if (v.recomendacion.trim().isNotEmpty)
       'Recomendación: ${v.recomendacion.trim()}.',
   ].where((s) => s.isNotEmpty).join(' ');
+}
+
+String _lote(LoteSesion l) =>
+    'lote ${l.lote.trim()}, vence ${l.vence == null ? '—' : formatoFecha(l.vence!)}';
+
+/// Texto que se sella como evolución: todo lo clínico de la sesión
+/// (pregunta 35), porque el PDF es el registro legal.
+String textoSesion(
+  Sesion s,
+  DefinicionProcedimiento d, {
+  required int version,
+}) {
+  final a = s.anestesico;
+  final marcados = s.verificacion.values.where((v) => v).length;
+  return [
+    '${s.titulo} de ${d.nombre} (plantilla v$version).',
+    if (s.consentimientoNumero.isNotEmpty)
+      'Consentimiento ${s.consentimientoNumero}.',
+    'Lista de verificación previa completa ($marcados/${s.verificacion.length}).',
+    'Zonas: ${s.zonas.map((z) => '${z.zona} ${formatoNumero(z.volumenMl ?? 0)} mL').join('; ')} '
+        '(total ${formatoNumero(s.volumenTotalMl)} mL).',
+    if (s.componentes.isNotEmpty)
+      'Solución: ${s.componentes.map((c) => '${c.nombre} (${_lote(c.lote)})').join('; ')}.',
+    if (a != null)
+      'Anestésico: ${a.nombre} ${formatoNumero(a.concentracionMgMl)} mg/mL, '
+          '${formatoNumero(a.volumenMl ?? 0)} mL (${_lote(a.lote)}): '
+          '${textoDosis(a, s.pesoKg)} con peso de ${formatoNumero(s.pesoKg ?? 0)} kg '
+          'del ${s.fechaPeso == null ? '—' : formatoFecha(s.fechaPeso!)}; máximo del protocolo '
+          '${formatoNumero(a.maximoMgKg)} mg/kg.',
+    if (!s.equipo.vacio)
+      'Equipo: ${[if (s.equipo.nombre.trim().isNotEmpty) s.equipo.nombre.trim(), if (s.equipo.serie.trim().isNotEmpty) 'serie ${s.equipo.serie.trim()}', if (s.equipo.registroInvima.trim().isNotEmpty) 'Invima ${s.equipo.registroInvima.trim()}', if (s.equipo.parametros.trim().isNotEmpty) 'parámetros: ${s.equipo.parametros.trim()}'].join(', ')}.',
+    if (s.insumos.isNotEmpty)
+      'Insumos: ${s.insumos.map((i) => '${i.nombre} × ${formatoNumero(i.cantidad)} (${_lote(i.lote)})').join('; ')}.',
+    'Duración: ${s.duracionMin} min.',
+    'Eventos adversos: ${s.eventosAdversos.trim()}.',
+    if (s.indicaciones.trim().isNotEmpty)
+      'Indicaciones: ${s.indicaciones.trim().replaceAll('\n', '; ')}.',
+    if (s.poliza.trim().isNotEmpty) 'Póliza: ${s.poliza.trim()}.',
+    for (final a in s.avisos) 'Aviso: $a',
+    if (s.control != null) 'Control: ${formatoFecha(s.control!)}.',
+  ].join(' ');
 }
 
 extension _Let<T> on T {

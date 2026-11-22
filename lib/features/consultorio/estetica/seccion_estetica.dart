@@ -228,6 +228,12 @@ class _Procedimiento extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
+          _Sesiones(
+            ficha: ficha,
+            plantillaId: plantilla.id,
+            habilitado: usable && bloqueo == null,
+          ),
+          const SizedBox(height: 14),
           _Consentimiento(
             ficha: ficha,
             plantillaId: plantilla.id,
@@ -317,6 +323,61 @@ class _Consentimiento extends ConsumerWidget {
           const SizedBox(height: 8),
           TarjetaDocumento(documento: d),
         ],
+      ],
+    );
+  }
+}
+
+/// Sesiones selladas del procedimiento y «Registrar sesión». Las reglas
+/// (valoración, consentimiento, lotes, dosis…) se ven en la sesión.
+class _Sesiones extends ConsumerWidget {
+  const _Sesiones({
+    required this.ficha,
+    required this.plantillaId,
+    required this.habilitado,
+  });
+
+  final FichaPaciente ficha;
+  final String plantillaId;
+  final bool habilitado;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sesiones = ref
+        .read(servicioConsultorioProvider)
+        .procedimientos
+        .sesionesDe(ficha.id, plantillaId: plantillaId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('SESIONES', style: EstilosMarca.rotulo),
+        const SizedBox(height: 6),
+        if (sesiones.isEmpty)
+          const Text(
+            'Sin sesiones todavía.',
+            style: TextStyle(color: ColoresMarca.textoSuave),
+          ),
+        for (final s in sesiones.reversed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              '${s.titulo} · ${formatoFecha(s.fecha)} · '
+              '${s.zonas.map((z) => z.zona).join(', ')} · '
+              '${s.consentimientoNumero} · sellada en la revisión ${s.revision}'
+              '${s.avisos.isEmpty ? '' : ' · ${s.avisos.length} ${s.avisos.length == 1 ? 'aviso' : 'avisos'}'}',
+            ),
+          ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.icon(
+            onPressed: habilitado
+                ? () => context.go('/pacientes/${ficha.id}/sesion/$plantillaId')
+                : null,
+            icon: const Icon(Icons.medical_services_outlined),
+            label: const Text('Registrar sesión'),
+          ),
+        ),
       ],
     );
   }
