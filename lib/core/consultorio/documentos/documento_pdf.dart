@@ -10,8 +10,9 @@ import '../../pdf/fuentes_pdf.dart';
 import '../../pdf/piezas_pdf.dart';
 import '../../utils/fechas.dart';
 
-/// Lo que se imprime en un documento del consultorio (autorización de
-/// datos, política de privacidad; luego consentimientos y certificados).
+/// Lo que se imprime en un documento del consultorio: autorización de
+/// datos, política, consentimientos, y los documentos clínicos de la 5.4
+/// (certificado, incapacidad, orden y remisión).
 class ContenidoDocumentoPdf {
   const ContenidoDocumentoPdf({
     required this.titulo,
@@ -26,6 +27,8 @@ class ContenidoDocumentoPdf {
     this.recursos = const {},
     this.adjuntos = const [],
     this.huella,
+    this.filas = const [],
+    this.conFirmaPaciente = true,
   });
 
   final String titulo;
@@ -50,6 +53,13 @@ class ContenidoDocumentoPdf {
 
   /// SHA-256 de lo sellado, para el pie.
   final String? huella;
+
+  /// Bloque de datos antes del cuerpo («Diagnóstico», «Días»…).
+  final List<(String, String)> filas;
+
+  /// Lleva el espacio para la firma del paciente. Los documentos clínicos
+  /// solo llevan la del médico.
+  final bool conFirmaPaciente;
 }
 
 /// PDF A4 del documento: encabezado con los datos del médico, título y
@@ -171,6 +181,40 @@ Future<Uint8List> generarPdfDocumento(
             ),
           ),
         ],
+        if (c.filas.isNotEmpty) ...[
+          pw.SizedBox(height: 10),
+          pw.Table(
+            columnWidths: const {
+              0: pw.IntrinsicColumnWidth(),
+              1: pw.FlexColumnWidth(),
+            },
+            border: const pw.TableBorder(
+              horizontalInside: pw.BorderSide(color: lineaPdf, width: 0.5),
+            ),
+            children: [
+              for (final (etiqueta, valor) in c.filas)
+                pw.TableRow(
+                  verticalAlignment: pw.TableCellVerticalAlignment.top,
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.fromLTRB(0, 4, 14, 4),
+                      child: pw.Text(
+                        etiqueta,
+                        style: estilo(tamano: 9.5, color: grisPdf),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                      child: pw.Text(
+                        valor,
+                        style: estilo(tamano: 10, fuente: f.seminegrita),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
         pw.SizedBox(height: 14),
         for (final parrafo in c.cuerpo.split(RegExp(r'\n\s*\n')))
           pw.Padding(
@@ -185,7 +229,7 @@ Future<Uint8List> generarPdfDocumento(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            if (c.paciente != null)
+            if (c.paciente != null && c.conFirmaPaciente)
               pw.Container(
                 width: 220,
                 child: pw.Column(

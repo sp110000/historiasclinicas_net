@@ -11,10 +11,13 @@ import '../../pdf/fuentes_pdf.dart';
 import '../../utils/fechas.dart';
 import '../../utils/ids.dart';
 import '../indice/indice_pacientes.dart';
+import '../modelos/configuracion.dart';
 import '../modelos/ficha_paciente.dart';
+import '../reglas/documentos.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
 import 'documento.dart';
+import 'documento_clinico.dart';
 import 'documento_pdf.dart';
 import 'plantillas.dart';
 
@@ -40,7 +43,8 @@ class DocumentosConsultorio {
   /// («CIM-S000001») para no chocar con los del principal al combinar.
   String serie = '';
 
-  final _plantillas = <TipoPlantilla, Plantilla>{};
+  /// Plantillas guardadas, por id (las demás son las de fábrica).
+  final _plantillas = <String, Plantilla>{};
   final _documentos = <String, DocumentoConsultorio>{};
 
   Future<void> cargar() async {
@@ -52,7 +56,7 @@ class DocumentosConsultorio {
     for (final e in plantillas.registros.entries) {
       try {
         final p = Plantilla.desdeMapa(e.key, e.value);
-        _plantillas[p.tipo] = p;
+        _plantillas[p.id] = p;
       } on Object {
         // Una plantilla ilegible vuelve a la de fábrica (en borrador).
       }
@@ -75,32 +79,102 @@ class DocumentosConsultorio {
 
   /// La plantilla guardada, o la de fábrica (versión 1 en borrador).
   Plantilla plantilla(TipoPlantilla tipo) =>
-      _plantillas[tipo] ?? Plantilla.base(tipo);
+      _plantillas[tipo.name] ?? Plantilla.base(tipo);
+
+  /// Una plantilla por su id (de fábrica o propia), o `null`.
+  Plantilla? plantillaPorId(String id) {
+    final guardada = _plantillas[id];
+    if (guardada != null) return guardada;
+    final fabrica = plantillasDeFabrica[id];
+    if (fabrica != null) return fabrica;
+    final tipo = TipoPlantilla.values.asNameMap()[id];
+    return tipo == null ? null : Plantilla.base(tipo);
+  }
+
+  /// Las plantillas de [tipo]: las de fábrica en su orden y luego las
+  /// propias, por nombre.
+  List<Plantilla> plantillasDe(TipoPlantilla tipo) {
+    if (!tipo.varias) return [plantilla(tipo)];
+    return [
+      for (final p in plantillasDeFabrica.values)
+        if (p.tipo == tipo) _plantillas[p.id] ?? p,
+      ...(_plantillas.values.where((p) => p.tipo == tipo && p.propia).toList()
+        ..sort((a, b) => a.nombre.compareTo(b.nombre))),
+    ];
+  }
 
   Future<Plantilla> guardarBorrador(
     TipoPlantilla tipo, {
     required String titulo,
     required String cuerpo,
+  }) => guardarBorradorDe(tipo.name, titulo: titulo, cuerpo: cuerpo);
+
+  /// Guarda el texto de la plantilla [id] como borrador (la versión
+  /// siguiente si la última está aprobada). [nombre] solo cambia el de las
+  /// plantillas propias.
+  Future<Plantilla> guardarBorradorDe(
+    String id, {
+    required String titulo,
+    required String cuerpo,
+    String? nombre,
   }) async {
-    final p = plantilla(tipo).conBorrador(titulo.trim(), cuerpo.trim());
+    final actual = plantillaPorId(id);
+    if (actual == null) throw StateError('No existe la plantilla.');
+    if (titulo.trim().isEmpty || cuerpo.trim().isEmpty) {
+      throw StateError('Escribe el título y el texto.');
+    }
+    final p = actual.conBorrador(
+      titulo.trim(),
+      cuerpo.trim(),
+      nombre: actual.propia && (nombre?.trim().isNotEmpty ?? false)
+          ? nombre!.trim()
+          : null,
+    );
     await _repo.guardar(Plantilla.coleccion, p.id, p.aMapa());
-    _plantillas[tipo] = p;
+    _plantillas[p.id] = p;
     return p;
   }
 
   /// Aprueba el borrador: desde ahora los documentos nuevos usan esa
   /// versión. Los firmados conservan la suya.
-  Future<Plantilla> aprobar(TipoPlantilla tipo) async {
+  Future<Plantilla> aprobar(TipoPlantilla tipo) => aprobarDe(tipo.name);
+
+  Future<Plantilla> aprobarDe(String id) async {
+    final actual = plantillaPorId(id);
+    if (actual == null) throw StateError('No existe la plantilla.');
     final ahora = reloj.ahora();
-    final p = plantilla(tipo).aprobada(ahora);
+    final p = actual.aprobada(ahora);
     await _repo.guardar(Plantilla.coleccion, p.id, p.aMapa());
-    _plantillas[tipo] = p;
+    _plantillas[p.id] = p;
     await registrarEnBitacora(
       _repo,
       AccionBitacora.aprobarPlantilla,
       fecha: ahora,
-      resumen: '${tipo.etiqueta} v${p.vigente!.version}',
+      resumen: '${p.tipo.etiqueta} · ${p.nombre} v${p.vigente!.version}',
     );
+    return p;
+  }
+
+  /// Agrega una plantilla propia de [tipo] (por ejemplo, otra orden
+  /// frecuente), en borrador con el texto base del tipo.
+  Future<Plantilla> crearPlantilla(TipoPlantilla tipo, String nombre) async {
+    if (!tipo.varias) {
+      throw StateError('«${tipo.etiqueta}» tiene una sola plantilla.');
+    }
+    final n = nombre.trim();
+    if (n.isEmpty) throw StateError('Escribe el nombre de la plantilla.');
+    if (plantillasDe(
+      tipo,
+    ).any((p) => p.nombre.toLowerCase() == n.toLowerCase())) {
+      throw StateError('Ya hay una plantilla «$n».');
+    }
+    final p = Plantilla.nueva(
+      tipo,
+      id: '${tipo.name}_${nuevoUuid().substring(0, 8)}',
+      nombre: n,
+    );
+    await _repo.guardar(Plantilla.coleccion, p.id, p.aMapa());
+    _plantillas[p.id] = p;
     return p;
   }
 
@@ -143,6 +217,9 @@ class DocumentosConsultorio {
     FichaPaciente? ficha,
     required DateTime fecha,
   }) => {
+    'medico': medico.nombre.trim(),
+    if (ficha?.edadAnios(fecha) case final edad?)
+      'edad': '$edad ${edad == 1 ? 'año' : 'años'}',
     'responsable': [
       medico.nombre.trim(),
       if (medico.consultorio.trim().isNotEmpty) medico.consultorio.trim(),
@@ -286,6 +363,254 @@ class DocumentosConsultorio {
     await registrarEnBitacora(
       _repo,
       AccionBitacora.firmarDocumento,
+      fecha: ahora,
+      resumen: numero,
+    );
+    return (documento: documento, pdf: pdf);
+  }
+
+  // ──────────────────────── Documentos clínicos ────────────────────────
+
+  /// Borrador de un documento clínico de [tipo] para [ficha] con la
+  /// plantilla [plantillaId] (o la primera del tipo): el texto ya lleva los
+  /// datos del paciente y los tuyos. Usa la versión aprobada; sin ella, la
+  /// última (para verla, pero no se puede emitir).
+  BorradorDocumento nuevoBorrador(
+    TipoPlantilla tipo, {
+    required FichaPaciente ficha,
+    required Medico medico,
+    String? plantillaId,
+  }) {
+    final ahora = reloj.ahora();
+    final base = BorradorDocumento(
+      tipo: tipo,
+      plantillaId: '',
+      versionPlantilla: 0,
+      titulo: tipo.etiqueta,
+      texto: '',
+      desde: DateTime(ahora.year, ahora.month, ahora.day),
+    );
+    return conPlantilla(
+      base,
+      plantillaId ?? plantillasDe(tipo).first.id,
+      ficha: ficha,
+      medico: medico,
+    );
+  }
+
+  /// [b] con el texto de otra plantilla (los demás campos se conservan).
+  BorradorDocumento conPlantilla(
+    BorradorDocumento b,
+    String plantillaId, {
+    required FichaPaciente ficha,
+    required Medico medico,
+  }) {
+    final p = plantillaPorId(plantillaId);
+    if (p == null || p.tipo != b.tipo) {
+      throw StateError('La plantilla no es de «${b.tipo.etiqueta}».');
+    }
+    final v = p.vigente ?? p.ultima;
+    return b.copyWith(
+      plantillaId: p.id,
+      versionPlantilla: v.version,
+      titulo: v.titulo,
+      texto: rellenarPlantilla(
+        v.cuerpo,
+        valores(medico, ficha: ficha, fecha: reloj.ahora()),
+      ),
+    );
+  }
+
+  /// Prestador para el bloque de datos de la incapacidad.
+  static PrestadorDocumento prestador(
+    Medico medico,
+    ConfiguracionConsultorio c,
+  ) => PrestadorDocumento(
+    nombre: medico.consultorio.trim().isNotEmpty
+        ? medico.consultorio.trim()
+        : medico.nombre.trim(),
+    nit: c.nit,
+    codigoReps: c.codigoReps,
+  );
+
+  /// Las reglas del documento con la plantilla y tus datos de hoy.
+  EvaluacionDocumento evaluar(
+    BorradorDocumento b, {
+    required Medico medico,
+    required ConfiguracionConsultorio configuracion,
+  }) {
+    final p = plantillaPorId(b.plantillaId);
+    final e = evaluarDocumento(
+      b,
+      plantilla: p ?? Plantilla.base(b.tipo),
+      configuracion: configuracion,
+      medicoListo: medico.configurado && medico.registro.trim().isNotEmpty,
+      ahora: reloj.ahora(),
+    );
+    final aprobada =
+        p?.versiones.any(
+          (v) => v.version == b.versionPlantilla && v.aprobada,
+        ) ??
+        false;
+    if (e.permiteEmitir && !aprobada) {
+      return EvaluacionDocumento(
+        bloqueos: [
+          'El texto viene de un borrador de la plantilla: vuelve a elegirla.',
+        ],
+        avisos: e.avisos,
+      );
+    }
+    return e;
+  }
+
+  /// El número que llevará el próximo documento de [tipo] (sin gastarlo).
+  Future<String> proximoNumero(TipoPlantilla tipo) async {
+    final clave = '${tipo.prefijo}$serie';
+    final r = await _repo.leer(coleccionConsecutivos, clave);
+    final n = (r?.entero('ultimo') ?? 0) + 1;
+    return '${tipo.prefijo}-$serie${n.toString().padLeft(6, '0')}';
+  }
+
+  ContenidoDocumentoPdf _contenidoClinico(
+    BorradorDocumento b, {
+    required FichaPaciente ficha,
+    required Medico medico,
+    required Pais pais,
+    required ConfiguracionConsultorio configuracion,
+    required DateTime fecha,
+    required String numero,
+    bool incluirFirma = true,
+    bool incluirSello = true,
+    String? huella,
+    List<AdjuntoPdf> adjuntos = const [],
+  }) {
+    final copia = instantaneaMedico(
+      medico,
+      pais: pais,
+      firma: incluirFirma,
+      sello: incluirSello,
+    );
+    return ContenidoDocumentoPdf(
+      titulo: b.titulo,
+      cuerpo: b.texto.trim(),
+      fechaHora: fecha,
+      numero: numero,
+      version: b.versionPlantilla,
+      paciente: ficha.nombreCompleto,
+      documentoPaciente: ficha.documentoTexto,
+      medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+      recursos: copia.recursos,
+      filas: filasDocumento(b, prestador: prestador(medico, configuracion)),
+      conFirmaPaciente: false,
+      adjuntos: adjuntos,
+      huella: huella,
+    );
+  }
+
+  /// El PDF tal como saldría ahora, con el próximo número, para la vista
+  /// previa. No guarda nada.
+  Future<Uint8List> vistaPrevia(
+    BorradorDocumento b, {
+    required FichaPaciente ficha,
+    required Medico medico,
+    required Pais pais,
+    required ConfiguracionConsultorio configuracion,
+    bool incluirFirma = true,
+    bool incluirSello = true,
+    FuentesPdf? fuentes,
+  }) async => generarPdfDocumento(
+    _contenidoClinico(
+      b,
+      ficha: ficha,
+      medico: medico,
+      pais: pais,
+      configuracion: configuracion,
+      fecha: reloj.ahora(),
+      numero: await proximoNumero(b.tipo),
+      incluirFirma: incluirFirma,
+      incluirSello: incluirSello,
+    ),
+    fuentes: fuentes,
+  );
+
+  /// Emite el documento clínico [b]: le da el número siguiente, sella
+  /// `documento.json` dentro del PDF y guarda los dos (cifrados). Lanza
+  /// [StateError] con el primer bloqueo de las reglas.
+  Future<DocumentoFirmado> emitirDocumento(
+    BorradorDocumento b, {
+    required FichaPaciente ficha,
+    required Medico medico,
+    required Pais pais,
+    required ConfiguracionConsultorio configuracion,
+    bool incluirFirma = true,
+    bool incluirSello = true,
+    FuentesPdf? fuentes,
+  }) async {
+    final e = evaluar(b, medico: medico, configuracion: configuracion);
+    if (!e.permiteEmitir) throw StateError(e.bloqueos.first);
+    final ahora = reloj.ahora();
+    final numero = await _siguienteNumero(b.tipo.prefijo!);
+    final id = nuevoUuid();
+    final copia = instantaneaMedico(
+      medico,
+      pais: pais,
+      firma: incluirFirma,
+      sello: incluirSello,
+    );
+    final edad = ficha.edadAnios(ahora);
+    final pres = prestador(medico, configuracion);
+    final documento = DocumentoConsultorio(
+      id: id,
+      creado: ahora,
+      tienePdf: true,
+      datos: {
+        'tipo': b.tipo.name,
+        'numero': numero,
+        'titulo': b.titulo,
+        'plantillaId': b.plantillaId,
+        'versionPlantilla': b.versionPlantilla,
+        'pacienteId': ficha.id,
+        'paciente': compacto({
+          'nombre': ficha.nombreCompleto,
+          'documento': ficha.documentoTexto,
+          'edad': edad,
+        }),
+        'fechaHora': fechaHoraIso(ahora),
+        'contenido': b.texto.trim(),
+        'campos': {
+          ...b.campos(),
+          if (b.tipo == TipoPlantilla.incapacidad && pres.texto.isNotEmpty)
+            'prestador': compacto({
+              'nombre': pres.nombre,
+              'nit': pres.nit.trim(),
+              'codigoReps': pres.codigoReps.trim(),
+            }),
+        },
+        if (medico.configurado) 'autor': copia.autor,
+      },
+    );
+    final pdf = await generarPdfDocumento(
+      _contenidoClinico(
+        b,
+        ficha: ficha,
+        medico: medico,
+        pais: pais,
+        configuracion: configuracion,
+        fecha: ahora,
+        numero: numero,
+        incluirFirma: incluirFirma,
+        incluirSello: incluirSello,
+        huella: documento.hash,
+        adjuntos: [AdjuntoPdf(nombreAdjuntoDocumento, documento.json)],
+      ),
+      fuentes: fuentes,
+    );
+    await _repo.guardarBinario(DocumentoConsultorio.tipoBinarioPdf, id, pdf);
+    await _repo.guardar(DocumentoConsultorio.coleccion, id, documento.aMapa());
+    _documentos[id] = documento;
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.emitirDocumento,
       fecha: ahora,
       resumen: numero,
     );

@@ -1,7 +1,9 @@
 import '../../models/mapa.dart';
+import 'plantillas_clinicas.dart';
 
-/// Tipos de plantilla de documento. Las subfases siguientes agregan
-/// consentimientos, certificados, incapacidades, órdenes y remisiones.
+export 'plantillas_clinicas.dart' show cuerpoBaseClinico, plantillasDeFabrica;
+
+/// Tipos de plantilla de documento.
 enum TipoPlantilla {
   autorizacionDatos(
     'Autorización de tratamiento de datos',
@@ -25,21 +27,64 @@ enum TipoPlantilla {
     'Política de tratamiento de datos personales',
     null,
     'Politica_datos',
+    firmaPaciente: false,
+  ),
+
+  /// Documentos clínicos (5.4): los expide el médico, sin la firma del
+  /// paciente. Los tipos con [varias] tienen una plantilla por uso
+  /// (general, laboral…; perfil metabólico, TSH…).
+  certificado(
+    'Certificado médico',
+    'CE',
+    'Certificado',
+    firmaPaciente: false,
+    varias: true,
+  ),
+  incapacidad('Incapacidad médica', 'IN', 'Incapacidad', firmaPaciente: false),
+  orden(
+    'Orden de laboratorio o imágenes',
+    'OR',
+    'Orden',
+    firmaPaciente: false,
+    varias: true,
+  ),
+  remision(
+    'Remisión o interconsulta',
+    'RM',
+    'Remision',
+    firmaPaciente: false,
+    varias: true,
   );
 
-  const TipoPlantilla(this.etiqueta, this.prefijo, this.baseArchivo);
+  const TipoPlantilla(
+    this.etiqueta,
+    this.prefijo,
+    this.baseArchivo, {
+    this.firmaPaciente = true,
+    this.varias = false,
+  });
 
   final String etiqueta;
 
   /// Comienzo del nombre de sus PDF, solo ASCII.
   final String baseArchivo;
 
-  /// Se firma con el paciente (en pantalla).
-  bool get conFirmaDelPaciente => prefijo != null;
-
   /// Prefijo del consecutivo de los documentos firmados con ella, o `null`
   /// si no lleva número (la política es una sola, con versión).
   final String? prefijo;
+
+  /// Se firma con el paciente (en pantalla).
+  final bool firmaPaciente;
+
+  /// Tiene varias plantillas (una por uso), y se pueden agregar más.
+  final bool varias;
+
+  bool get conFirmaDelPaciente => firmaPaciente;
+
+  /// Certificado, incapacidad, orden o remisión: los expide el médico.
+  bool get clinico => prefijo != null && !firmaPaciente;
+
+  static const clinicos = [certificado, incapacidad, orden, remision];
 }
 
 /// Una versión del texto de una plantilla. Una versión aprobada no se
@@ -79,15 +124,34 @@ class VersionPlantilla {
 }
 
 /// Plantilla con su historial de versiones, de la 1 a la última.
+///
+/// Los tipos con una sola plantilla usan el nombre del tipo como [id]. Los
+/// que tienen [TipoPlantilla.varias] usan un id propio por plantilla
+/// («certificado_laboral», «orden_tsh» o una que agregó el médico).
 class Plantilla {
-  const Plantilla({required this.tipo, required this.versiones});
+  const Plantilla({
+    required this.tipo,
+    required this.versiones,
+    String? id,
+    String? nombre,
+    this.propia = false,
+  }) : _id = id,
+       _nombre = nombre;
 
   static const coleccion = 'plantillas';
 
   final TipoPlantilla tipo;
   final List<VersionPlantilla> versiones;
+  final String? _id;
+  final String? _nombre;
 
-  String get id => tipo.name;
+  /// La agregó el médico (no es de fábrica).
+  final bool propia;
+
+  String get id => _id ?? tipo.name;
+
+  /// Nombre en las listas («Perfil metabólico»).
+  String get nombre => _nombre ?? tipo.etiqueta;
 
   /// La última aprobada: la que usan los documentos nuevos. `null` mientras
   /// ninguna versión esté aprobada (no se puede usar).
@@ -102,66 +166,101 @@ class Plantilla {
 
   bool get usable => vigente != null;
 
+  Plantilla _con(List<VersionPlantilla> v, {String? nombre}) => Plantilla(
+    tipo: tipo,
+    versiones: v,
+    id: _id,
+    nombre: nombre ?? _nombre,
+    propia: propia,
+  );
+
   /// Guarda el texto: reemplaza el borrador, o crea la versión siguiente si
   /// la última ya está aprobada.
-  Plantilla conBorrador(String titulo, String cuerpo) {
+  Plantilla conBorrador(String titulo, String cuerpo, {String? nombre}) {
     final b = borrador;
     final nueva = VersionPlantilla(
       version: b?.version ?? ultima.version + 1,
       titulo: titulo,
       cuerpo: cuerpo,
     );
-    return Plantilla(
-      tipo: tipo,
-      versiones: [
-        ...b == null ? versiones : versiones.sublist(0, versiones.length - 1),
-        nueva,
-      ],
-    );
+    return _con([
+      ...b == null ? versiones : versiones.sublist(0, versiones.length - 1),
+      nueva,
+    ], nombre: nombre);
   }
 
   /// Aprueba el borrador. Lanza [StateError] si no hay borrador.
   Plantilla aprobada(DateTime ahora) {
     final b = borrador;
     if (b == null) throw StateError('No hay un borrador para aprobar.');
+    return _con([
+      ...versiones.sublist(0, versiones.length - 1),
+      VersionPlantilla(
+        version: b.version,
+        titulo: b.titulo,
+        cuerpo: b.cuerpo,
+        aprobadaEn: ahora,
+      ),
+    ]);
+  }
+
+  Map<String, Object?> aMapa() => compacto({
+    if (id != tipo.name) 'tipo': tipo.name,
+    'nombre': _nombre,
+    'propia': propia ? true : null,
+    'versiones': [for (final v in versiones) v.aMapa()],
+  });
+
+  static Plantilla desdeMapa(String id, Map<String, Object?> m) {
+    final tipo = TipoPlantilla.values.byName(m.textoONulo('tipo') ?? id);
     return Plantilla(
       tipo: tipo,
+      id: id == tipo.name ? null : id,
+      nombre: m.textoONulo('nombre') ?? plantillasDeFabrica[id]?._nombre,
+      propia: m.booleano('propia'),
       versiones: [
-        ...versiones.sublist(0, versiones.length - 1),
-        VersionPlantilla(
-          version: b.version,
-          titulo: b.titulo,
-          cuerpo: b.cuerpo,
-          aprobadaEn: ahora,
-        ),
+        for (final v in m.listaMapas('versiones'))
+          VersionPlantilla.desdeMapa(v),
       ],
     );
   }
 
-  Map<String, Object?> aMapa() => {
-    'versiones': [for (final v in versiones) v.aMapa()],
-  };
-
-  static Plantilla desdeMapa(String id, Map<String, Object?> m) => Plantilla(
-    tipo: TipoPlantilla.values.byName(id),
-    versiones: [
-      for (final v in m.listaMapas('versiones')) VersionPlantilla.desdeMapa(v),
-    ],
-  );
-
   /// La plantilla de fábrica: versión 1 en borrador.
-  static Plantilla base(TipoPlantilla tipo) => Plantilla(
+  static Plantilla base(TipoPlantilla tipo) =>
+      plantillasDeFabrica[tipo.name] ??
+      Plantilla(
+        tipo: tipo,
+        versiones: [
+          VersionPlantilla(
+            version: 1,
+            titulo: tipo.etiqueta,
+            cuerpo: switch (tipo) {
+              TipoPlantilla.autorizacionDatos => _autorizacionBase.trim(),
+              TipoPlantilla.consentimientoImagen => _imagenBase.trim(),
+              TipoPlantilla.consentimientoInformado => _informadoBase.trim(),
+              TipoPlantilla.politicaPrivacidad => _politicaBase.trim(),
+              _ => cuerpoBaseClinico(tipo),
+            },
+          ),
+        ],
+      );
+
+  /// Una plantilla nueva del médico para [tipo] (con [TipoPlantilla.varias]),
+  /// con el texto base del tipo en borrador.
+  static Plantilla nueva(
+    TipoPlantilla tipo, {
+    required String id,
+    required String nombre,
+  }) => Plantilla(
     tipo: tipo,
+    id: id,
+    nombre: nombre,
+    propia: true,
     versiones: [
       VersionPlantilla(
         version: 1,
         titulo: tipo.etiqueta,
-        cuerpo: switch (tipo) {
-          TipoPlantilla.autorizacionDatos => _autorizacionBase.trim(),
-          TipoPlantilla.consentimientoImagen => _imagenBase.trim(),
-          TipoPlantilla.consentimientoInformado => _informadoBase.trim(),
-          TipoPlantilla.politicaPrivacidad => _politicaBase.trim(),
-        },
+        cuerpo: cuerpoBaseClinico(tipo),
       ),
     ],
   );
@@ -192,6 +291,8 @@ const marcadoresPlantilla = {
   'codigoReps': 'Código de prestador en el REPS',
   'habilitacion': 'Habilitación del servicio',
   'poliza': 'Póliza de complicaciones',
+  'edad': 'Edad del paciente («36 años»)',
+  'medico': 'Tu nombre',
 };
 
 /// Reemplaza los `{{clave}}` de [cuerpo]. Un marcador sin valor queda como

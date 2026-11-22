@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/consultorio/documentos/documento.dart';
+import '../../../core/consultorio/documentos/documento_clinico.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/models/mapa.dart';
 import '../../../core/consultorio/modelos/registro_receta.dart';
@@ -177,6 +178,16 @@ class TarjetaDocumento extends ConsumerWidget {
             'huella ${huella(d.hash)}',
             style: const TextStyle(color: ColoresMarca.textoSuave),
           ),
+          if (d.tipo.clinico && d.campos.isNotEmpty)
+            Text(
+              [
+                for (final (etiqueta, valor) in filasDeCampos(d.tipo, d.campos))
+                  if (etiqueta != 'Prórroga' || valor != 'No')
+                    '$etiqueta: $valor',
+              ].join(' · '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           const SizedBox(height: 8),
           EtiquetaEstado(
             icono: d.vigente ? Icons.verified_outlined : Icons.block,
@@ -201,11 +212,14 @@ class TarjetaDocumento extends ConsumerWidget {
                   nombre: nombre,
                 ),
               if (d.vigente) ...[
-                TextButton(
-                  onPressed: () =>
-                      _cambiar(context, ref, EstadoDocumento.revocado),
-                  child: const Text('Registrar revocación'),
-                ),
+                // Revoca el paciente lo que él firmó; un documento clínico
+                // solo se anula.
+                if (d.tipo.conFirmaDelPaciente)
+                  TextButton(
+                    onPressed: () =>
+                        _cambiar(context, ref, EstadoDocumento.revocado),
+                    child: const Text('Registrar revocación'),
+                  ),
                 TextButton(
                   onPressed: () =>
                       _cambiar(context, ref, EstadoDocumento.anulado),

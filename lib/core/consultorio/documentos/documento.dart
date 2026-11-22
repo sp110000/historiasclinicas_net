@@ -88,7 +88,8 @@ enum EstadoDocumento {
   final String etiqueta;
 }
 
-/// Documento firmado (por ahora, la autorización de tratamiento de datos).
+/// Documento firmado o emitido: autorización de datos, consentimientos y
+/// documentos clínicos (certificado, incapacidad, orden y remisión).
 ///
 /// [datos] es lo sellado: va como `documento.json` dentro del PDF, con su
 /// SHA-256, y no cambia después. El estado (revocado o anulado) se guarda
@@ -124,6 +125,14 @@ class DocumentoConsultorio {
   int get versionPlantilla => datos.entero('versionPlantilla') ?? 0;
   DateTime get fechaHora => datos.fecha('fechaHora')!;
   String get sha256Firma => datos.texto('sha256Firma');
+
+  /// La plantilla con la que se emitió (documentos clínicos; en los demás,
+  /// el nombre del tipo).
+  String get plantillaId => datos.textoONulo('plantillaId') ?? tipo.name;
+
+  /// Campos propios de un documento clínico (diagnóstico, días, fechas,
+  /// finalidad, destino), o vacío.
+  Map<String, Object?> get campos => datos.mapa('campos');
   bool get vigente => estado == EstadoDocumento.vigente;
 
   /// El plan que cubre un consentimiento informado, o `null`.

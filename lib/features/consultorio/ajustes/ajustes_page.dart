@@ -42,6 +42,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           SizedBox(height: 16),
           TarjetaPlantillas(),
           SizedBox(height: 16),
+          TarjetaPlantillasClinicas(),
+          SizedBox(height: 16),
           TarjetaProgramaPeso(),
           SizedBox(height: 16),
           TarjetaProcedimientos(),

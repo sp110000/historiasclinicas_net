@@ -5,6 +5,7 @@ import '../../../core/consultorio/seguridad/boveda.dart';
 import '../../../core/consultorio/seguridad/llavero.dart';
 import '../../../core/consultorio/servicio.dart';
 import '../../../core/widgets/recuadro_icono.dart';
+import '../../../core/widgets/titulo_dialogo.dart';
 
 /// Tarjeta de las pantallas del consultorio (como las de «Datos del
 /// médico»): ícono en recuadro con tinte, título y contenido.
@@ -183,4 +184,71 @@ class EtiquetaEstado extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pide un texto corto en un diálogo; devuelve `null` si se cancela.
+Future<String?> pedirTexto(
+  BuildContext context, {
+  required String titulo,
+  required String etiqueta,
+  String aceptar = 'Aceptar',
+}) => showDialog<String>(
+  context: context,
+  builder: (_) =>
+      _DialogoTexto(titulo: titulo, etiqueta: etiqueta, aceptar: aceptar),
+);
+
+class _DialogoTexto extends StatefulWidget {
+  const _DialogoTexto({
+    required this.titulo,
+    required this.etiqueta,
+    required this.aceptar,
+  });
+
+  final String titulo;
+  final String etiqueta;
+  final String aceptar;
+
+  @override
+  State<_DialogoTexto> createState() => _DialogoTextoState();
+}
+
+class _DialogoTextoState extends State<_DialogoTexto> {
+  final _texto = TextEditingController();
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  void _listo() {
+    if (_texto.text.trim().isEmpty) return;
+    Navigator.pop(context, _texto.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: TituloDialogo(widget.titulo, icono: Icons.edit_outlined),
+    content: ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),
+      child: TextField(
+        controller: _texto,
+        autofocus: true,
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => _listo(),
+        decoration: InputDecoration(labelText: widget.etiqueta),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: _texto.text.trim().isEmpty ? null : _listo,
+        child: Text(widget.aceptar),
+      ),
+    ],
+  );
 }

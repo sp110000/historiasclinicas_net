@@ -8,8 +8,8 @@ import '../estado/consultorio_provider.dart';
 import '../widgets/comunes.dart';
 
 /// Ajustes → Prestador y póliza: código REPS, NIT, habilitación del
-/// servicio y póliza de complicaciones (pregunta 34). Los usa el
-/// consentimiento informado.
+/// servicio y póliza de complicaciones (pregunta 34), y los límites de la
+/// incapacidad. Los usan el consentimiento informado y la incapacidad.
 class TarjetaPrestador extends ConsumerStatefulWidget {
   const TarjetaPrestador({super.key});
 
@@ -46,9 +46,9 @@ class _TarjetaPrestadorState extends ConsumerState<TarjetaPrestador> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'Los usa el consentimiento informado (y, en la 5.4, la '
-            'incapacidad). VERIFICAR la habilitación del servicio en el REPS '
-            '(Resolución 3100 de 2019) y la póliza que te exija la norma.',
+            'Los usan el consentimiento informado y la incapacidad. VERIFICAR '
+            'la habilitación del servicio en el REPS (Resolución 3100 de '
+            '2019) y la póliza que te exija la norma.',
             style: TextStyle(color: ColoresMarca.textoSuave),
           ),
           const SizedBox(height: 12),
@@ -99,6 +99,42 @@ class _TarjetaPrestadorState extends ConsumerState<TarjetaPrestador> {
                 ),
               ],
             ),
+          const SizedBox(height: 16),
+          const Text(
+            'Límites de la incapacidad',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Escríbelos solo cuando los verifiques en el Decreto 1427 de 2022 '
+            '(VERIFICAR). En blanco, la incapacidad no avisa por los días; '
+            'una retroactiva avisa siempre.',
+            style: TextStyle(color: ColoresMarca.textoSuave),
+          ),
+          const SizedBox(height: 8),
+          RejillaCampos(
+            anchoMinimo: 200,
+            children: [
+              CampoNumero(
+                etiqueta: 'Máximo de días por incapacidad',
+                decimales: false,
+                valor: c.maxDiasIncapacidad == 0
+                    ? null
+                    : c.maxDiasIncapacidad.toDouble(),
+                alCambiar: (v) =>
+                    _c = _c.copyWith(maxDiasIncapacidad: (v ?? 0).round()),
+              ),
+              CampoNumero(
+                etiqueta: 'Máximo de días retroactivos',
+                decimales: false,
+                valor: c.maxDiasRetroactivos == 0
+                    ? null
+                    : c.maxDiasRetroactivos.toDouble(),
+                alCambiar: (v) =>
+                    _c = _c.copyWith(maxDiasRetroactivos: (v ?? 0).round()),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,

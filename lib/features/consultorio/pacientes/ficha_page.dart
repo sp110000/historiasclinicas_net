@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/consultorio/indice/indice_pacientes.dart';
+import '../../../core/consultorio/documentos/plantillas.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/consultorio/modelos/registro_historia.dart';
 import '../../../core/pais/perfil_pais.dart';
@@ -405,12 +406,42 @@ class _Acciones extends ConsumerWidget {
       (Icons.edit_outlined, 'Editar datos', () => _editar(context)),
       (Icons.merge_type, 'Unir con otra ficha', () => _unir(context, ref)),
     ];
+    // Certificado, incapacidad, orden y remisión (5.4).
+    final documentos = [
+      for (final (tipo, icono, texto) in const [
+        (
+          TipoPlantilla.certificado,
+          Icons.workspace_premium_outlined,
+          'Certificado',
+        ),
+        (TipoPlantilla.incapacidad, Icons.event_busy_outlined, 'Incapacidad'),
+        (
+          TipoPlantilla.orden,
+          Icons.biotech_outlined,
+          'Orden de laboratorio o imágenes',
+        ),
+        (
+          TipoPlantilla.remision,
+          Icons.forward_to_inbox_outlined,
+          'Remisión o interconsulta',
+        ),
+      ])
+        (
+          icono,
+          texto,
+          () => context.go('/pacientes/${ficha.id}/documento/${tipo.name}'),
+        ),
+    ];
     if (MediaQuery.sizeOf(context).width < 700) {
       return Align(
         alignment: Alignment.centerLeft,
         child: MenuAnchor(
           menuChildren: [
-            for (final (icono, texto, accion) in acciones)
+            for (final (icono, texto, accion) in [
+              ...acciones.take(3),
+              ...documentos,
+              ...acciones.skip(3),
+            ])
               MenuItemButton(
                 leadingIcon: Icon(icono),
                 onPressed: accion,
@@ -429,7 +460,7 @@ class _Acciones extends ConsumerWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final (i, (icono, texto, accion)) in acciones.indexed)
+        for (final (i, (icono, texto, accion)) in acciones.indexed) ...[
           i < 2
               ? FilledButton.icon(
                   onPressed: accion,
@@ -441,6 +472,23 @@ class _Acciones extends ConsumerWidget {
                   icon: Icon(icono),
                   label: Text(texto),
                 ),
+          if (i == 2)
+            MenuAnchor(
+              menuChildren: [
+                for (final (icono, texto, accion) in documentos)
+                  MenuItemButton(
+                    leadingIcon: Icon(icono),
+                    onPressed: accion,
+                    child: Text(texto),
+                  ),
+              ],
+              builder: (context, menu, _) => OutlinedButton.icon(
+                onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+                icon: const Icon(Icons.description_outlined),
+                label: const Text('Documento'),
+              ),
+            ),
+        ],
       ],
     );
   }

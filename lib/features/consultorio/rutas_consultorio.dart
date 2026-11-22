@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import '../historia/historia_page.dart';
 import '../medico/medico_page.dart';
 import '../receta/receta_page.dart';
+import '../../core/consultorio/documentos/plantillas.dart';
 import 'ajustes/ajustes_page.dart';
+import 'documentos/documento_clinico_page.dart';
 import 'estetica/editor_procedimiento_page.dart';
 import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
@@ -46,6 +48,17 @@ GoRouter crearRouterConsultorio({String ubicacionInicial = '/'}) => GoRouter(
                     pacienteId: state.pathParameters['id']!,
                     plantillaId: state.pathParameters['plantilla']!,
                   ),
+                ),
+                GoRoute(
+                  path: 'documento/:tipo',
+                  builder: (context, state) {
+                    final id = state.pathParameters['id']!;
+                    final tipo = TipoPlantilla.values
+                        .asNameMap()[state.pathParameters['tipo']];
+                    return tipo == null || !tipo.clinico
+                        ? FichaPage(id: id)
+                        : DocumentoClinicoPage(pacienteId: id, tipo: tipo);
+                  },
                 ),
                 GoRoute(
                   path: 'valoracion/:plantilla',

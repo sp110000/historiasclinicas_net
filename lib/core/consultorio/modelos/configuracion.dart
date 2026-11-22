@@ -11,6 +11,8 @@ class ConfiguracionConsultorio {
     this.polizaAseguradora = '',
     this.polizaNumero = '',
     this.sinPoliza = false,
+    this.maxDiasIncapacidad = 0,
+    this.maxDiasRetroactivos = 0,
   });
 
   static const coleccion = 'configuracion';
@@ -44,6 +46,11 @@ class ConfiguracionConsultorio {
   final String polizaNumero;
   final bool sinPoliza;
 
+  /// Límites de la incapacidad (Decreto 1427 de 2022, VERIFICAR): 0 es «sin
+  /// escribir» y no avisa. Los escribes tú cuando los verifiques.
+  final int maxDiasIncapacidad;
+  final int maxDiasRetroactivos;
+
   /// «Póliza N.º 123 de Aseguradora», «Sin póliza de complicaciones» o
   /// vacío si no se ha escrito.
   String get textoPoliza {
@@ -67,6 +74,8 @@ class ConfiguracionConsultorio {
     String? polizaAseguradora,
     String? polizaNumero,
     bool? sinPoliza,
+    int? maxDiasIncapacidad,
+    int? maxDiasRetroactivos,
   }) => ConfiguracionConsultorio(
     minutosBloqueo: (minutosBloqueo ?? this.minutosBloqueo).clamp(
       minutosBloqueoMinimo,
@@ -82,6 +91,12 @@ class ConfiguracionConsultorio {
     polizaAseguradora: polizaAseguradora ?? this.polizaAseguradora,
     polizaNumero: polizaNumero ?? this.polizaNumero,
     sinPoliza: sinPoliza ?? this.sinPoliza,
+    maxDiasIncapacidad: (maxDiasIncapacidad ?? this.maxDiasIncapacidad).clamp(
+      0,
+      999,
+    ),
+    maxDiasRetroactivos: (maxDiasRetroactivos ?? this.maxDiasRetroactivos)
+        .clamp(0, 999),
   );
 
   Map<String, Object?> aMapa() => compacto({
@@ -93,6 +108,8 @@ class ConfiguracionConsultorio {
     'polizaAseguradora': polizaAseguradora.trim(),
     'polizaNumero': polizaNumero.trim(),
     'sinPoliza': sinPoliza ? true : null,
+    'maxDiasIncapacidad': maxDiasIncapacidad > 0 ? maxDiasIncapacidad : null,
+    'maxDiasRetroactivos': maxDiasRetroactivos > 0 ? maxDiasRetroactivos : null,
   });
 
   static ConfiguracionConsultorio desdeMapa(Map<String, Object?> m) =>
@@ -105,5 +122,7 @@ class ConfiguracionConsultorio {
         polizaAseguradora: m.texto('polizaAseguradora'),
         polizaNumero: m.texto('polizaNumero'),
         sinPoliza: m.booleano('sinPoliza'),
+        maxDiasIncapacidad: m.entero('maxDiasIncapacidad'),
+        maxDiasRetroactivos: m.entero('maxDiasRetroactivos'),
       );
 }

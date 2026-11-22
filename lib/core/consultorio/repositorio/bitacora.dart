@@ -18,6 +18,8 @@ enum AccionBitacora {
   unirFichas('Unió dos fichas de paciente'),
   aprobarPlantilla('Aprobó una plantilla'),
   firmarDocumento('Firmó un documento'),
+  emitirDocumento('Emitió un documento clínico'),
+  importarArchivos('Importó documentos o recetas en PDF'),
   revocarDocumento('Registró la revocación de un documento'),
   anularDocumento('Anuló un documento'),
   borrarMedicion('Borró una medición'),

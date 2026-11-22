@@ -35,7 +35,8 @@ class TarjetaPlantillas extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           for (final tipo in TipoPlantilla.values)
-            _FilaPlantilla(plantilla: documentos.plantilla(tipo)),
+            if (!tipo.clinico)
+              _FilaPlantilla(plantilla: documentos.plantilla(tipo)),
         ],
       ),
     );
@@ -108,6 +109,147 @@ class _FilaPlantilla extends ConsumerWidget {
             label: const Text('Descargar PDF para exhibir'),
           ),
       ],
+    );
+  }
+}
+
+/// Marcadores que tienen sentido en un documento clínico.
+const _marcadoresClinicos = [
+  'medico',
+  'registroMedico',
+  'paciente',
+  'documentoPaciente',
+  'edad',
+  'fecha',
+  'responsable',
+  'direccion',
+  'ciudad',
+  'telefono',
+  'correo',
+];
+
+/// Ajustes → Documentos clínicos: certificados, incapacidad, órdenes y
+/// remisión, con sus versiones. Se pueden agregar plantillas propias.
+class TarjetaPlantillasClinicas extends ConsumerWidget {
+  const TarjetaPlantillasClinicas({super.key});
+
+  Future<void> _agregar(
+    BuildContext context,
+    WidgetRef ref,
+    TipoPlantilla tipo,
+  ) async {
+    final nombre = await pedirTexto(
+      context,
+      titulo: 'Nueva plantilla · ${tipo.etiqueta}',
+      etiqueta: 'Nombre (por ejemplo, «Control prenatal»)',
+      aceptar: 'Agregar',
+    );
+    if (nombre == null || nombre.trim().isEmpty || !context.mounted) return;
+    try {
+      await ref
+          .read(servicioConsultorioProvider)
+          .documentos
+          .crearPlantilla(tipo, nombre);
+      ref.read(versionIndiceProvider.notifier).cambio();
+      if (context.mounted) {
+        mostrarMensaje(
+          context,
+          'Plantilla «${nombre.trim()}» agregada en borrador: escribe su '
+          'texto y apruébala.',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) mostrarMensaje(context, mensajeDeError(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(versionIndiceProvider);
+    final documentos = ref.read(servicioConsultorioProvider).documentos;
+    return TarjetaConsultorio(
+      icono: Icons.description_outlined,
+      titulo: 'Documentos clínicos',
+      subtitulo: 'Certificados, incapacidad, órdenes y remisión',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Los textos de fábrica son borradores con espacios «______»: '
+            'revísalos y apruébalos antes de usarlos (VERIFICAR). El '
+            'diagnóstico, los días, las fechas, la finalidad y el destino se '
+            'piden en el formulario y van en un bloque aparte del PDF.',
+            style: TextStyle(color: ColoresMarca.textoSuave),
+          ),
+          for (final tipo in TipoPlantilla.clinicos) ...[
+            const SizedBox(height: 14),
+            Text(
+              tipo.etiqueta.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: ColoresMarca.textoSuave,
+              ),
+            ),
+            for (final p in documentos.plantillasDe(tipo))
+              _FilaPlantillaClinica(plantilla: p),
+            if (tipo.varias)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _agregar(context, ref, tipo),
+                  icon: const Icon(Icons.add),
+                  label: Text(
+                    'Agregar plantilla de '
+                    '${tipo == TipoPlantilla.certificado
+                        ? 'certificado'
+                        : tipo == TipoPlantilla.orden
+                        ? 'orden'
+                        : 'remisión'}',
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FilaPlantillaClinica extends ConsumerWidget {
+  const _FilaPlantillaClinica({required this.plantilla});
+
+  final Plantilla plantilla;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = plantilla;
+    return FilaVersionada(
+      nombre: p.propia ? '${p.nombre} (propia)' : p.nombre,
+      versiones: p.versiones,
+      alEditar: () async {
+        final guardada = await editarTextoVersionado(
+          context,
+          titulo: '${p.tipo.etiqueta} · ${p.nombre}',
+          versiones: p.versiones,
+          marcadores: {
+            for (final k in _marcadoresClinicos) k: marcadoresPlantilla[k]!,
+          },
+          guardar: (titulo, cuerpo) => ref
+              .read(servicioConsultorioProvider)
+              .documentos
+              .guardarBorradorDe(p.id, titulo: titulo, cuerpo: cuerpo),
+        );
+        if (guardada) ref.read(versionIndiceProvider.notifier).cambio();
+      },
+      textoAprobar:
+          'Desde ahora los documentos nuevos de «${p.nombre}» usan este '
+          'texto (VERIFICAR).',
+      alAprobar: () async {
+        await ref.read(servicioConsultorioProvider).documentos.aprobarDe(p.id);
+        ref.read(versionIndiceProvider.notifier).cambio();
+      },
     );
   }
 }
