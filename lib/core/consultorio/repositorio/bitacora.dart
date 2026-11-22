@@ -20,7 +20,8 @@ enum AccionBitacora {
   firmarDocumento('Firmó un documento'),
   revocarDocumento('Registró la revocación de un documento'),
   anularDocumento('Anuló un documento'),
-  borrarMedicion('Borró una medición');
+  borrarMedicion('Borró una medición'),
+  borrarFoto('Borró una foto');
 
   const AccionBitacora(this.etiqueta);
 

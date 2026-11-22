@@ -1,6 +1,13 @@
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
+
 import '../../ihce/reloj.dart';
 import '../../utils/ids.dart';
+import '../documentos/documentos.dart';
+import '../fotos/foto_procesada.dart';
 import '../indice/indice_pacientes.dart';
+import '../modelos/foto.dart';
 import '../modelos/medicion.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
@@ -10,18 +17,22 @@ import '../repositorio/repositorio.dart';
 class SeguimientoConsultorio {
   SeguimientoConsultorio(
     this._repo,
-    this._indice, {
+    this._indice,
+    this._documentos, {
     this.reloj = const RelojSistema(),
   });
 
   final RepositorioConsultorio _repo;
   final IndicePacientes _indice;
+  final DocumentosConsultorio _documentos;
   final Reloj reloj;
 
   final _mediciones = <String, Medicion>{};
+  final _fotos = <String, Foto>{};
 
   Future<void> cargar() async {
     final m = await _repo.leerColeccionTolerante(Medicion.coleccion);
+    final f = await _repo.leerColeccionTolerante(Foto.coleccion);
     olvidar();
     for (final e in m.registros.entries) {
       try {
@@ -30,9 +41,109 @@ class SeguimientoConsultorio {
         // Ilegible: se ignora (el respaldo conserva el original).
       }
     }
+    for (final e in f.registros.entries) {
+      try {
+        _fotos[e.key] = Foto.desdeMapa(e.key, e.value);
+      } on Object {
+        // Ídem.
+      }
+    }
   }
 
-  void olvidar() => _mediciones.clear();
+  void olvidar() {
+    _mediciones.clear();
+    _fotos.clear();
+  }
+
+  // ─────────────────────────── Fotos ───────────────────────────
+
+  Foto? foto(String id) => _fotos[id];
+
+  /// Fotos de la ficha (y de las unidas a ella), de la más vieja a la más
+  /// reciente.
+  List<Foto> fotosDe(String pacienteId) {
+    final ids = _indice.idsUnidos(pacienteId);
+    return _fotos.values.where((f) => ids.contains(f.pacienteId)).toList()
+      ..sort((a, b) => a.fecha.compareTo(b.fecha));
+  }
+
+  /// La foto más reciente de [vista] antes de [antesDe] (para alinear la
+  /// nueva en transparencia), o `null`.
+  Foto? anterior(String pacienteId, VistaFoto vista, {DateTime? antesDe}) {
+    Foto? r;
+    for (final f in fotosDe(pacienteId)) {
+      if (f.vista != vista) continue;
+      if (antesDe != null && !f.fecha.isBefore(antesDe)) continue;
+      r = f;
+    }
+    return r;
+  }
+
+  Future<Uint8List?> bytesFoto(String id) =>
+      _repo.leerBinario(Foto.tipoBinario, id);
+
+  Future<Uint8List?> miniatura(String id) =>
+      _repo.leerBinario(Foto.tipoMiniatura, id);
+
+  /// Guarda una foto ya procesada (sin metadatos). Exige el consentimiento
+  /// de imagen vigente con el uso clínico (pregunta 22): sin él lanza
+  /// [StateError].
+  Future<Foto> guardarFoto({
+    required String pacienteId,
+    required VistaFoto vista,
+    required FotoProcesada procesada,
+    DateTime? fecha,
+    String zona = '',
+  }) async {
+    final ficha = _indice.fichaActiva(pacienteId);
+    final consentimiento = ficha == null
+        ? null
+        : _documentos.consentimientoImagenVigente(ficha);
+    if (ficha == null || consentimiento == null) {
+      throw StateError(
+        'Falta el consentimiento de uso de imagen (uso clínico) para tomar '
+        'fotos.',
+      );
+    }
+    final ahora = reloj.ahora();
+    final foto = Foto(
+      id: nuevoUuid(),
+      pacienteId: ficha.id,
+      fecha: fecha ?? ahora,
+      vista: vista,
+      zona: zona,
+      ancho: procesada.ancho,
+      alto: procesada.alto,
+      sha256: sha256.convert(procesada.jpeg).toString(),
+      consentimientoId: consentimiento.id,
+      creado: ahora,
+    );
+    await _repo.guardarBinario(Foto.tipoBinario, foto.id, procesada.jpeg);
+    await _repo.guardarBinario(
+      Foto.tipoMiniatura,
+      foto.id,
+      procesada.miniatura,
+    );
+    await _repo.guardar(Foto.coleccion, foto.id, foto.aMapa());
+    _fotos[foto.id] = foto;
+    return foto;
+  }
+
+  /// Borra la foto y sus binarios. Queda en la bitácora.
+  Future<void> borrarFoto(String id) async {
+    if (!_fotos.containsKey(id)) return;
+    await _repo.guardarVarios([Escritura(Foto.coleccion, id, null)]);
+    await _repo.borrarBinarios([
+      (Foto.tipoBinario, id),
+      (Foto.tipoMiniatura, id),
+    ]);
+    _fotos.remove(id);
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.borrarFoto,
+      fecha: reloj.ahora(),
+    );
+  }
 
   Medicion? medicion(String id) => _mediciones[id];
 

@@ -19,6 +19,7 @@ import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../documentos/linea_tiempo_documentos.dart';
+import '../fotos/seccion_fotos.dart';
 import '../seguimiento/seccion_seguimiento.dart';
 import 'dialogo_ficha.dart';
 import 'unir_fichas.dart';
@@ -37,7 +38,8 @@ class FichaPage extends ConsumerStatefulWidget {
 /// Secciones de la ficha. En la 5.3 se suman programa de peso y estética.
 enum SeccionFicha {
   resumen('Resumen', Icons.timeline),
-  seguimiento('Seguimiento', Icons.monitor_weight_outlined);
+  seguimiento('Seguimiento', Icons.monitor_weight_outlined),
+  fotos('Fotos', Icons.photo_library_outlined);
 
   const SeccionFicha(this.etiqueta, this.icono);
 
@@ -133,6 +135,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
           const SizedBox(height: 16),
           if (_seccion == SeccionFicha.seguimiento)
             SeccionSeguimiento(ficha: f)
+          else if (_seccion == SeccionFicha.fotos)
+            SeccionFotos(ficha: f)
           else ...[
             _Clinico(ficha: f, ultima: historias.firstOrNull),
             const SizedBox(height: 16),

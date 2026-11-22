@@ -362,3 +362,42 @@ void Function() escucharVariosSoltados({
       ..removeEventListener('drop', suelta);
   };
 }
+
+/// Pide una foto. Con [camara], en celulares y tabletas abre la cámara del
+/// sistema (`capture`); en un computador abre el selector de archivos.
+/// Devuelve `null` si el usuario cancela.
+Future<ArchivoAbierto?> elegirFoto({bool camara = true}) {
+  final completer = Completer<ArchivoAbierto?>();
+  final input = web.HTMLInputElement()
+    ..type = 'file'
+    ..accept = 'image/*'
+    ..style.display = 'none';
+  if (camara) input.setAttribute('capture', 'environment');
+
+  void terminar(ArchivoAbierto? resultado) {
+    input.remove();
+    if (!completer.isCompleted) completer.complete(resultado);
+  }
+
+  input.addEventListener(
+    'change',
+    (web.Event _) {
+      final archivo = input.files?.item(0);
+      if (archivo == null) {
+        terminar(null);
+        return;
+      }
+      _leer(archivo).then(
+        (bytes) => terminar(ArchivoAbierto(nombre: archivo.name, bytes: bytes)),
+        onError: (Object e, StackTrace s) {
+          input.remove();
+          if (!completer.isCompleted) completer.completeError(e, s);
+        },
+      );
+    }.toJS,
+  );
+  input.addEventListener('cancel', ((web.Event _) => terminar(null)).toJS);
+  web.document.body!.append(input);
+  input.click();
+  return completer.future;
+}

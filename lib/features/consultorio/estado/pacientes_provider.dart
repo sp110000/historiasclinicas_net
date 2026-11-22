@@ -52,3 +52,8 @@ final descargarPdfProvider = Provider<void Function(Uint8List, String)>(
       (bytes, nombre) =>
           archivos.descargar(nombre, bytes, tipo: 'application/pdf'),
 );
+
+/// Elige o toma una foto. Las pruebas lo sustituyen.
+final elegirFotoProvider = Provider<Future<ArchivoAbierto?> Function()>(
+  (ref) => archivos.elegirFoto,
+);

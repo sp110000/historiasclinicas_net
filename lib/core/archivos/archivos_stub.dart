@@ -39,3 +39,5 @@ void Function() escucharVariosSoltados({
   required void Function(List<ArchivoAbierto> archivos) alSoltar,
   required void Function(bool arrastrando) alArrastrar,
 }) => () {};
+
+Future<ArchivoAbierto?> elegirFoto({bool camara = true}) async => null;

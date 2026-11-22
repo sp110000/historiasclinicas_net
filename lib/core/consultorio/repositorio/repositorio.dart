@@ -135,6 +135,15 @@ class RepositorioConsultorio {
         ]);
       });
 
+  /// Borra binarios (`(tipo, id)`) en una sola transacción.
+  Future<void> borrarBinarios(List<(String, String)> binarios) =>
+      _enCola(() async {
+        await _almacen.aplicar([
+          for (final (tipo, id) in binarios)
+            Cambio.borrar(Deposito.binarios, claveRegistro(tipo, id)),
+        ]);
+      });
+
   Future<Uint8List?> leerBinario(String tipo, String id) async {
     final clave = claveRegistro(tipo, id);
     final sobre = await _almacen.leer(Deposito.binarios, clave);

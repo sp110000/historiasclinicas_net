@@ -91,7 +91,12 @@ class ServicioConsultorio {
     repositorio = RepositorioConsultorio(boveda);
     indice = IndicePacientes(repositorio, reloj: reloj);
     documentos = DocumentosConsultorio(repositorio, indice, reloj: reloj);
-    seguimiento = SeguimientoConsultorio(repositorio, indice, reloj: reloj);
+    seguimiento = SeguimientoConsultorio(
+      repositorio,
+      indice,
+      documentos,
+      reloj: reloj,
+    );
   }
 
   final MotorAes motor;
