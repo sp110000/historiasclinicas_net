@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0 y 5.1) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.2) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -15,8 +15,11 @@
 // dañado y una frase equivocada se rechazan), aviso de respaldo vencido,
 // recuperar con el código, móvil y 320 px. Luego, en un navegador nuevo
 // (5.1): importar PDF sintéticos (uno alterado), buscar, abrir la ficha,
-// firmar la autorización de datos, evolución y receta desde la ficha, y
-// comprobar que nada de los pacientes queda en claro. Falla si hay
+// firmar la autorización de datos, evolución y receta desde la ficha; luego
+// (5.2) mediciones, consentimiento de imagen, fotos de antes y después
+// (con el reloj del navegador fijado), comparación y cortina, informe de
+// seguimiento y fotos en PDF; y comprobar que nada de los pacientes queda
+// en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
 // (incluida la CSP).
 
@@ -564,6 +567,221 @@ await context.close();
   await captura(p, 'p7_ficha_linea_de_tiempo.png');
   paso(`Receta con receta.json → ${path.basename(receta)}; la ficha muestra la evolución, la receta y la autorización`);
 
+  // ─────────────── 3. Seguimiento y fotos (5.2) ───────────────
+  // Elementos por nombre exacto (los chips «Fotos» y «Seguimiento» se
+  // confunden con «Tomar fotos» o «Informe de seguimiento»).
+  const exacto = (nombre) =>
+    p
+      .getByRole('button', { name: nombre, exact: true })
+      .or(p.getByRole('checkbox', { name: nombre, exact: true }))
+      .or(p.getByRole('radio', { name: nombre, exact: true }))
+      .or(p.getByRole('switch', { name: comienzo(nombre) }))
+      .first();
+  async function tocar(nombre) {
+    const l = exacto(nombre);
+    await l.scrollIntoViewIfNeeded();
+    await p.waitForTimeout(150);
+    await l.click();
+    await p.waitForTimeout(300);
+  }
+  async function firmarEnPantalla() {
+    const r = await p
+      .locator('flt-semantics')
+      .filter({ hasText: /^FIRMA DEL PACIENTE$/ })
+      .or(p.locator('flt-semantics[aria-label="FIRMA DEL PACIENTE"]'))
+      .first()
+      .boundingBox();
+    if (!r) throw new Error('No se encontró el lienzo de la firma');
+    const fx = r.x + 40;
+    const fy = r.y + r.height + 60;
+    await p.mouse.move(fx, fy);
+    await p.mouse.down();
+    for (let i = 1; i <= 12; i++) await p.mouse.move(fx + i * 18, fy + (i % 2 ? -25 : 25), { steps: 2 });
+    await p.mouse.up();
+  }
+  async function medir(valores, { copiar }) {
+    await tocar('Medición');
+    await texto(p, 'Medición nueva').waitFor();
+    for (const [etiqueta, valor] of valores) await escribir(p, etiqueta, valor);
+    const casilla = p.getByRole('checkbox', { name: /Agregar a la evolución en curso/ }).first();
+    if ((await casilla.isChecked()) !== copiar) await casilla.click();
+    await pulsar(p, 'Guardar medición');
+    await texto(p, 'Medición nueva').desaparece({ timeout: 15000 });
+  }
+  async function tomarFoto(ruta, { conAnterior = false } = {}) {
+    await pulsar(p, 'Tomar fotos');
+    await texto(p, 'Frontal (1 de 5)').waitFor();
+    if (conAnterior) {
+      await texto(p, 'Ver la anterior en transparencia').waitFor();
+      await captura(p, 'f1_secuencia_con_anterior.png');
+    }
+    const [selector] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Tomar o elegir foto')]);
+    if (!(await selector.element().getAttribute('capture'))) {
+      throw new Error('El selector de fotos no pide la cámara (capture)');
+    }
+    await selector.setFiles(ruta);
+    await exacto('Aceptar').waitFor({ timeout: 30000 });
+    await tocar('Aceptar');
+    await texto(p, 'Lateral derecha (2 de 5)').waitFor({ timeout: 30000 });
+    await pulsar(p, 'Terminar');
+    await texto(p, '1 foto guardada').waitFor();
+  }
+
+  // El 01/09/2026 (reloj del navegador fijado con Playwright: solo cambia
+  // Date; los temporizadores siguen): plantilla del consentimiento de
+  // imagen, la firma, la primera medición y la foto de «antes».
+  await p.clock.setFixedTime(new Date('2026-09-01T10:00:00-05:00'));
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Plantillas de documentos').waitFor();
+  await pulsar(p, 'Aprobar v1'); // La primera pendiente: consentimiento de imagen.
+  await texto(p, '¿Aprobar').waitFor();
+  await texto(p, 'Consentimiento de uso de imagen').waitFor();
+  await p.getByRole('button', { name: 'Aprobar', exact: true }).click();
+  await texto(p, 'aprobada el 01/09/2026').waitFor();
+  await pulsar(p, 'Pacientes');
+  await escribir(p, 'Buscar paciente', '1032456789');
+  await p.keyboard.press('Enter');
+  await texto(p, 'Ficha del paciente').waitFor();
+  await tocar('Fotos');
+  await texto(p, 'hace falta el consentimiento de uso de imagen').waitFor();
+  if (await p.getByRole('button', { name: 'Tomar fotos' }).count()) {
+    throw new Error('Sin consentimiento aparece «Tomar fotos»');
+  }
+  await pulsar(p, 'Pedir consentimiento');
+  await texto(p, 'USOS QUE AUTORIZA').waitFor();
+  await p.getByRole('checkbox', { name: /Docencia/ }).click();
+  await p.getByRole('checkbox', { name: /El paciente leyó/ }).click();
+  await firmarEnPantalla();
+  await captura(p, 'f0_consentimiento_imagen.png');
+  const cim = await descargar(p, () => pulsar(p, 'Firmar y descargar PDF'));
+  if (!/^Consentimiento_imagen_.*_CIM-000001\.pdf$/.test(path.basename(cim))) {
+    throw new Error(`Nombre del consentimiento: ${path.basename(cim)}`);
+  }
+  await exacto('Tomar fotos').waitFor({ timeout: 15000 });
+  paso(`Sin consentimiento no hay «Tomar fotos»; consentimiento de imagen firmado (clínico y docencia) → ${path.basename(cim)}`);
+
+  await tocar('Seguimiento');
+  await medir(
+    [
+      ['Peso', '67'],
+      ['Talla', '162'],
+      ['Cintura', '90'],
+      ['Cadera', '100'],
+    ],
+    { copiar: false },
+  );
+  await tocar('Fotos');
+  await tomarFoto(path.join(FIXTURES, 'foto_frontal_antes.jpg'));
+  paso('01/09/2026: primera medición y foto frontal de «antes» (cámara del sistema con capture)');
+
+  // Hoy: segunda medición (copiada a la evolución en curso) y la foto de
+  // «después» con orientación EXIF 6, alineada con la anterior.
+  await p.clock.setFixedTime(new Date());
+  await tocar('Seguimiento');
+  await medir(
+    [
+      ['Peso', '62,8'],
+      ['Cintura', '85'],
+      ['Cadera', '98'],
+    ],
+    { copiar: true },
+  );
+  await texto(p, 'agregada a la evolución en curso').waitFor();
+  await texto(p, 'Peso 67 → 62,8 kg').waitFor();
+  await texto(p, 'agregada a la evolución en curso').desaparece({ timeout: 15000 });
+  await captura(p, 's1_seguimiento.png');
+  paso('Hoy: segunda medición, copiada a la evolución; cambios, gráfica (con la de la historia) y tabla');
+
+  await tocar('Fotos');
+  await tomarFoto(path.join(FIXTURES, 'foto_frontal_despues.jpg'), { conAnterior: true });
+  await texto(p, 'COMPARAR').waitFor();
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  const dias = Math.round((Date.parse(hoy) - Date.parse('2026-09-01')) / 86400000);
+  await texto(p, `Diferencia: ${dias} días`).waitFor();
+  // Que se vean los selectores y las dos fotos enteras.
+  await p.getByText('Diferencia:').first().scrollIntoViewIfNeeded().catch(() => {});
+  await p.mouse.move(700, 600);
+  await p.mouse.wheel(0, 420);
+  await p.waitForTimeout(400);
+  await captura(p, 'f2_fotos_comparacion.png');
+  await tocar('Cortina');
+  await p.getByRole('slider').first().waitFor({ state: 'attached' });
+  await captura(p, 'f3_fotos_cortina.png');
+  await tocar('Cortina');
+  paso(`Foto de «después» con la anterior en transparencia; comparación lado a lado (${dias} días) y cortina`);
+
+  // Informe de seguimiento: sin fotos salvo que se pidan.
+  await tocar('Seguimiento');
+  await pulsar(p, 'Informe de seguimiento');
+  await texto(p, 'Incluir fotos').waitFor();
+  const incluir = p.getByRole('checkbox', { name: /Incluir fotos/ }).first();
+  if (await incluir.isChecked()) throw new Error('«Incluir fotos» viene marcado');
+  await captura(p, 's2_informe_dialogo.png');
+  const informePdf = await descargar(p, () => pulsar(p, 'Descargar'));
+  if (!/^Informe_seguimiento_PENA_\d{4}-\d{2}-\d{2}\.pdf$/.test(path.basename(informePdf))) {
+    throw new Error(`Nombre del informe: ${path.basename(informePdf)}`);
+  }
+  if (fs.readFileSync(informePdf).toString('latin1').includes('/DCTDecode')) {
+    throw new Error('El informe lleva fotos sin pedirlas');
+  }
+  try {
+    const t = execFileSync('pdftotext', ['-layout', informePdf, '-'], { encoding: 'utf8' });
+    for (const esperado of ['INFORME DE SEGUIMIENTO', 'PEÑA MUÑOZ, José Ángel', 'Peso 67 → 62,8 kg', 'MEDICIONES', '01/09/2026', '02/10/2026']) {
+      if (!t.includes(esperado)) throw new Error(`El informe no dice «${esperado}»`);
+    }
+    execFileSync('pdftoppm', ['-r', '110', '-png', '-f', '1', '-l', '1', '-singlefile', informePdf, path.join(OUT, 'pdf_informe_seguimiento')]);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  paso(`Informe de seguimiento sin fotos (por defecto) → ${path.basename(informePdf)}`);
+
+  // Exportar las fotos en PDF: las dos, ya sin EXIF y derechas.
+  await tocar('Fotos');
+  await pulsar(p, 'Exportar fotos en PDF');
+  await texto(p, '¿Exportar las fotos?').waitFor();
+  const fotosPdf = await descargar(p, () => p.getByRole('button', { name: 'Exportar', exact: true }).click());
+  try {
+    const lista = execFileSync('pdfimages', ['-list', fotosPdf], { encoding: 'utf8' })
+      .split('\n')
+      .slice(2)
+      .filter((l) => /\bjpeg\b/.test(l))
+      .map((l) => l.trim().split(/\s+/));
+    const tamanos = lista.map((c) => `${c[3]}x${c[4]}`);
+    if (tamanos.length !== 2 || tamanos.some((t) => t !== '1200x1600')) {
+      throw new Error(`Fotos del PDF: ${tamanos} (se esperaban dos de 1200x1600, derechas)`);
+    }
+    const dir = fs.mkdtempSync(path.join(OUT, 'fotos-'));
+    execFileSync('pdfimages', ['-j', fotosPdf, path.join(dir, 'f')]);
+    for (const f of fs.readdirSync(dir)) {
+      const b = fs.readFileSync(path.join(dir, f));
+      if (b.includes('Exif') || b.includes('CamaraDePrueba')) throw new Error(`La foto ${f} conserva EXIF`);
+    }
+    fs.rmSync(dir, { recursive: true });
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  await texto(p, 'Fotos exportadas el').desaparece({ timeout: 20000 });
+  paso(`Fotos exportadas en PDF → ${path.basename(fotosPdf)}: 2 JPEG de 1200×1600 (la de orientación 6 quedó derecha) y sin EXIF`);
+
+  // Ajustes → Equipo secundario (en el principal: combinar un paquete).
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Equipo secundario').waitFor();
+  // Flutter dibuja en un lienzo: se baja con la rueda hasta ver la tarjeta.
+  const combinar = p.getByRole('button', { name: 'Combinar un paquete' }).first();
+  for (let i = 0; i < 20; i++) {
+    const c = await combinar.boundingBox().catch(() => null);
+    if (c && c.y > 300 && c.y < 900) break;
+    await p.mouse.move(700, 600);
+    await p.mouse.wheel(0, 300);
+    await p.waitForTimeout(250);
+  }
+  await captura(p, 'a1_equipo_secundario.png');
+  await pulsar(p, 'Pacientes');
+  await escribir(p, 'Buscar paciente', '1032456789');
+  await p.keyboard.press('Enter');
+  await texto(p, 'Ficha del paciente').waitFor();
+  paso('Ajustes: tarjeta «Equipo secundario» (en el principal, «Combinar un paquete»)');
+
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
   const enClaro = await p.evaluate(
     () =>
@@ -587,13 +805,13 @@ await context.close();
           tx.oncomplete = () => {
             bd.close();
             const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
-            listo(['1032456789', 'Metformina', 'PEÑA', 'Penicilina'].filter((t) => todo.includes(t)));
+            listo(['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif'].filter((t) => todo.includes(t)));
           };
         };
       }),
   );
   if (enClaro.length) throw new Error(`Datos de pacientes en claro: ${enClaro}`);
-  paso('IndexedDB y localStorage sin datos de pacientes en claro (índice, documentos, recetas y borrador cifrados)');
+  paso('IndexedDB y localStorage sin datos de pacientes en claro (índice, documentos, recetas, borrador, mediciones y fotos cifrados)');
 
   // Móvil: lista y ficha.
   await p.setViewportSize({ width: 390, height: 844 });
@@ -620,7 +838,22 @@ await context.close();
   await texto(p, 'Unir con otra ficha').waitFor();
   await captura(p, 'p9_ficha_movil_acciones.png');
   await p.keyboard.press('Escape');
-  paso('Móvil (390 px): ficha con el menú «Acciones»');
+  await p.waitForTimeout(400);
+  async function bajar(px) {
+    await p.mouse.move(200, 600);
+    await p.mouse.wheel(0, px);
+    await p.waitForTimeout(400);
+  }
+  await tocar('Seguimiento');
+  await texto(p, 'Informe de seguimiento').waitFor();
+  await bajar(560);
+  await captura(p, 'p10_movil_seguimiento.png');
+  await bajar(-2000);
+  await tocar('Fotos');
+  await texto(p, 'COMPARAR').waitFor();
+  await bajar(640);
+  await captura(p, 'p11_movil_fotos.png');
+  paso('Móvil (390 px): ficha con el menú «Acciones», seguimiento y fotos');
   await ctx.close();
 }
 

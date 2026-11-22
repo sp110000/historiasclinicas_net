@@ -177,6 +177,8 @@ class _ComparacionState extends State<_Comparacion> {
       ],
     );
 
+    // Con un solo día de fotos en la vista no hay con qué comparar.
+    final unDia = dias.length < 2;
     final filtros = [
       selector<VistaFoto>(
         'Vista',
@@ -185,20 +187,22 @@ class _ComparacionState extends State<_Comparacion> {
         (v) => v.etiqueta,
         (v) => setState(() => _vista = v),
       ),
-      selector<DateTime>(
-        'Antes',
-        antes,
-        dias,
-        formatoFecha,
-        (v) => setState(() => _antes = v),
-      ),
-      selector<DateTime>(
-        'Después',
-        despues,
-        dias,
-        formatoFecha,
-        (v) => setState(() => _despues = v),
-      ),
+      if (!unDia) ...[
+        selector<DateTime>(
+          'Antes',
+          antes,
+          dias,
+          formatoFecha,
+          (v) => setState(() => _antes = v),
+        ),
+        selector<DateTime>(
+          'Después',
+          despues,
+          dias,
+          formatoFecha,
+          (v) => setState(() => _despues = v),
+        ),
+      ],
     ];
 
     return Container(
@@ -224,69 +228,92 @@ class _ComparacionState extends State<_Comparacion> {
                 ],
               ],
             ),
-          SwitchListTile(
-            value: _cortina,
-            onChanged: (v) => setState(() => _cortina = v),
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Cortina'),
-            subtitle: const Text(
-              'Una sobre otra, con una línea que se desliza',
+          if (unDia) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Para comparar hace falta otra sesión de esta vista, otro día. '
+              'Al tomarla, la app te muestra esta en transparencia para '
+              'alinearla.',
+              style: TextStyle(color: ColoresMarca.textoSuave),
             ),
-          ),
-          Text(
-            'Diferencia: ${despues.difference(antes).inDays} días',
-            style: const TextStyle(color: ColoresMarca.textoSuave),
-          ),
-          const SizedBox(height: 8),
-          if (_cortina)
-            Column(
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: ClipRRect(
-                      borderRadius: RadiosMarca.control,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          FotoCifrada(foto: b),
-                          ClipRect(
-                            clipper: _Corte(_corte),
-                            child: FotoCifrada(foto: a),
-                          ),
-                          Align(
-                            alignment: Alignment(_corte * 2 - 1, 0),
-                            child: Container(width: 2, color: Colors.white),
-                          ),
-                        ],
+            const SizedBox(height: 8),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 374),
+                child: panel(b, 'Última'),
+              ),
+            ),
+          ] else ...[
+            SwitchListTile(
+              value: _cortina,
+              onChanged: (v) => setState(() => _cortina = v),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Cortina'),
+              subtitle: const Text(
+                'Una sobre otra, con una línea que se desliza',
+              ),
+            ),
+            Text(
+              'Diferencia: ${despues.difference(antes).inDays} días',
+              style: const TextStyle(color: ColoresMarca.textoSuave),
+            ),
+            const SizedBox(height: 8),
+            if (_cortina)
+              Column(
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: AspectRatio(
+                      aspectRatio: 3 / 4,
+                      child: ClipRRect(
+                        borderRadius: RadiosMarca.control,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            FotoCifrada(foto: b),
+                            ClipRect(
+                              clipper: _Corte(_corte),
+                              child: FotoCifrada(foto: a),
+                            ),
+                            Align(
+                              alignment: Alignment(_corte * 2 - 1, 0),
+                              child: Container(width: 2, color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
+                  Slider(
+                    value: _corte,
+                    onChanged: (v) => setState(() => _corte = v),
+                    label: 'Cortina',
+                    semanticFormatterCallback: (v) =>
+                        'Antes a la izquierda: ${(v * 100).round()} %',
+                  ),
+                  Text(
+                    'Izquierda: ${formatoFecha(a.fecha)} · derecha: '
+                    '${formatoFecha(b.fecha)}',
+                    style: const TextStyle(color: ColoresMarca.textoSuave),
+                  ),
+                ],
+              )
+            else
+              // En escritorio, a lo sumo 760 px: las dos fotos caben a la vista.
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: panel(a, 'Antes')),
+                      const SizedBox(width: 12),
+                      Expanded(child: panel(b, 'Después')),
+                    ],
+                  ),
                 ),
-                Slider(
-                  value: _corte,
-                  onChanged: (v) => setState(() => _corte = v),
-                  label: 'Cortina',
-                  semanticFormatterCallback: (v) =>
-                      'Antes a la izquierda: ${(v * 100).round()} %',
-                ),
-                Text(
-                  'Izquierda: ${formatoFecha(a.fecha)} · derecha: '
-                  '${formatoFecha(b.fecha)}',
-                  style: const TextStyle(color: ColoresMarca.textoSuave),
-                ),
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: panel(a, 'Antes')),
-                const SizedBox(width: 12),
-                Expanded(child: panel(b, 'Después')),
-              ],
-            ),
+              ),
+          ],
         ],
       ),
     );

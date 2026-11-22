@@ -199,13 +199,21 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
         if (_imagen) ...[
           const SizedBox(height: 10),
           const Text('USOS QUE AUTORIZA', style: EstilosMarca.rotulo),
+          // Obligatorio: marcado y fijo, pero con el contraste del texto
+          // normal (no el gris de lo deshabilitado).
           const CheckboxListTile(
             value: true,
             onChanged: null,
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
-            title: Text('Registro clínico'),
-            subtitle: Text('Obligatorio para tomar fotos.'),
+            title: Text(
+              'Registro clínico',
+              style: TextStyle(color: ColoresMarca.tinta),
+            ),
+            subtitle: Text(
+              'Obligatorio para tomar fotos.',
+              style: TextStyle(color: ColoresMarca.textoSuave),
+            ),
           ),
           CheckboxListTile(
             value: _docencia,

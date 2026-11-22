@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: 5.0 «Cimientos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). Plan aprobado el 21/11/2026 con las respuestas 1 a 9 por defecto. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
+> **Estado: 5.2 «Seguimiento y fotos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). La 5.0 y la 5.1 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para seguir:** el visto bueno de la 5.0 y, antes de la 5.1, las preguntas 10 a 16 (bloque «Pacientes»). Junto a cada pregunta pongo lo que haría por defecto; basta con que respondas «ok» a lo que te parezca bien.
+**Qué necesito de ti para seguir:** el visto bueno de la 5.2. Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.3, dímelo.
 
 ---
 
@@ -31,7 +31,70 @@
 
 ## Avance
 
-### 5.1 Pacientes ✅ (pendiente de tu visto bueno)
+### 5.2 Seguimiento y fotos ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Mediciones** (pestaña «Seguimiento» de la ficha):
+  - peso, talla, cintura, cadera, abdomen, flancos, muslos y brazos (derecho e izquierdo), presión arterial y % de grasa con su método (pregunta 18). La talla se arrastra de la última medición;
+  - **IMC e índice cintura-cadera** calculados; rangos de cada campo validados;
+  - también aparecen, de solo lectura, el peso, la talla y la presión **sellados en las historias** del paciente (origen «historia»);
+  - **cambios** desde la primera medición (peso, IMC, cintura, ICC, con su %), **gráfica** con `CustomPainter` (eje de tiempo proporcional y marcas redondas) y tabla;
+  - al guardar una medición, «Mediciones del día: …» se **agrega a la evolución en curso** (pregunta 17; casilla marcada por defecto si el paciente tiene historias). Se sella al descargar la historia.
+- **Consentimiento de uso de imagen** (consecutivo CIM-): plantilla versionada (**VERIFICAR con tu abogado**), firmada en pantalla, con **tres permisos separados** (pregunta 22): registro clínico (obligatorio), docencia y publicidad. La ficha muestra cuáles autorizó. Sin consentimiento vigente **no aparece «Tomar fotos»**, y la capa de datos tampoco guarda la foto.
+- **Fotos cifradas** (pestaña «Fotos»):
+  - secuencia de cinco vistas (frontal, laterales, posterior y detalle, pregunta 19), cada una con **guía de encuadre** (hombros, ombligo, caderas) y la **foto anterior en transparencia** para alinear; repetir, saltar o terminar;
+  - **cámara del sistema** con `capture` (pregunta 21a); en el computador, el selector de archivos;
+  - en el navegador, la foto se endereza según su orientación, se reduce a **1600 px de lado mayor, JPEG al 80 %**, y se le **quitan los metadatos** (EXIF con GPS, XMP, IPTC, comentarios; pregunta 20). Se guarda cifrada, con una miniatura de 320 px, ligada al consentimiento con el que se tomó;
+  - **comparación lado a lado** por vista y fecha, con los días de diferencia, y **cortina** (una sobre otra, con una línea que se desliza); galería por fecha; borrar una foto queda en la bitácora.
+- **Informe de seguimiento en PDF**: cambios, gráficas de peso, IMC y cintura (`pw.Chart`), tabla de mediciones, firma y sello. Las fotos van **solo si marcas «Incluir fotos»**, que viene apagado (pregunta 23): la primera y la última de cada vista. **«Exportar fotos en PDF»** saca todas las fotos de la ficha, con confirmación. Toda salida de fotos queda en la bitácora.
+- **Equipo secundario** (pregunta 3; Ajustes → «Equipo secundario»):
+  - el celular se configura **restaurando un respaldo** del portátil (comparten la llave) y marcándolo como secundario. Sus documentos llevan **serie propia** («CIM-S000001»), para que los consecutivos no choquen;
+  - «Exportar paquete de este equipo» descarga un **`.hcpaquete` cifrado** con lo creado allí desde la restauración: fichas, mediciones, fotos y documentos firmados;
+  - en el portátil, «Combinar un paquete» lo verifica (otro consultorio o un byte cambiado se rechazan), muestra qué trae y lo agrega **sin duplicar**. Una ficha nueva del celular cuyo documento ya existe en el portátil se une a la de aquí.
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **469 en verde** (eran 440 en la 5.1). 3 omitidas, las mismas de antes. Cubre lo que pedía el plan: cálculos (IMC, ICC, cambios, validaciones), sin consentimiento no hay fotos, las fotos no entran al PDF de la historia ni al informe sin pedirlo, EXIF y GPS eliminados, foto cifrada en reposo (ni «JFIF» en claro), paquete combinado sin duplicados (y otra vez el mismo: nada nuevo), paquete ajeno o alterado rechazado, e informe en PDF leído con `pdftotext` |
+| Bandera apagada | `main.dart.js` público **del mismo tamaño que en la 5.1** (5.333.404 bytes) y sin el módulo (`verificar_compilacion.dart`). En los archivos compartidos, la 5.2 solo agregó `elegirFoto` y `elegirPaquete` a `archivos_web.dart`, que el sitio público no usa y el compilador descarta |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **5.752 KB** (5.709 KB en la 5.1) |
+| Contraste | La gráfica, las píldoras de cambios y los diálogos usan los colores del tema, ya probados (≥ 4,5:1). Los rótulos de la guía de encuadre (blanco sobre negro al 55 %) dan unos 4,7:1 aun sobre una foto blanca, con prueba. «Registro clínico», marcado y fijo, ya no sale en el gris de lo deshabilitado |
+| 320 px | Seguimiento, diálogo de medición, fotos, secuencia y firma del consentimiento sin desbordes, con prueba |
+| e2e de siempre | `historia_offline.mjs` y `pwa_offline.mjs` en verde con el sitio público |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **30 de 30 pasos** (23 de antes y 7 nuevos). Aprobar la plantilla y **firmar el consentimiento de imagen** (clínico y docencia; antes, sin él, no hay «Tomar fotos»). El **01/09/2026**: medición y **foto de «antes»** con el selector que pide la cámara (`capture`). **Hoy**: segunda medición, **copiada a la evolución**, y **foto de «después» con la anterior en transparencia**. Luego la **comparación** con los días de diferencia, la **cortina** y el **informe** (sin fotos por defecto; su texto, con `pdftotext`). Las **fotos exportadas en PDF** salen como dos JPEG de **1200 × 1600**, así que la de orientación EXIF 6 quedó derecha y redimensionada; tampoco conservan EXIF. Al final, la tarjeta del equipo secundario y nada de los pacientes en claro (tampoco «JFIF» ni «Exif»). 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.2**
+1. **Subí un commit con una prueba rota** (59ae629): la orden que encadenaba la suite y el commit no se detenía si fallaba. Lo corregí en el commit siguiente (5f5d2b6), y desde entonces cada commit solo se hace si la suite termina en verde.
+2. La gráfica de la ficha rotulaba el eje con valores como «67,504». Ahora usa marcas redondas, las mismas del PDF.
+3. En el informe, la gráfica repartía las mediciones a distancias iguales aunque estuvieran separadas por días o meses. Ahora el eje es de tiempo. Además, el rótulo «Fotos» podía quedar solo al pie de una página y la firma podía partirse entre dos.
+4. En escritorio, las dos fotos de la comparación medían unos 700 px de alto. Ahora el bloque mide a lo sumo 760 px de ancho y se ven enteras.
+5. Con un solo día de fotos, la comparación mostraba la misma foto dos veces y «Diferencia: 0 días». Ahora dice que hace falta otra sesión.
+6. El aviso de documento firmado decía «Autorización … firmado» también para el consentimiento de imagen. Ahora dice «Documento firmado: …».
+
+**Desviaciones del plan**
+- **Fotos adjuntas a una evolución** (pregunta 23, «solo si eliges fotos concretas»): no está. Por ahora las fotos **nunca** entran a la historia, solo al informe (si lo pides) y a «Exportar fotos en PDF». Propongo hacerlo en la 5.4, con los documentos.
+- **El paquete del secundario lleva lo creado desde la restauración**, no los cambios a lo que ya existía. Si en el celular editas una ficha que vino del portátil, ese cambio no viaja; las fichas, mediciones, fotos y documentos nuevos sí. El equipo secundario es para tomar fotos y firmar.
+- **Las mediciones de las historias** salen de los signos sellados (peso, talla y presión). Son de solo lectura: se corrigen en la historia, no en el seguimiento.
+- **Exportar fotos (y el informe con fotos) queda en la bitácora.** No estaba en el plan, pero es una salida de datos sensibles.
+- **Revocar el consentimiento de imagen** oculta «Tomar fotos». Las fotos ya tomadas siguen en la ficha como parte de la historia (**VERIFICAR con tu abogado** si deben ocultarse o conservarse con otra marca).
+- **Que las fotos tomadas con `capture` no queden en el carrete del celular** depende del navegador y del modelo (**VERIFICAR en tu celular**).
+- En las pruebas de Dart (sin navegador), la foto solo pierde los metadatos, sin redimensionarla. El redimensionado y la orientación se comprueban en la e2e de Chromium.
+- La e2e fija el reloj del navegador al 01/09/2026 para la foto de «antes». Playwright cambia solo la fecha; los temporizadores siguen.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):**
+  - [seguimiento](fase5/escritorio_seguimiento.png)
+  - [firma del consentimiento de imagen](fase5/escritorio_consentimiento_imagen.png)
+  - [guía de encuadre con la foto anterior](fase5/escritorio_fotos_guia.png)
+  - [comparación de fotos](fase5/escritorio_fotos_comparacion.png) · [cortina](fase5/escritorio_fotos_cortina.png)
+  - [informe: «Incluir fotos» apagado](fase5/escritorio_informe_dialogo.png)
+  - [Ajustes → Equipo secundario](fase5/escritorio_equipo_secundario.png)
+- **Móvil (390 px):** [seguimiento](fase5/movil_seguimiento.png) · [fotos](fase5/movil_fotos.png)
+- **PDF:** [primera página del informe de seguimiento](fase5/pdf_informe_seguimiento.png)
+
+### 5.1 Pacientes ✅ (aprobada el 22/11/2026)
 
 **Qué incluye**
 - **Índice de pacientes** cifrado (`lib/core/consultorio/indice/`):
@@ -921,7 +984,7 @@ docs/FASE5.md, docs/fase5/           # este plan, resultados y capturas
 | `lib/core/pdf/piezas_pdf.dart`, `lib/core/pdf/historia_pdf.dart` | Extraer ficha del paciente, cabecera de sección y encabezado de página, sin cambiar el PDF (prueba de regresión). **5.1: `piezas_pdf.dart` no cambió**; los documentos usan `datosMedicoPdf` y `bloqueFirmaPdf` tal como están |
 | `lib/features/medico/medico_page.dart`, `lib/core/widgets/dialogo_firma.dart` (nuevo) | `DialogoFirma` pasa a `lib/core/widgets/` con título y textos como parámetros, sin cambiar cómo se ve el del médico. **5.1: no hizo falta**; la firma del paciente es un diálogo del consultorio con el `LienzoFirma` de siempre |
 | `lib/core/widgets/campos.dart` | Variante neutra de `CampoEtiquetas` (sin el estilo de alergia). `CampoMoneda` y `CampoCantidad` van en archivos nuevos |
-| `lib/core/archivos/archivos.dart`, `lib/core/archivos/archivos_web.dart`, `lib/core/archivos/archivos_stub.dart` | Elegir varios archivos, soltar varios y `capture` para la cámara. **5.1:** `elegirPdfs` y `escucharVariosSoltados`; la cámara, en la 5.2 |
+| `lib/core/archivos/archivos.dart`, `lib/core/archivos/archivos_web.dart`, `lib/core/archivos/archivos_stub.dart` | Elegir varios archivos, soltar varios y `capture` para la cámara. **5.1:** `elegirPdfs` y `escucharVariosSoltados`. **5.2:** `elegirFoto` (con `capture`) y `elegirPaquete`; `archivos.dart` no cambió |
 | `tool/ihce/regla10.dart` | Aceptar el inventario de esta tabla y la carpeta `lib/features/consultorio/` (pregunta 8) |
 | `tool/construir_web.sh`, `.github/workflows/ci.yml` | Carpeta de salida como parámetro, y un trabajo de CI que compila con la bandera encendida y corre el e2e del consultorio. **`pages.yml` no cambia** |
 | `tool/e2e/historia_offline.mjs` | Paso nuevo: sin la bandera no existe la base del consultorio |

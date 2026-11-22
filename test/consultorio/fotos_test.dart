@@ -186,6 +186,20 @@ void main() {
     });
   });
 
+  test(
+    'los rótulos de la guía se leen aun sobre una foto blanca (≥ 4,5:1)',
+    () {
+      // Peor caso: el fondo negro al 55 % del rótulo encima de un blanco.
+      final fondo = Color.alphaBlend(
+        Colors.black.withValues(alpha: 0.55),
+        Colors.white,
+      );
+      final l1 = Colors.white.computeLuminance();
+      final l2 = fondo.computeLuminance();
+      expect((l1 + 0.05) / (l2 + 0.05), greaterThanOrEqualTo(4.5));
+    },
+  );
+
   group('Pantalla', () {
     Future<void> montar(
       WidgetTester t,
@@ -297,6 +311,13 @@ void main() {
       );
       await montar(t, b, id, tamano: const Size(320, 640));
       expect(t.takeException(), isNull);
+      // Con un solo día de fotos no hay comparación de una foto consigo.
+      expect(
+        find.textContaining('Para comparar hace falta otra sesión'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Diferencia:'), findsNothing);
+      expect(find.text('Cortina'), findsNothing);
       await t.drag(find.byType(Scrollable).last, const Offset(0, -2000));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);

@@ -16,3 +16,19 @@ GENERAR_FIXTURES_E2E=1 flutter test test/tool/fixtures_e2e_test.dart
 
 Sin la variable, la misma prueba comprueba que estos archivos se siguen
 leyendo como se espera.
+
+## Fotos sintéticas (5.2)
+
+Siluetas dibujadas (ninguna persona real), con EXIF y una ubicación GPS
+inventados para comprobar que se quitan. Las genera
+`generar_fotos.py` (Pillow):
+
+```
+python3 tool/e2e/fixtures/consultorio/generar_fotos.py
+```
+
+| Archivo | Qué es |
+|---|---|
+| `foto_frontal_antes.jpg` | Frontal de 1500 × 2000, con EXIF y GPS |
+| `foto_frontal_despues.jpg` | Frontal guardada de lado (2000 × 1500) con orientación EXIF 6: el navegador debe dejarla derecha |
+| `test/fixtures/foto_con_exif.jpg` | Versión pequeña (96 × 128) para las pruebas unitarias |

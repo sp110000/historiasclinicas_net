@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../app/tema.dart';
+import '../../../core/consultorio/seguimiento/marcas_eje.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/utils/numeros.dart';
 
@@ -95,21 +96,17 @@ class _Pintor extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final valores = [for (final p in puntos) p.valor, ?meta];
-    var minimo = valores.reduce(math.min);
-    var maximo = valores.reduce(math.max);
-    if (maximo - minimo < 1e-9) {
-      minimo -= 1;
-      maximo += 1;
-    }
-    final margenValor = (maximo - minimo) * 0.12;
-    minimo -= margenValor;
-    maximo += margenValor;
-
-    final etiquetaMax = _texto(formato(maximo));
-    final etiquetaMin = _texto(formato(minimo));
-    final izquierda = math.max(etiquetaMax.width, etiquetaMin.width) + 8;
+    // Marcas redondas (las mismas del informe en PDF).
+    final eje = marcasEje(valores.reduce(math.min), valores.reduce(math.max));
+    final minimo = eje.marcas.first;
+    final maximo = eje.marcas.last;
+    final etiquetas = [
+      for (final m in eje.marcas)
+        _texto(formatoNumero(m, decimales: eje.decimales)),
+    ];
+    final izquierda = etiquetas.map((e) => e.width).reduce(math.max) + 8;
     const abajo = 20.0;
-    const arriba = 6.0;
+    const arriba = 8.0;
     const derecha = 12.0;
     final area = Rect.fromLTRB(
       izquierda,
@@ -117,25 +114,27 @@ class _Pintor extends CustomPainter {
       size.width - derecha,
       size.height - abajo,
     );
+    double y(double v) =>
+        area.bottom - (v - minimo) / (maximo - minimo) * area.height;
 
     final guia = Paint()
       ..color = ColoresMarca.borde
       ..strokeWidth = 1;
-    for (var i = 0; i <= 3; i++) {
-      final y = area.top + area.height * i / 3;
-      canvas.drawLine(Offset(area.left, y), Offset(area.right, y), guia);
+    // Con muchas marcas se rotula una de cada dos.
+    final cada = eje.marcas.length > 6 ? 2 : 1;
+    for (final (i, m) in eje.marcas.indexed) {
+      canvas.drawLine(Offset(area.left, y(m)), Offset(area.right, y(m)), guia);
+      if (i % cada == 0 || i == eje.marcas.length - 1) {
+        final e = etiquetas[i];
+        e.paint(canvas, Offset(izquierda - 8 - e.width, y(m) - e.height / 2));
+      }
     }
-    etiquetaMax.paint(canvas, Offset(0, area.top - etiquetaMax.height / 2));
-    etiquetaMin.paint(canvas, Offset(0, area.bottom - etiquetaMin.height / 2));
 
     final t0 = puntos.first.fecha.millisecondsSinceEpoch.toDouble();
     final t1 = puntos.last.fecha.millisecondsSinceEpoch.toDouble();
     double x(DateTime f) => puntos.length == 1 || t1 == t0
         ? area.center.dx
         : area.left + (f.millisecondsSinceEpoch - t0) / (t1 - t0) * area.width;
-    double y(double v) =>
-        area.bottom - (v - minimo) / (maximo - minimo) * area.height;
-
     // Meta, punteada.
     if (meta != null) {
       final m = meta!;

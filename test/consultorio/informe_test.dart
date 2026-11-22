@@ -14,7 +14,7 @@ import 'package:historiasclinicas_net/core/consultorio/modelos/foto.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/medicion.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/registro_historia.dart';
 import 'package:historiasclinicas_net/core/consultorio/repositorio/bitacora.dart';
-import 'package:historiasclinicas_net/core/consultorio/seguimiento/informe_pdf.dart';
+import 'package:historiasclinicas_net/core/consultorio/seguimiento/marcas_eje.dart';
 import 'package:historiasclinicas_net/core/consultorio/servicio.dart';
 import 'package:historiasclinicas_net/core/models/medico.dart';
 import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
