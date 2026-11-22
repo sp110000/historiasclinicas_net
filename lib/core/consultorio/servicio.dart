@@ -4,6 +4,7 @@ import '../ihce/reloj.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
+import 'seguimiento/seguimiento.dart';
 import 'indice/indice_pacientes.dart';
 import '../models/paciente.dart';
 import 'modelos/registro_historia.dart';
@@ -90,6 +91,7 @@ class ServicioConsultorio {
     repositorio = RepositorioConsultorio(boveda);
     indice = IndicePacientes(repositorio, reloj: reloj);
     documentos = DocumentosConsultorio(repositorio, indice, reloj: reloj);
+    seguimiento = SeguimientoConsultorio(repositorio, indice, reloj: reloj);
   }
 
   final MotorAes motor;
@@ -106,6 +108,9 @@ class ServicioConsultorio {
 
   /// Plantillas y documentos firmados; vacío mientras está bloqueado.
   late final DocumentosConsultorio documentos;
+
+  /// Mediciones y fotos; vacío mientras está bloqueado.
+  late final SeguimientoConsultorio seguimiento;
 
   final _pendientes = <HistoriaPendiente>[];
   final _recetasPendientes = <RecetaPendiente>[];
@@ -139,6 +144,7 @@ class ServicioConsultorio {
           : ConfiguracionConsultorio.desdeMapa(c);
       await indice.cargar();
       await documentos.cargar();
+      await seguimiento.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -218,6 +224,7 @@ class ServicioConsultorio {
   void _cerrarSesion() {
     indice.olvidar();
     documentos.olvidar();
+    seguimiento.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();

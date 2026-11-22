@@ -19,18 +19,39 @@ import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../documentos/linea_tiempo_documentos.dart';
+import '../seguimiento/seccion_seguimiento.dart';
 import 'dialogo_ficha.dart';
 import 'unir_fichas.dart';
 
 /// Ficha longitudinal del paciente: datos, alergias y antecedentes (con su
 /// fuente), acciones y línea de tiempo de sus historias.
-class FichaPage extends ConsumerWidget {
+class FichaPage extends ConsumerStatefulWidget {
   const FichaPage({super.key, required this.id});
 
   final String id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FichaPage> createState() => _FichaPageState();
+}
+
+/// Secciones de la ficha. En la 5.3 se suman programa de peso y estética.
+enum SeccionFicha {
+  resumen('Resumen', Icons.timeline),
+  seguimiento('Seguimiento', Icons.monitor_weight_outlined);
+
+  const SeccionFicha(this.etiqueta, this.icono);
+
+  final String etiqueta;
+  final IconData icono;
+}
+
+class _FichaPageState extends ConsumerState<FichaPage> {
+  var _seccion = SeccionFicha.resumen;
+
+  String get id => widget.id;
+
+  @override
+  Widget build(BuildContext context) {
     ref.watch(versionIndiceProvider);
     final s = ref.read(servicioConsultorioProvider);
     final indice = s.indice;
@@ -96,21 +117,39 @@ class FichaPage extends ConsumerWidget {
           const SizedBox(height: 12),
           _Acciones(ficha: f, tieneHistorias: historias.isNotEmpty),
           const SizedBox(height: 16),
-          _Clinico(ficha: f, ultima: historias.firstOrNull),
-          const SizedBox(height: 16),
-          const Text('LÍNEA DE TIEMPO', style: EstilosMarca.rotulo),
-          const SizedBox(height: 8),
-          if (entradas.isEmpty)
-            const Text(
-              'Sin historias todavía. «Historia nueva» empieza una con los '
-              'datos de esta ficha.',
-              style: TextStyle(color: ColoresMarca.textoSuave),
-            )
-          else
-            for (final (_, tarjeta) in entradas) ...[
-              tarjeta,
-              const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final s in SeccionFicha.values)
+                ChoiceChip(
+                  avatar: Icon(s.icono, size: 18),
+                  label: Text(s.etiqueta),
+                  selected: _seccion == s,
+                  onSelected: (_) => setState(() => _seccion = s),
+                ),
             ],
+          ),
+          const SizedBox(height: 16),
+          if (_seccion == SeccionFicha.seguimiento)
+            SeccionSeguimiento(ficha: f)
+          else ...[
+            _Clinico(ficha: f, ultima: historias.firstOrNull),
+            const SizedBox(height: 16),
+            const Text('LÍNEA DE TIEMPO', style: EstilosMarca.rotulo),
+            const SizedBox(height: 8),
+            if (entradas.isEmpty)
+              const Text(
+                'Sin historias todavía. «Historia nueva» empieza una con los '
+                'datos de esta ficha.',
+                style: TextStyle(color: ColoresMarca.textoSuave),
+              )
+            else
+              for (final (_, tarjeta) in entradas) ...[
+                tarjeta,
+                const SizedBox(height: 12),
+              ],
+          ],
         ],
       ),
     );
@@ -250,27 +289,12 @@ class _Acciones extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required bool continuar,
-  }) async {
-    if (!historiaEnCursoConCambios(ref)) return true;
-    final enCurso = ref.read(historiaProvider);
-    final ultima = ref
-        .read(servicioConsultorioProvider)
-        .indice
-        .ultimaHistoria(ficha.id);
-    if (continuar && enCurso.abierta && enCurso.historia.id == ultima?.id) {
-      return true;
-    }
-    return confirmar(
-      context,
-      titulo: '¿Reemplazar la historia en curso?',
-      texto:
-          'La historia que tienes abierta tiene cambios sin guardar en PDF. '
-          'Si continúas, se perderán.',
-      aceptar: 'Reemplazar',
-      icono: Icons.warning_amber_rounded,
-      peligro: true,
-    );
-  }
+  }) => confirmarReemplazoHistoria(
+    context,
+    ref,
+    pacienteId: ficha.id,
+    continuar: continuar,
+  );
 
   Future<void> _historiaNueva(BuildContext context, WidgetRef ref) async {
     if (!await _puedeReemplazar(context, ref, continuar: false)) return;

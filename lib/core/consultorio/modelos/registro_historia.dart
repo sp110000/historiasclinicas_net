@@ -2,6 +2,8 @@ import '../../integridad/cadena_hash.dart';
 import '../../integridad/json_canonico.dart';
 import '../../models/historia.dart';
 import '../../models/mapa.dart';
+import '../../utils/fechas.dart';
+import 'medicion.dart';
 
 /// De dónde llegó un PDF de la historia.
 enum OrigenArchivo { generado, importado, abierto }
@@ -115,6 +117,7 @@ class RegistroHistoria {
     this.archivos = const [],
     this.divergencias = const [],
     this.tienePdf = false,
+    this.mediciones = const [],
   });
 
   static const coleccion = 'historias';
@@ -162,6 +165,10 @@ class RegistroHistoria {
 
   /// Si el índice guarda el PDF exacto de la última revisión.
   final bool tienePdf;
+
+  /// Signos sellados (peso, talla, perímetro abdominal y PA) de la historia
+  /// y de cada evolución, para el seguimiento. Solo lectura.
+  final List<Medicion> mediciones;
   final DateTime actualizado;
 
   bool get divergente => divergencias.isNotEmpty;
@@ -203,6 +210,7 @@ class RegistroHistoria {
     archivos: archivos ?? this.archivos,
     divergencias: divergencias ?? this.divergencias,
     tienePdf: tienePdf ?? this.tienePdf,
+    mediciones: mediciones,
   );
 
   /// Resume los datos sellados de una historia. Lanza [FormatException] si
@@ -223,6 +231,15 @@ class RegistroHistoria {
     var niega = h.antecedentes.niegaAlergias;
     DateTime? alergiasDesde;
     final recetas = <String>[..._recetasEn(h.plan.planTerapeutico)];
+    final mediciones = <Medicion>[
+      ?_medicionDe(
+        h.signos,
+        '${h.id}#0',
+        h.fechaAtencion,
+        ahora,
+        'Historia del ${formatoFecha(h.fechaAtencion)}',
+      ),
+    ];
     final resumenes = <ResumenEvolucion>[];
     for (final (i, e) in evoluciones.indexed) {
       final texto = e.texto('texto');
@@ -238,6 +255,11 @@ class RegistroHistoria {
         alergiasDesde = fecha;
       }
       recetas.addAll(_recetasEn(texto));
+      final s = SignosVitales.desdeMapa(e.mapa('signosVitales'));
+      if (_medicionDe(s, '${h.id}#${i + 1}', fecha, ahora, 'Evolución ${i + 1}')
+          case final m?) {
+        mediciones.add(m);
+      }
       final hash = e.textoONulo('hash');
       resumenes.add(
         ResumenEvolucion(
@@ -294,6 +316,7 @@ class RegistroHistoria {
       integridadDescripcion: integridad.descripcion,
       archivos: archivos,
       tienePdf: tienePdf,
+      mediciones: mediciones,
       actualizado: ahora,
     );
   }
@@ -326,6 +349,11 @@ class RegistroHistoria {
         ? null
         : [for (final a in divergencias) a.aMapa()],
     'tienePdf': tienePdf ? true : null,
+    'mediciones': mediciones.isEmpty
+        ? null
+        : [
+            for (final m in mediciones) {'id': m.id, ...m.aMapa()},
+          ],
     'actualizado': actualizado.toUtc().toIso8601String(),
   });
 
@@ -362,6 +390,10 @@ class RegistroHistoria {
             ArchivoHistoria.desdeMapa(a),
         ],
         tienePdf: m.booleano('tienePdf'),
+        mediciones: [
+          for (final x in m.listaMapas('mediciones'))
+            Medicion.desdeMapa(x.texto('id'), x),
+        ],
         actualizado: DateTime.parse(m['actualizado']! as String).toLocal(),
       );
 }
@@ -396,4 +428,34 @@ List<String>? _alergiasActualizadas(String texto) {
           ];
   }
   return r;
+}
+
+/// Medición de solo lectura a partir de los signos sellados, o `null` si
+/// no trae ninguno de los que sigue el consultorio.
+Medicion? _medicionDe(
+  SignosVitales s,
+  String id,
+  DateTime fecha,
+  DateTime ahora,
+  String fuente,
+) {
+  if (s.peso == null &&
+      s.talla == null &&
+      s.perimetroAbdominal == null &&
+      (s.paSistolica == null || s.paDiastolica == null)) {
+    return null;
+  }
+  return Medicion(
+    id: id,
+    pacienteId: '',
+    fecha: fecha,
+    creado: ahora,
+    origen: OrigenMedicion.historia,
+    fuente: fuente,
+    peso: s.peso,
+    talla: s.talla,
+    cintura: s.perimetroAbdominal,
+    paSistolica: s.paSistolica,
+    paDiastolica: s.paDiastolica,
+  );
 }

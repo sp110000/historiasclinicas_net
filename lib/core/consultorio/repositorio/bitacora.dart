@@ -19,7 +19,8 @@ enum AccionBitacora {
   aprobarPlantilla('Aprobó una plantilla'),
   firmarDocumento('Firmó un documento'),
   revocarDocumento('Registró la revocación de un documento'),
-  anularDocumento('Anuló un documento');
+  anularDocumento('Anuló un documento'),
+  borrarMedicion('Borró una medición');
 
   const AccionBitacora(this.etiqueta);
 

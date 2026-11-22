@@ -20,6 +20,7 @@ import '../../../core/utils/fechas.dart';
 import '../../historia/estado/archivo_provider.dart';
 import '../../historia/estado/borrador_provider.dart';
 import '../../historia/estado/historia_controller.dart';
+import '../../historia/widgets/dialogos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 
@@ -309,3 +310,43 @@ Future<String> actualizarAlergias(
 
 /// Historias pendientes de registrar (consultorio bloqueado).
 int historiasPendientes(WidgetRef ref) => _servicio(ref).historiasPendientes;
+
+/// Antes de reemplazar la historia en curso: si tiene cambios sin guardar
+/// (y no es la más reciente de [pacienteId], que se va a [continuar]),
+/// pide confirmación.
+Future<bool> confirmarReemplazoHistoria(
+  BuildContext context,
+  WidgetRef ref, {
+  required String pacienteId,
+  required bool continuar,
+}) async {
+  if (!historiaEnCursoConCambios(ref)) return true;
+  final enCurso = ref.read(historiaProvider);
+  final ultima = _servicio(ref).indice.ultimaHistoria(pacienteId);
+  if (continuar && enCurso.abierta && enCurso.historia.id == ultima?.id) {
+    return true;
+  }
+  return confirmar(
+    context,
+    titulo: '¿Reemplazar la historia en curso?',
+    texto:
+        'La historia que tienes abierta tiene cambios sin guardar en PDF. '
+        'Si continúas, se perderán.',
+    aceptar: 'Reemplazar',
+    icono: Icons.warning_amber_rounded,
+    peligro: true,
+  );
+}
+
+/// Agrega [texto] al final de la evolución en curso de la historia más
+/// reciente de [pacienteId] (la abre si hace falta). Devuelve `false` si
+/// el paciente no tiene historias.
+Future<bool> agregarALaEvolucion(
+  WidgetRef ref,
+  String pacienteId,
+  String texto,
+) async {
+  if (!await nuevaEvolucionPara(ref, pacienteId)) return false;
+  ref.read(historiaProvider.notifier).registrarReceta(texto);
+  return true;
+}
