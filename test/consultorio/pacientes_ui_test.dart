@@ -166,6 +166,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Hipotiroidismo'), findsOneWidget);
+    // La línea de tiempo está debajo: la lista construye solo lo visible.
+    await t.scrollUntilVisible(
+      find.text('02/10/2026 · Historia clínica'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('02/10/2026 · Historia clínica'), findsOneWidget);
     expect(find.text('Íntegra · revisión 2'), findsOneWidget);
     expect(
@@ -184,6 +190,11 @@ void main() {
       extra: [
         verPdfProvider.overrideWithValue((bytes, _) async => visto = bytes),
       ],
+    );
+    await t.scrollUntilVisible(
+      find.text('Ver PDF'),
+      200,
+      scrollable: find.byType(Scrollable).last,
     );
     await _pulsar(t, find.text('Ver PDF'));
     expect(visto, await b.servicio.indice.pdfDe('h-jose'));
