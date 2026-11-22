@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import '../ihce/reloj.dart';
@@ -12,6 +13,7 @@ import 'modelos/configuracion.dart';
 import 'repositorio/bitacora.dart';
 import 'repositorio/migraciones.dart';
 import 'repositorio/repositorio.dart';
+import 'respaldo/paquete.dart';
 import 'respaldo/respaldo.dart';
 import 'seguridad/boveda.dart';
 import 'seguridad/llavero.dart';
@@ -149,6 +151,7 @@ class ServicioConsultorio {
           : ConfiguracionConsultorio.desdeMapa(c);
       await indice.cargar();
       await documentos.cargar();
+      documentos.serie = await esEquipoSecundario() ? 'S' : '';
       await seguimiento.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
@@ -337,9 +340,89 @@ class ServicioConsultorio {
     if (!boveda.desbloqueada && !await _candado.tomar()) {
       throw const OtraPestanaAbierta();
     }
-    await restaurarRespaldo(boveda, v, aceptarParcial: aceptarParcial);
+    await restaurarRespaldo(
+      boveda,
+      v,
+      aceptarParcial: aceptarParcial,
+      ahora: reloj.ahora(),
+    );
     await _alAbrir(AccionBitacora.restaurar);
   }
 
   Future<List<EntradaBitacora>> bitacora() => leerBitacora(repositorio);
+
+  // ─────────────────────── Equipo secundario ───────────────────────
+
+  Future<bool> esEquipoSecundario() async {
+    final b = await almacen.leer(Deposito.meta, ClavesMeta.rolEquipo);
+    return b != null && utf8.decode(b) == 'secundario';
+  }
+
+  /// Cuándo se restauró aquí un respaldo (el paquete lleva lo de después).
+  Future<DateTime?> restauradoEn() => leerRestauradoEn(almacen);
+
+  Future<void> cambiarEquipoSecundario(bool secundario) async {
+    await almacen.aplicar([
+      if (secundario)
+        Cambio(
+          Deposito.meta,
+          ClavesMeta.rolEquipo,
+          Uint8List.fromList(utf8.encode('secundario')),
+        )
+      else
+        Cambio.borrar(Deposito.meta, ClavesMeta.rolEquipo),
+    ]);
+    documentos.serie = secundario ? 'S' : '';
+  }
+
+  /// Paquete con lo creado en este equipo desde que se restauró en él el
+  /// respaldo del principal. Lanza [StateError] si nunca se restauró.
+  Future<ArchivoRespaldo> exportarPaqueteSecundario() async {
+    final desde = await restauradoEn();
+    if (desde == null) {
+      throw StateError(
+        'Este equipo no se configuró restaurando un respaldo del equipo '
+        'principal: no hay un paquete que exportar.',
+      );
+    }
+    await repositorio.esperarEscrituras();
+    final p = await exportarPaquete(
+      boveda,
+      repositorio,
+      desde: desde,
+      ahora: reloj.ahora(),
+    );
+    await registrarEnBitacora(
+      repositorio,
+      AccionBitacora.exportarPaquete,
+      fecha: reloj.ahora(),
+    );
+    return p;
+  }
+
+  /// Verifica un paquete con la llave de este consultorio. Lanza
+  /// [FormatException] con el motivo.
+  Future<PaqueteVerificado> verificarPaqueteSecundario(Uint8List bytes) =>
+      verificarPaquete(bytes, boveda);
+
+  /// Combina el paquete (sin duplicar) y recarga lo descifrado.
+  Future<ResultadoPaquete> combinarPaqueteSecundario(
+    PaqueteVerificado p,
+  ) async {
+    final r = await combinarPaquete(
+      p,
+      repositorio,
+      indice,
+      ahora: reloj.ahora(),
+    );
+    await documentos.cargar();
+    await seguimiento.cargar();
+    await registrarEnBitacora(
+      repositorio,
+      AccionBitacora.combinarPaquete,
+      fecha: reloj.ahora(),
+      resumen: '${r.totalAgregados} agregados, ${r.yaEstaban} ya estaban',
+    );
+    return r;
+  }
 }

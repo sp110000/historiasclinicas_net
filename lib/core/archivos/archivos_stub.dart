@@ -14,6 +14,8 @@ Future<ArchivoAbierto?> elegirCatalogo() async => null;
 
 Future<ArchivoAbierto?> elegirRespaldo() async => null;
 
+Future<ArchivoAbierto?> elegirPaquete() async => null;
+
 Future<DestinoGuardado?> prepararGuardado({
   required String nombreSugerido,
   ArchivoAbierto? sobrescribir,

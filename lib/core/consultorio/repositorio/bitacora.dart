@@ -21,7 +21,9 @@ enum AccionBitacora {
   revocarDocumento('Registró la revocación de un documento'),
   anularDocumento('Anuló un documento'),
   borrarMedicion('Borró una medición'),
-  borrarFoto('Borró una foto');
+  borrarFoto('Borró una foto'),
+  exportarPaquete('Exportó el paquete del equipo secundario'),
+  combinarPaquete('Combinó un paquete del equipo secundario');
 
   const AccionBitacora(this.etiqueta);
 

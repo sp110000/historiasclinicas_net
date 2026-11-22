@@ -15,6 +15,7 @@ import '../documentos/plantillas_ajustes.dart';
 import '../estado/consultorio_provider.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
+import 'equipo_secundario.dart';
 
 /// Ajustes del consultorio: seguridad, respaldo y bitácora.
 class AjustesConsultorioPage extends ConsumerWidget {
@@ -36,6 +37,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           _Respaldo(),
           SizedBox(height: 16),
           TarjetaPlantillas(),
+          SizedBox(height: 16),
+          TarjetaEquipoSecundario(),
           SizedBox(height: 16),
           _Bitacora(),
         ],

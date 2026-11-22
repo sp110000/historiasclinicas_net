@@ -21,6 +21,14 @@ abstract final class ClavesMeta {
   static const llavero = 'llavero';
   static const esquema = 'esquema';
   static const respaldo = 'respaldo';
+
+  /// Cuándo se restauró un respaldo en este equipo (el paquete del equipo
+  /// secundario lleva lo creado desde entonces).
+  static const restauradoEn = 'restauradoEn';
+
+  /// `secundario` si este equipo es el secundario (su serie de documentos
+  /// lleva «S»). Es de este equipo: no viaja en el respaldo.
+  static const rolEquipo = 'rolEquipo';
 }
 
 /// El llavero y la llave de datos en memoria.

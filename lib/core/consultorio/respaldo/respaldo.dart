@@ -461,6 +461,7 @@ Future<void> restaurarRespaldo(
   Boveda boveda,
   VerificacionRespaldo v, {
   bool aceptarParcial = false,
+  DateTime? ahora,
 }) async {
   if (!v.restaurable) throw StateError('El respaldo no se puede restaurar.');
   if (!v.integro && !aceptarParcial) {
@@ -475,6 +476,13 @@ Future<void> restaurarRespaldo(
       Uint8List.fromList(utf8.encode('${v.esquema}')),
     ),
     Cambio(Deposito.meta, ClavesMeta.respaldo, info.aBytes()),
+    Cambio(
+      Deposito.meta,
+      ClavesMeta.restauradoEn,
+      Uint8List.fromList(
+        utf8.encode((ahora ?? DateTime.now()).toUtc().toIso8601String()),
+      ),
+    ),
     ...v.cambiosIntegros,
   ], vaciarAntes: true);
   boveda.bloquear();

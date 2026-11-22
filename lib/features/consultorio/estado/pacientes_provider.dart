@@ -57,3 +57,19 @@ final descargarPdfProvider = Provider<void Function(Uint8List, String)>(
 final elegirFotoProvider = Provider<Future<ArchivoAbierto?> Function()>(
   (ref) => archivos.elegirFoto,
 );
+
+/// Elige un paquete del equipo secundario. Las pruebas lo sustituyen.
+final elegirPaqueteProvider = Provider<Future<ArchivoAbierto?> Function()>(
+  (ref) => archivos.elegirPaquete,
+);
+
+/// Descarga cualquier archivo. Las pruebas lo sustituyen.
+final descargarArchivoProvider =
+    Provider<void Function(Uint8List bytes, String nombre)>(
+      (ref) =>
+          (bytes, nombre) => archivos.descargar(
+            nombre,
+            bytes,
+            tipo: 'application/octet-stream',
+          ),
+    );

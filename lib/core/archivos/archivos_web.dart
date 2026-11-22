@@ -84,6 +84,9 @@ Future<ArchivoAbierto?> elegirCatalogo() => _elegirConInput(
 Future<ArchivoAbierto?> elegirRespaldo() =>
     _elegirConInput('.hcrespaldo,application/octet-stream,application/zip');
 
+Future<ArchivoAbierto?> elegirPaquete() =>
+    _elegirConInput('.hcpaquete,application/octet-stream,application/zip');
+
 Future<ArchivoAbierto?> _elegirConInput(String acepta) {
   final completer = Completer<ArchivoAbierto?>();
   final input = web.HTMLInputElement()

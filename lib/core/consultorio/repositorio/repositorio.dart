@@ -57,6 +57,10 @@ class RepositorioConsultorio {
     return (jsonDecode(utf8.decode(claro)) as Map).cast<String, Object?>();
   }
 
+  /// Descifra un registro ya leído del almacén (p. ej. de un paquete).
+  Future<Map<String, Object?>> descifrarSobre(String clave, Uint8List sobre) =>
+      _descifrarRegistro(clave, sobre);
+
   Future<Map<String, Object?>?> leer(String coleccion, String id) async {
     final clave = claveRegistro(coleccion, id);
     final sobre = await _almacen.leer(Deposito.registros, clave);

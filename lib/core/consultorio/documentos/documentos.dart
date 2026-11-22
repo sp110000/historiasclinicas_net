@@ -36,6 +36,10 @@ class DocumentosConsultorio {
 
   static const coleccionConsecutivos = 'consecutivos';
 
+  /// «S» en el equipo secundario: sus documentos llevan una serie propia
+  /// («CIM-S000001») para no chocar con los del principal al combinar.
+  String serie = '';
+
   final _plantillas = <TipoPlantilla, Plantilla>{};
   final _documentos = <String, DocumentoConsultorio>{};
 
@@ -126,10 +130,11 @@ class DocumentosConsultorio {
   /// Siguiente número del consecutivo [prefijo] («AD-000001»). Se asigna al
   /// firmar y no se reutiliza, aunque el documento se anule.
   Future<String> _siguienteNumero(String prefijo) async {
-    final r = await _repo.leer(coleccionConsecutivos, prefijo);
+    final clave = '$prefijo$serie';
+    final r = await _repo.leer(coleccionConsecutivos, clave);
     final n = (r?.entero('ultimo') ?? 0) + 1;
-    await _repo.guardar(coleccionConsecutivos, prefijo, {'ultimo': n});
-    return '$prefijo-${n.toString().padLeft(6, '0')}';
+    await _repo.guardar(coleccionConsecutivos, clave, {'ultimo': n});
+    return '$prefijo-$serie${n.toString().padLeft(6, '0')}';
   }
 
   /// Valores de los marcadores de las plantillas.
