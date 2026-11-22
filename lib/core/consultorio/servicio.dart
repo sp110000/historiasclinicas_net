@@ -6,6 +6,7 @@ import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
 import 'peso/programas.dart';
+import 'procedimientos/procedimientos.dart';
 import 'seguimiento/seguimiento.dart';
 import 'indice/indice_pacientes.dart';
 import '../models/paciente.dart';
@@ -101,6 +102,12 @@ class ServicioConsultorio {
       reloj: reloj,
     );
     peso = ProgramasPeso(repositorio, indice, reloj: reloj);
+    procedimientos = ProcedimientosConsultorio(
+      repositorio,
+      indice,
+      seguimiento,
+      reloj: reloj,
+    );
   }
 
   final MotorAes motor;
@@ -123,6 +130,9 @@ class ServicioConsultorio {
 
   /// Programas de peso, catálogo GLP-1 y plantillas de plan.
   late final ProgramasPeso peso;
+
+  /// Plantillas de procedimiento, valoraciones y sesiones.
+  late final ProcedimientosConsultorio procedimientos;
 
   final _pendientes = <HistoriaPendiente>[];
   final _recetasPendientes = <RecetaPendiente>[];
@@ -159,6 +169,7 @@ class ServicioConsultorio {
       documentos.serie = await esEquipoSecundario() ? 'S' : '';
       await seguimiento.cargar();
       await peso.cargar();
+      await procedimientos.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -240,6 +251,7 @@ class ServicioConsultorio {
     documentos.olvidar();
     seguimiento.olvidar();
     peso.olvidar();
+    procedimientos.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();
@@ -425,6 +437,7 @@ class ServicioConsultorio {
     await documentos.cargar();
     await seguimiento.cargar();
     await peso.cargar();
+    await procedimientos.cargar();
     await registrarEnBitacora(
       repositorio,
       AccionBitacora.combinarPaquete,

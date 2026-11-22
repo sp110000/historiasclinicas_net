@@ -13,6 +13,7 @@ import '../../../core/widgets/titulo_dialogo.dart';
 import '../desbloqueo/panel_codigo.dart';
 import '../documentos/plantillas_ajustes.dart';
 import '../estado/consultorio_provider.dart';
+import '../estetica/ajustes_procedimientos.dart';
 import '../peso/ajustes_peso.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
@@ -40,6 +41,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           TarjetaPlantillas(),
           SizedBox(height: 16),
           TarjetaProgramaPeso(),
+          SizedBox(height: 16),
+          TarjetaProcedimientos(),
           SizedBox(height: 16),
           TarjetaEquipoSecundario(),
           SizedBox(height: 16),

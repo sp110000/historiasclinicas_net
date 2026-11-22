@@ -20,6 +20,7 @@ import '../widgets/comunes.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../documentos/linea_tiempo_documentos.dart';
 import '../fotos/seccion_fotos.dart';
+import '../estetica/seccion_estetica.dart';
 import '../peso/seccion_peso.dart';
 import '../seguimiento/seccion_seguimiento.dart';
 import 'dialogo_ficha.dart';
@@ -41,6 +42,7 @@ enum SeccionFicha {
   resumen('Resumen', Icons.timeline),
   seguimiento('Seguimiento', Icons.show_chart),
   peso('Peso', Icons.monitor_weight_outlined),
+  estetica('Estética', Icons.spa_outlined),
   fotos('Fotos', Icons.photo_library_outlined);
 
   const SeccionFicha(this.etiqueta, this.icono);
@@ -139,6 +141,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
             SeccionSeguimiento(ficha: f)
           else if (_seccion == SeccionFicha.peso)
             SeccionPeso(ficha: f)
+          else if (_seccion == SeccionFicha.estetica)
+            SeccionEstetica(ficha: f)
           else if (_seccion == SeccionFicha.fotos)
             SeccionFotos(ficha: f)
           else ...[
