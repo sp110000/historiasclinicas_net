@@ -113,7 +113,7 @@ Future<void> _terminar(WidgetTester t) async {
 }
 
 void main() {
-  testWidgets('sin aprobar, el botón dice por qué y lleva a Ajustes', (
+  testWidgets('sin aprobar, el botón dice por qué; se aprueba ahí mismo', (
     t,
   ) async {
     final (b, id) = await _conPaciente();
@@ -123,7 +123,15 @@ void main() {
       findsWidgets,
     );
     expect(_emitir(t).onPressed, isNull);
-    expect(find.text('Ir a Ajustes'), findsOneWidget);
+    await _pulsar(t, find.text('Aprobar v1'));
+    await _pulsar(t, find.text('Aprobar'));
+    expect(
+      b.servicio.documentos.plantillaPorId('certificado_general')!.usable,
+      isTrue,
+    );
+    expect(find.text('Aprobar v1'), findsNothing);
+    expect(find.textContaining('está en borrador'), findsNothing);
+    expect(find.textContaining('con qué destino'), findsWidgets);
     await _terminar(t);
   });
 
@@ -250,6 +258,9 @@ void main() {
   testWidgets('Ajustes: agregar una plantilla de orden propia', (t) async {
     final (b, _) = await _conPaciente();
     await _montar(t, b, '/ajustes', tamano: const Size(1440, 4000));
+    expect(find.text('0 de 12 aprobadas'), findsOneWidget);
+    expect(find.text('Agregar plantilla de orden'), findsNothing);
+    await _pulsar(t, find.text('Ver las plantillas'));
     await _pulsar(t, find.text('Agregar plantilla de orden'));
     await t.enterText(find.byType(TextField).last, 'Control prenatal');
     await t.pump();

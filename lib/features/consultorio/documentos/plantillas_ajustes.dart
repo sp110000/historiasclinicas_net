@@ -129,29 +129,35 @@ const _marcadoresClinicos = [
 ];
 
 /// Ajustes → Documentos clínicos: certificados, incapacidad, órdenes y
-/// remisión, con sus versiones. Se pueden agregar plantillas propias.
-class TarjetaPlantillasClinicas extends ConsumerWidget {
+/// remisión, con sus versiones. Se pueden agregar plantillas propias. Son
+/// muchas: la lista empieza plegada, con el resumen.
+class TarjetaPlantillasClinicas extends ConsumerStatefulWidget {
   const TarjetaPlantillasClinicas({super.key});
 
-  Future<void> _agregar(
-    BuildContext context,
-    WidgetRef ref,
-    TipoPlantilla tipo,
-  ) async {
+  @override
+  ConsumerState<TarjetaPlantillasClinicas> createState() =>
+      _TarjetaPlantillasClinicasState();
+}
+
+class _TarjetaPlantillasClinicasState
+    extends ConsumerState<TarjetaPlantillasClinicas> {
+  var _abierta = false;
+
+  Future<void> _agregar(TipoPlantilla tipo) async {
     final nombre = await pedirTexto(
       context,
       titulo: 'Nueva plantilla · ${tipo.etiqueta}',
       etiqueta: 'Nombre (por ejemplo, «Control prenatal»)',
       aceptar: 'Agregar',
     );
-    if (nombre == null || nombre.trim().isEmpty || !context.mounted) return;
+    if (nombre == null || nombre.trim().isEmpty || !mounted) return;
     try {
       await ref
           .read(servicioConsultorioProvider)
           .documentos
           .crearPlantilla(tipo, nombre);
       ref.read(versionIndiceProvider.notifier).cambio();
-      if (context.mounted) {
+      if (mounted) {
         mostrarMensaje(
           context,
           'Plantilla «${nombre.trim()}» agregada en borrador: escribe su '
@@ -159,14 +165,19 @@ class TarjetaPlantillasClinicas extends ConsumerWidget {
         );
       }
     } catch (e) {
-      if (context.mounted) mostrarMensaje(context, mensajeDeError(e));
+      if (mounted) mostrarMensaje(context, mensajeDeError(e));
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     ref.watch(versionIndiceProvider);
     final documentos = ref.read(servicioConsultorioProvider).documentos;
+    final todas = [
+      for (final tipo in TipoPlantilla.clinicos)
+        ...documentos.plantillasDe(tipo),
+    ];
+    final aprobadas = todas.where((p) => p.usable).length;
     return TarjetaConsultorio(
       icono: Icons.description_outlined,
       titulo: 'Documentos clínicos',
@@ -181,36 +192,55 @@ class TarjetaPlantillasClinicas extends ConsumerWidget {
             'piden en el formulario y van en un bloque aparte del PDF.',
             style: TextStyle(color: ColoresMarca.textoSuave),
           ),
-          for (final tipo in TipoPlantilla.clinicos) ...[
-            const SizedBox(height: 14),
-            Text(
-              tipo.etiqueta.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-                color: ColoresMarca.textoSuave,
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '$aprobadas de ${todas.length} aprobadas',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            ),
-            for (final p in documentos.plantillasDe(tipo))
-              _FilaPlantillaClinica(plantilla: p),
-            if (tipo.varias)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => _agregar(context, ref, tipo),
-                  icon: const Icon(Icons.add),
-                  label: Text(
-                    'Agregar plantilla de '
-                    '${tipo == TipoPlantilla.certificado
-                        ? 'certificado'
-                        : tipo == TipoPlantilla.orden
-                        ? 'orden'
-                        : 'remisión'}',
-                  ),
+              TextButton.icon(
+                onPressed: () => setState(() => _abierta = !_abierta),
+                icon: Icon(_abierta ? Icons.expand_less : Icons.expand_more),
+                label: Text(
+                  _abierta ? 'Ocultar las plantillas' : 'Ver las plantillas',
                 ),
               ),
-          ],
+            ],
+          ),
+          if (_abierta)
+            for (final tipo in TipoPlantilla.clinicos) ...[
+              const SizedBox(height: 14),
+              Text(
+                tipo.etiqueta.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: ColoresMarca.textoSuave,
+                ),
+              ),
+              for (final p in documentos.plantillasDe(tipo))
+                _FilaPlantillaClinica(plantilla: p),
+              if (tipo.varias)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _agregar(tipo),
+                    icon: const Icon(Icons.add),
+                    label: Text(
+                      'Agregar plantilla de '
+                      '${tipo == TipoPlantilla.certificado
+                          ? 'certificado'
+                          : tipo == TipoPlantilla.orden
+                          ? 'orden'
+                          : 'remisión'}',
+                    ),
+                  ),
+                ),
+            ],
         ],
       ),
     );

@@ -18,6 +18,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/campo_diagnostico.dart';
 import '../widgets/comunes.dart';
+import '../widgets/editor_versionado.dart';
 import '../widgets/vista_previa_pdf.dart';
 
 /// Certificado, incapacidad, orden o remisión (5.4): el mismo formulario
@@ -105,6 +106,47 @@ class _DocumentoClinicoPageState extends ConsumerState<DocumentoClinicoPage> {
     _cambiar(nuevo);
   }
 
+  /// Tras editar o aprobar la plantilla: si el texto no se tocó, se vuelve
+  /// a tomar de ella; si se tocó, solo cambia la versión.
+  void _plantillaCambiada() {
+    final b = _b!;
+    final docs = ref.read(servicioConsultorioProvider).documentos;
+    final p = docs.plantillaPorId(b.plantillaId)!;
+    ref.read(versionIndiceProvider.notifier).cambio();
+    if (b.texto.trim() == _textoDePlantilla.trim()) {
+      final nuevo = docs.conPlantilla(
+        b,
+        p.id,
+        ficha: _ficha!,
+        medico: ref.read(medicoProvider),
+      );
+      _textoDePlantilla = nuevo.texto;
+      _generacionTexto++;
+      _cambiar(nuevo);
+    } else {
+      _cambiar(b.copyWith(versionPlantilla: (p.vigente ?? p.ultima).version));
+    }
+  }
+
+  Future<void> _editarPlantilla(Plantilla p) async {
+    final guardada = await editarTextoVersionado(
+      context,
+      titulo: '${p.tipo.etiqueta} · ${p.nombre}',
+      versiones: p.versiones,
+      marcadores: marcadoresPlantilla,
+      guardar: (titulo, cuerpo) => ref
+          .read(servicioConsultorioProvider)
+          .documentos
+          .guardarBorradorDe(p.id, titulo: titulo, cuerpo: cuerpo),
+    );
+    if (guardada && mounted) _plantillaCambiada();
+  }
+
+  Future<void> _aprobarPlantilla(Plantilla p) async {
+    await ref.read(servicioConsultorioProvider).documentos.aprobarDe(p.id);
+    if (mounted) _plantillaCambiada();
+  }
+
   EvaluacionDocumento _evaluar() {
     final s = ref.read(servicioConsultorioProvider);
     return s.documentos.evaluar(
@@ -188,6 +230,8 @@ class _DocumentoClinicoPageState extends ConsumerState<DocumentoClinicoPage> {
       incluirFirma: _incluirFirma,
       incluirSello: _incluirSello,
       alElegirPlantilla: _elegirPlantilla,
+      alEditarPlantilla: _editarPlantilla,
+      alAprobarPlantilla: _aprobarPlantilla,
       alCambiar: _cambiar,
       alCambiarFirma: (v) => setState(() {
         _incluirFirma = v;
@@ -275,6 +319,8 @@ class _Formulario extends StatelessWidget {
     required this.incluirFirma,
     required this.incluirSello,
     required this.alElegirPlantilla,
+    required this.alEditarPlantilla,
+    required this.alAprobarPlantilla,
     required this.alCambiar,
     required this.alCambiarFirma,
     required this.alCambiarSello,
@@ -289,6 +335,8 @@ class _Formulario extends StatelessWidget {
   final bool incluirFirma;
   final bool incluirSello;
   final ValueChanged<String> alElegirPlantilla;
+  final ValueChanged<Plantilla> alEditarPlantilla;
+  final Future<void> Function(Plantilla) alAprobarPlantilla;
   final ValueChanged<BorradorDocumento> alCambiar;
   final ValueChanged<bool> alCambiarFirma;
   final ValueChanged<bool> alCambiarSello;
@@ -332,21 +380,22 @@ class _Formulario extends StatelessWidget {
                 '${formatoFecha(plantilla.vigente!.aprobadaEn!)}',
                 style: const TextStyle(color: ColoresMarca.textoSuave),
               )
-            else
-              Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  const Text(
-                    'En borrador: revísala y apruébala antes de emitir.',
-                    style: TextStyle(color: ColoresMarca.aviso),
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/ajustes'),
-                    child: const Text('Ir a Ajustes'),
-                  ),
-                ],
+            else ...[
+              const Text(
+                'En borrador: revísala y apruébala antes de emitir '
+                '(VERIFICAR). También está en Ajustes → Documentos clínicos.',
+                style: TextStyle(color: ColoresMarca.aviso),
               ),
+              FilaVersionada(
+                nombre: plantilla.nombre,
+                versiones: plantilla.versiones,
+                alEditar: () => alEditarPlantilla(plantilla),
+                textoAprobar:
+                    'Desde ahora los documentos nuevos de «${plantilla.nombre}» '
+                    'usan este texto (VERIFICAR).',
+                alAprobar: () => alAprobarPlantilla(plantilla),
+              ),
+            ],
             if (b.plantillaId == 'certificado_laboral') ...[
               const SizedBox(height: 6),
               const Text(
