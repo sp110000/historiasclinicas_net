@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: la Fase 5 está terminada.** La 5.8 «Presentación y cierre» espera tu visto bueno (ver [«Avance»](#avance) y [«Cierre de la Fase 5»](#cierre-de-la-fase-5)); de la 5.0 a la 5.7 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`, sin fusionar.
+> **Estado: la Fase 5 está terminada y aprobada** (la 5.8 y el cierre, el 25/11/2026; ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`, **sin fusionar**: fusionar y publicar lo decides tú.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti:** el visto bueno de la 5.8 y, sobre todo, revisar lo que quedó marcado VERIFICAR. Ahora cada nota sale en pantalla con un chip «Por verificar»: tócalo y, cuando la revises con la norma, tu abogado o tu contador, registra la fecha y la fuente (ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Fusionar el PR y publicar la versión del consultorio lo decides tú ([fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
+**Qué queda de tu lado:** revisar lo que quedó marcado VERIFICAR. Ahora cada nota sale en pantalla con un chip «Por verificar»: tócalo y, cuando la revises con la norma, tu abogado o tu contador, registra la fecha y la fuente (ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Fusionar el PR y publicar la versión del consultorio lo decides tú ([fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
 
 ---
 
@@ -62,7 +62,7 @@
 
 ## Avance
 
-### 5.8 Presentación y cierre ✅ (pendiente de tu visto bueno)
+### 5.8 Presentación y cierre ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
 - **Notas «VERIFICAR» en pantalla** (pregunta 50, opciones a y b, solo con la bandera):
