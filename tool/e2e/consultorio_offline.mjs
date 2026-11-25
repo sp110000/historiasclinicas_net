@@ -967,11 +967,13 @@ await context.close();
     const ruta = await descargar(p, async () => {
       await hacerClic(p.getByRole('button', { name: 'Imprimir Hidrolipoclasia', exact: true }));
       await p.waitForTimeout(400);
+      // El menú queda encima de otros botones cuyo nodo de accesibilidad se
+      // llevaría el clic: se envía directo al elemento.
       await p
         .getByRole('menuitem', { name: opcion })
         .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: opcion }))
         .first()
-        .click();
+        .dispatchEvent('click');
     });
     if (path.basename(ruta) !== archivo) throw new Error(`Imprimir: ${path.basename(ruta)}`);
     leerDocumento(ruta, esperados, imagen);
