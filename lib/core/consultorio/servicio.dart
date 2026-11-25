@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../ihce/reloj.dart';
 import 'agenda/agenda.dart';
 import 'caja/caja.dart';
+import 'inventario/inventario.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
@@ -105,12 +106,14 @@ class ServicioConsultorio {
       reloj: reloj,
     );
     peso = ProgramasPeso(repositorio, indice, reloj: reloj);
+    inventario = InventarioConsultorio(repositorio, reloj: reloj);
     procedimientos = ProcedimientosConsultorio(
       repositorio,
       indice,
       seguimiento,
       documentos,
       configuracion: () => _configuracion,
+      inventario: inventario,
       reloj: reloj,
     );
     agenda = AgendaConsultorio(
@@ -158,6 +161,9 @@ class ServicioConsultorio {
   /// Catálogo, cobros, recibos, paquetes, créditos y cierres (5.6).
   late final CajaConsultorio caja;
 
+  /// Insumos, lotes y movimientos (5.7).
+  late final InventarioConsultorio inventario;
+
   final _pendientes = <HistoriaPendiente>[];
   final _recetasPendientes = <RecetaPendiente>[];
 
@@ -196,6 +202,7 @@ class ServicioConsultorio {
       await procedimientos.cargar();
       await agenda.cargar();
       await caja.cargar();
+      await inventario.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -280,6 +287,7 @@ class ServicioConsultorio {
     procedimientos.olvidar();
     agenda.olvidar();
     caja.olvidar();
+    inventario.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();
@@ -507,6 +515,7 @@ class ServicioConsultorio {
     await procedimientos.cargar();
     await agenda.cargar();
     await caja.cargar();
+    await inventario.cargar();
     await registrarEnBitacora(
       repositorio,
       AccionBitacora.combinarPaquete,

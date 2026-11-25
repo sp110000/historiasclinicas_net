@@ -1,27 +1,45 @@
 import '../../models/mapa.dart';
 import '../../utils/numeros.dart';
 
-/// Lote escrito a mano (el enlace con el inventario llega en la 5.7).
+/// Lote usado en la sesión: escrito a mano o elegido del inventario (5.7),
+/// con las unidades que se descuentan al sellar.
 class LoteSesion {
-  const LoteSesion({this.lote = '', this.vence});
+  const LoteSesion({this.lote = '', this.vence, this.loteId, this.unidades});
 
   final String lote;
   final DateTime? vence;
 
+  /// El lote del inventario, si se eligió de ahí.
+  final String? loteId;
+
+  /// Unidades de presentación a descontar (en el anestésico, `null` las
+  /// calcula del volumen y del contenido de cada unidad).
+  final double? unidades;
+
   bool get completo => lote.trim().isNotEmpty && vence != null;
+  bool get delInventario => loteId != null;
 
   /// Vencido si la fecha de vencimiento ya pasó (el día del vencimiento
   /// todavía sirve).
   bool vencidoEn(DateTime dia) =>
       vence != null && DateTime(dia.year, dia.month, dia.day).isAfter(vence!);
 
+  LoteSesion conUnidades(double? u) =>
+      LoteSesion(lote: lote, vence: vence, loteId: loteId, unidades: u);
+
   Map<String, Object?> aMapa() => compacto({
     'lote': lote.trim(),
     'vence': vence == null ? null : fechaIso(vence!),
+    'loteId': loteId,
+    'unidades': unidades,
   });
 
-  static LoteSesion desdeMapa(Map<String, Object?> m) =>
-      LoteSesion(lote: m.texto('lote'), vence: m.fecha('vence'));
+  static LoteSesion desdeMapa(Map<String, Object?> m) => LoteSesion(
+    lote: m.texto('lote'),
+    vence: m.fecha('vence'),
+    loteId: m.textoONulo('loteId'),
+    unidades: m.decimal('unidades'),
+  );
 }
 
 /// Un componente de la solución con su lote.

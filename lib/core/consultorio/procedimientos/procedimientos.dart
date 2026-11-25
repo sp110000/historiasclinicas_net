@@ -12,6 +12,7 @@ import '../documentos/documentos.dart';
 import '../documentos/plantillas.dart';
 import '../indice/indice_pacientes.dart';
 import '../indice/sellar_evolucion.dart';
+import '../inventario/inventario.dart';
 import '../modelos/configuracion.dart';
 import '../modelos/ficha_paciente.dart';
 import '../modelos/medicion.dart';
@@ -35,14 +36,19 @@ class ProcedimientosConsultorio {
     this._seguimiento,
     this._documentos, {
     required ConfiguracionConsultorio Function() configuracion,
+    InventarioConsultorio? inventario,
     this.reloj = const RelojSistema(),
-  }) : _configuracion = configuracion;
+  }) : _configuracion = configuracion,
+       _inventario = inventario;
 
   final RepositorioConsultorio _repo;
   final IndicePacientes _indice;
   final SeguimientoConsultorio _seguimiento;
   final DocumentosConsultorio _documentos;
   final ConfiguracionConsultorio Function() _configuracion;
+
+  /// Sugiere el lote, revisa las existencias y descuenta al sellar (5.7).
+  final InventarioConsultorio? _inventario;
   final Reloj reloj;
 
   final _plantillas = <String, PlantillaProcedimiento>{};
@@ -429,7 +435,7 @@ class ProcedimientosConsultorio {
       }
     }
     final a = d.anestesicos.firstOrNull;
-    return Sesion(
+    final borrador = Sesion(
       id: '',
       pacienteId: ficha.id,
       plantillaId: plantillaId,
@@ -466,9 +472,10 @@ class ProcedimientosConsultorio {
           : hoy.add(Duration(days: d.diasControl!)),
       poliza: _configuracion().textoPoliza,
     );
+    return _inventario?.sugerirLotes(borrador) ?? borrador;
   }
 
-  /// Aplica las reglas a [s] (ver [evaluarSesion]).
+  /// Aplica las reglas a [s] (ver [evaluarSesion]) y las del inventario.
   EvaluacionSesion evaluar(Sesion s, FichaPaciente ficha) {
     final p = plantilla(s.plantillaId);
     if (p == null) {
@@ -478,7 +485,7 @@ class ProcedimientosConsultorio {
       );
     }
     final familia = (p.vigente ?? p.ultima).definicion.familia;
-    return evaluarSesion(
+    final e = evaluarSesion(
       s: s,
       ficha: ficha,
       plantilla: p,
@@ -487,6 +494,12 @@ class ProcedimientosConsultorio {
       anterior: sesionesDe(ficha.id, plantillaId: s.plantillaId).lastOrNull,
       certificada: certificacionVigente(familia) != null,
       ahora: reloj.ahora(),
+    );
+    final inv = _inventario?.evaluarSesion(s);
+    if (inv == null) return e;
+    return EvaluacionSesion(
+      bloqueos: [...e.bloqueos, ...inv.bloqueos],
+      avisos: [...e.avisos, ...inv.avisos],
     );
   }
 
@@ -546,6 +559,7 @@ class ProcedimientosConsultorio {
     );
     await _repo.guardar(Sesion.coleccion, id, guardada.aMapa());
     _sesiones[id] = guardada;
+    await _inventario?.descontarSesion(guardada);
     await registrarEnBitacora(
       _repo,
       certificada
