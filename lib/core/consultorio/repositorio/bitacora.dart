@@ -27,6 +27,8 @@ enum AccionBitacora {
   ajusteInventario('Ajustó un lote del inventario'),
   bajaInventario('Dio de baja un lote del inventario'),
   salidaInventario('Descontó del inventario (sesión)'),
+  salidaInventarioCobro('Descontó del inventario (cobro)'),
+  devolverInventario('Devolvió al inventario (cobro anulado)'),
   verificarNota('Marcó una nota como verificada'),
   quitarVerificacion('Quitó la verificación de una nota'),
   unirFichas('Unió dos fichas de paciente'),

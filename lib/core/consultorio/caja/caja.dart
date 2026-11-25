@@ -7,6 +7,7 @@ import '../../pais/perfil_pais.dart';
 import '../../pdf/fuentes_pdf.dart';
 import '../../utils/ids.dart';
 import '../indice/indice_pacientes.dart';
+import '../inventario/inventario.dart';
 import '../modelos/ficha_paciente.dart';
 import '../procedimientos/procedimientos.dart';
 import '../reglas/caja.dart';
@@ -26,13 +27,19 @@ class CajaConsultorio {
     this._indice,
     this._procedimientos, {
     required String Function() serie,
+    InventarioConsultorio? inventario,
     this.reloj = const RelojSistema(),
-  }) : _serie = serie;
+  }) : _serie = serie,
+       _inventario = inventario;
 
   final RepositorioConsultorio _repo;
   final IndicePacientes _indice;
   final ProcedimientosConsultorio _procedimientos;
   final String Function() _serie;
+
+  /// Para descontar los insumos usados en un cobro (y devolverlos si se
+  /// anula).
+  final InventarioConsultorio? _inventario;
   final Reloj reloj;
 
   static const coleccionCatalogo = 'configuracion';
@@ -253,27 +260,41 @@ class CajaConsultorio {
     return credito.valor < neto ? credito.valor : neto;
   }
 
+  /// Las reglas del cobro y, si lleva insumos, las del inventario.
   EvaluacionCobro evaluar({
     required String pacienteId,
     required List<ItemCobro> items,
     required List<PagoRecibo> pagos,
     Credito? credito,
-  }) => evaluarCobro(
-    pacienteId: pacienteId,
-    items: items,
-    credito: valorCredito(credito, items),
-    pagos: pagos,
-    diaCerrado: hoyCerrado,
-    creditoSinAplicar: credito == null && pacienteId.isNotEmpty
-        ? creditosDisponibles(pacienteId).fold(0, (s, c) => s + c.valor)
-        : 0,
-    servicios: serviciosPorId,
-  );
+    List<InsumoCobro> insumos = const [],
+  }) {
+    final e = evaluarCobro(
+      pacienteId: pacienteId,
+      items: items,
+      credito: valorCredito(credito, items),
+      pagos: pagos,
+      diaCerrado: hoyCerrado,
+      creditoSinAplicar: credito == null && pacienteId.isNotEmpty
+          ? creditosDisponibles(pacienteId).fold(0, (s, c) => s + c.valor)
+          : 0,
+      servicios: serviciosPorId,
+    );
+    if (insumos.isEmpty) return e;
+    final inv = _inventario?.evaluarCobro(insumos);
+    return EvaluacionCobro(
+      bloqueos: [
+        ...e.bloqueos,
+        if (inv == null) 'El inventario no está disponible.',
+        ...?inv?.bloqueos,
+      ],
+      avisos: [...e.avisos, ...?inv?.avisos],
+    );
+  }
 
   /// Registra un cobro con sus pagos (si los hay, emite el recibo y su
   /// PDF). Un servicio de paquete crea el paquete; una valoración abonable
-  /// pagada del todo deja el crédito. Lanza [StateError] con el primer
-  /// bloqueo de las reglas.
+  /// pagada del todo deja el crédito; los [insumos] usados se descuentan
+  /// del inventario. Lanza [StateError] con el primer bloqueo de las reglas.
   Future<ResultadoCobro> cobrar({
     required String pacienteId,
     required List<ItemCobro> items,
@@ -282,6 +303,7 @@ class CajaConsultorio {
     required Pais pais,
     Credito? credito,
     String? citaId,
+    List<InsumoCobro> insumos = const [],
     FuentesPdf? fuentes,
   }) async {
     final e = evaluar(
@@ -289,6 +311,7 @@ class CajaConsultorio {
       items: items,
       pagos: pagos,
       credito: credito,
+      insumos: insumos,
     );
     if (!e.permiteRegistrar) throw StateError(e.bloqueos.first);
     if (credito != null && !credito.disponible(reloj.ahora())) {
@@ -304,9 +327,11 @@ class CajaConsultorio {
       creditoId: credito?.id,
       credito: valorCredito(credito, items),
       citaId: citaId,
+      insumos: insumos,
     );
     await _repo.guardar(Cobro.coleccion, cobro.id, cobro.aMapa());
     _cobros[cobro.id] = cobro;
+    await _inventario?.descontarCobro(cobro);
     if (credito != null) {
       final aplicado = credito.copyWith(aplicadoEn: cobro.id);
       await _repo.guardar(Credito.coleccion, credito.id, aplicado.aMapa());
@@ -487,8 +512,8 @@ class CajaConsultorio {
     );
   }
 
-  /// Anula un cobro sin recibos vigentes: libera el crédito aplicado y
-  /// anula los paquetes sin usar.
+  /// Anula un cobro sin recibos vigentes: libera el crédito aplicado,
+  /// anula los paquetes sin usar y devuelve al inventario sus insumos.
   Future<void> anularCobro(String id, {required String motivo}) async {
     final c = _cobros[id];
     if (c == null || c.anulado) throw StateError('El cobro no está vigente.');
@@ -515,6 +540,7 @@ class CajaConsultorio {
       await _repo.guardar(Credito.coleccion, libre.id, libre.aMapa());
       _creditos[libre.id] = libre;
     }
+    await _inventario?.devolverCobro(c);
     await registrarEnBitacora(
       _repo,
       AccionBitacora.anularCobro,

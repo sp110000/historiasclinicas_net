@@ -55,6 +55,56 @@ class ItemCobro {
   );
 }
 
+/// Un insumo del inventario usado en la atención que se cobra: se descuenta
+/// de su lote al registrar el cobro y vuelve al inventario si se anula. No
+/// cambia el valor del cobro.
+class InsumoCobro {
+  const InsumoCobro({
+    required this.insumoId,
+    required this.loteId,
+    required this.nombre,
+    required this.lote,
+    required this.unidad,
+    required this.cantidad,
+  });
+
+  final String insumoId;
+  final String loteId;
+  final String nombre;
+
+  /// Número del lote, para mostrarlo aunque el lote cambie.
+  final String lote;
+  final String unidad;
+  final double cantidad;
+
+  InsumoCobro conCantidad(double c) => InsumoCobro(
+    insumoId: insumoId,
+    loteId: loteId,
+    nombre: nombre,
+    lote: lote,
+    unidad: unidad,
+    cantidad: c,
+  );
+
+  Map<String, Object?> aMapa() => compacto({
+    'insumoId': insumoId,
+    'loteId': loteId,
+    'nombre': nombre,
+    'lote': lote,
+    'unidad': unidad,
+    'cantidad': cantidad,
+  });
+
+  static InsumoCobro desdeMapa(Map<String, Object?> m) => InsumoCobro(
+    insumoId: m.texto('insumoId'),
+    loteId: m.texto('loteId'),
+    nombre: m.texto('nombre'),
+    lote: m.texto('lote'),
+    unidad: m.texto('unidad'),
+    cantidad: m.decimal('cantidad') ?? 0,
+  );
+}
+
 /// Lo que se cobra (una cuenta). Se paga en uno o varios recibos (abonos).
 class Cobro {
   const Cobro({
@@ -65,6 +115,7 @@ class Cobro {
     this.creditoId,
     this.credito = 0,
     this.citaId,
+    this.insumos = const [],
     this.anulado = false,
     this.motivoAnulacion = '',
     this.anuladoEn,
@@ -81,6 +132,9 @@ class Cobro {
   final String? creditoId;
   final int credito;
   final String? citaId;
+
+  /// Insumos usados, descontados del inventario al registrar el cobro.
+  final List<InsumoCobro> insumos;
   final bool anulado;
   final String motivoAnulacion;
   final DateTime? anuladoEn;
@@ -99,6 +153,7 @@ class Cobro {
     creditoId: creditoId,
     credito: credito,
     citaId: citaId,
+    insumos: insumos,
     anulado: true,
     motivoAnulacion: motivo,
     anuladoEn: fecha,
@@ -111,6 +166,7 @@ class Cobro {
     'creditoId': creditoId,
     'credito': credito > 0 ? credito : null,
     'citaId': citaId,
+    'insumos': insumos.isEmpty ? null : [for (final i in insumos) i.aMapa()],
     'anulado': anulado ? true : null,
     'motivoAnulacion': motivoAnulacion.trim(),
     'anuladoEn': anuladoEn?.toUtc().toIso8601String(),
@@ -124,6 +180,9 @@ class Cobro {
     creditoId: m.textoONulo('creditoId'),
     credito: m.entero('credito') ?? 0,
     citaId: m.textoONulo('citaId'),
+    insumos: [
+      for (final i in m.listaMapas('insumos')) InsumoCobro.desdeMapa(i),
+    ],
     anulado: m.booleano('anulado'),
     motivoAnulacion: m.texto('motivoAnulacion'),
     anuladoEn: m['anuladoEn'] == null

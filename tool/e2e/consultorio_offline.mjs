@@ -24,6 +24,7 @@
 // (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
 // valoración, recibos en PDF, informe y cierre del día; (5.7) inventario:
 // entrada de lotes, sesión que los descuenta y bloqueo con un lote vencido;
+// un cobro con un insumo usado que se descuenta y vuelve al anularlo;
 // (5.8) notas «VERIFICAR» con su registro y modo presentación; y comprobar que
 // nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
@@ -1750,6 +1751,39 @@ await context.close();
   await alInicio();
   await captura(p, 'i4_inventario_despues.png');
   paso('El inventario descontó 2 ampollas y 1 frasco (queda bajo el mínimo, con la salida de la sesión); el lote vencido se da de baja');
+
+  // Caja ↔ inventario: un cobro con una ampolla usada (sin pago: la caja de
+  // hoy ya se cerró). Se descuenta del lote que vence primero y, al anular
+  // el cobro, vuelve.
+  await pulsarExacto('Caja');
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
+  await texto(p, 'INSUMOS USADOS').waitFor();
+  await elegirPacienteCobro('munoz maria');
+  await hacerClic(p.getByRole('button', { name: 'Quitar el pago 1', exact: true }));
+  await hacerClic(p.getByRole('button', { name: 'Agregar un insumo', exact: true }));
+  await texto(p, 'L7788 · vence 15/12/2026 · quedan 4 ampollas').waitFor();
+  await aLaVista(conTexto('INSUMOS USADOS'));
+  await captura(p, 'i7_cobro_con_insumo.png');
+  await p.getByRole('button', { name: 'Registrar sin pago', exact: true }).click();
+  await texto(p, 'Se descontó 1 insumo del inventario.').waitFor();
+  await texto(p, 'Insumos: Anestésico de prueba, 1 ampolla (lote L7788)').waitFor();
+  await texto(p, 'Se descontó 1 insumo del inventario.').desaparece({ timeout: 20000 });
+  await pulsarExacto('Inventario');
+  await texto(p, 'Existencia: 3 ampollas (mínimo 5)').waitFor();
+  await hacerClic(p.getByRole('button', { name: /^Movimientos \(/ }).first());
+  await texto(p, 'Salida · lote L7788 · -1 · Cobro: ').waitFor();
+  paso('Cobro con un insumo usado: sugiere el lote que vence primero y lo descuenta del inventario (1 ampolla de L7788)');
+
+  await pulsarExacto('Caja');
+  await hacerClic(p.getByRole('button', { name: 'Anular el cobro', exact: true }));
+  await texto(p, 'Sus insumos vuelven al inventario').waitFor();
+  await escribir(p, 'Motivo de la anulación', 'Prueba de anulación');
+  await p.getByRole('button', { name: 'Anular', exact: true }).click();
+  await texto(p, 'Cobro anulado: sus insumos volvieron al inventario.').waitFor();
+  await texto(p, 'Cobro anulado: sus insumos volvieron al inventario.').desaparece({ timeout: 20000 });
+  await pulsarExacto('Inventario');
+  await texto(p, 'Existencia: 4 ampollas (mínimo 5)').waitFor();
+  paso('Al anular el cobro, la ampolla vuelve al inventario');
 
   await p.setViewportSize({ width: 390, height: 844 });
   await p.waitForTimeout(900);

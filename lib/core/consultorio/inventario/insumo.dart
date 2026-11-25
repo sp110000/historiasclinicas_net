@@ -180,6 +180,7 @@ class Movimiento {
     required this.cantidad,
     required this.fecha,
     this.sesionId,
+    this.cobroId,
     this.motivo = '',
   });
 
@@ -194,6 +195,9 @@ class Movimiento {
 
   /// La sesión que lo descontó.
   final String? sesionId;
+
+  /// El cobro que lo descontó (o que, al anularse, lo devolvió).
+  final String? cobroId;
   final String motivo;
 
   Map<String, Object?> aMapa() => compacto({
@@ -203,6 +207,7 @@ class Movimiento {
     'cantidad': cantidad,
     'fecha': fechaHoraIso(fecha),
     'sesionId': sesionId,
+    'cobroId': cobroId,
     'motivo': motivo.trim(),
   });
 
@@ -214,6 +219,7 @@ class Movimiento {
     cantidad: m.decimal('cantidad') ?? 0,
     fecha: m.fecha('fecha')!,
     sesionId: m.textoONulo('sesionId'),
+    cobroId: m.textoONulo('cobroId'),
     motivo: m.texto('motivo'),
   );
 }

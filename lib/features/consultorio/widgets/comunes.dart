@@ -193,10 +193,15 @@ Future<String?> pedirTexto(
   required String titulo,
   required String etiqueta,
   String aceptar = 'Aceptar',
+  String? texto,
 }) => showDialog<String>(
   context: context,
-  builder: (_) =>
-      _DialogoTexto(titulo: titulo, etiqueta: etiqueta, aceptar: aceptar),
+  builder: (_) => _DialogoTexto(
+    titulo: titulo,
+    etiqueta: etiqueta,
+    aceptar: aceptar,
+    texto: texto,
+  ),
 );
 
 class _DialogoTexto extends StatefulWidget {
@@ -204,11 +209,15 @@ class _DialogoTexto extends StatefulWidget {
     required this.titulo,
     required this.etiqueta,
     required this.aceptar,
+    this.texto,
   });
 
   final String titulo;
   final String etiqueta;
   final String aceptar;
+
+  /// Lo que se explica antes del campo.
+  final String? texto;
 
   @override
   State<_DialogoTexto> createState() => _DialogoTextoState();
@@ -233,12 +242,22 @@ class _DialogoTextoState extends State<_DialogoTexto> {
     title: TituloDialogo(widget.titulo, icono: Icons.edit_outlined),
     content: ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),
-      child: TextField(
-        controller: _texto,
-        autofocus: true,
-        onChanged: (_) => setState(() {}),
-        onSubmitted: (_) => _listo(),
-        decoration: InputDecoration(labelText: widget.etiqueta),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.texto case final t?) ...[
+            Text(t),
+            const SizedBox(height: 12),
+          ],
+          TextField(
+            controller: _texto,
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _listo(),
+            decoration: InputDecoration(labelText: widget.etiqueta),
+          ),
+        ],
       ),
     ),
     actions: [

@@ -1,6 +1,7 @@
 import '../../utils/fechas.dart';
 import '../../utils/numeros.dart';
 import '../../utils/texto.dart';
+import '../caja/movimientos.dart';
 import '../inventario/insumo.dart';
 import '../procedimientos/sesion.dart';
 
@@ -232,6 +233,63 @@ EvaluacionInventario evaluarInventarioSesion({
                   'existencias.'
             : 'El lote ${lote.numero} de «${insumo.nombre}» tiene '
                   '${cantidadTexto(hay, insumo.unidad)}; la sesión usa '
+                  '${cantidadTexto(e.value, insumo.unidad)}.',
+      );
+    }
+  }
+  return EvaluacionInventario(bloqueos: bloqueos, avisos: avisos);
+}
+
+/// Bloqueos y avisos de los insumos usados en un cobro (puras). Cada línea
+/// necesita un lote del inventario, una cantidad mayor que 0 y un lote sin
+/// vencer; las líneas del mismo lote se suman contra su existencia. Un
+/// insumo sin registro Invima avisa.
+EvaluacionInventario evaluarInsumosCobro({
+  required List<InsumoCobro> lineas,
+  required Map<String, Lote> lotes,
+  required Map<String, Insumo> insumos,
+  required Map<String, double> existencias,
+  required DateTime hoy,
+}) {
+  final bloqueos = <String>[];
+  final avisos = <String>[];
+  final usado = <String, double>{};
+  for (final l in lineas) {
+    final lote = lotes[l.loteId];
+    final insumo = lote == null ? null : insumos[lote.insumoId];
+    if (lote == null || insumo == null) {
+      bloqueos.add(
+        'El lote ${l.lote.trim()} de «${l.nombre}» ya no está en el '
+        'inventario: elige otro.',
+      );
+      continue;
+    }
+    if (l.cantidad <= 0) {
+      bloqueos.add('Escribe cuánto se usó de «${insumo.nombre}».');
+      continue;
+    }
+    if (lote.vencidoEn(hoy)) {
+      bloqueos.add(
+        'El lote ${lote.numero} de «${insumo.nombre}» venció el '
+        '${formatoFecha(lote.vence)}: elige otro.',
+      );
+      continue;
+    }
+    usado[lote.id] = (usado[lote.id] ?? 0) + l.cantidad;
+    final a = avisoInvima(insumo);
+    if (a != null && !avisos.contains(a)) avisos.add(a);
+  }
+  for (final e in usado.entries) {
+    final lote = lotes[e.key]!;
+    final insumo = insumos[lote.insumoId]!;
+    final hay = existencias[e.key] ?? 0;
+    if (e.value > hay) {
+      bloqueos.add(
+        hay <= 0
+            ? 'El lote ${lote.numero} de «${insumo.nombre}» no tiene '
+                  'existencias.'
+            : 'El lote ${lote.numero} de «${insumo.nombre}» tiene '
+                  '${cantidadTexto(hay, insumo.unidad)}; el cobro usa '
                   '${cantidadTexto(e.value, insumo.unidad)}.',
       );
     }

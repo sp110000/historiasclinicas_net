@@ -129,6 +129,7 @@ class ServicioConsultorio {
       indice,
       procedimientos,
       serie: () => documentos.serie,
+      inventario: inventario,
       reloj: reloj,
     );
   }

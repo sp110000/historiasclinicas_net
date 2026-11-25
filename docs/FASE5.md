@@ -77,6 +77,20 @@ Pediste el consultorio en la misma página, sin otro dominio. Cambia la decisió
 
 ---
 
+## Caja e inventario conectados (25/11/2026)
+
+Pediste que al cobrar se puedan agregar los insumos usados y que se descuenten del inventario.
+
+- **En el cobro**, la sección **«Insumos usados»** (aparece si el inventario tiene insumos): «Agregar un insumo» propone el lote que vence primero, con lo que queda. Se puede cambiar el insumo, el lote y la cantidad (admite decimales, en la unidad del insumo).
+- **Las mismas reglas del inventario:** un lote vencido o sin existencias suficientes no deja registrar el cobro. Las líneas del mismo lote se suman. Un insumo sin registro Invima avisa.
+- **Al registrar el cobro**, cada insumo sale de su lote, con el movimiento «Cobro: …» enlazado al cobro. El mensaje dice cuántos se descontaron, y la caja muestra la línea «Insumos: …» en la fila del recibo y en la del saldo.
+- **Los insumos no cambian el valor del cobro** ni salen en el recibo PDF: el precio está en el servicio.
+- **Al anular el cobro**, sus insumos vuelven al inventario (un ajuste «Cobro anulado: …»), y el diálogo lo avisa. Si sí se usaron, se registran en el cobro que lo reemplace.
+- **Para no descontar dos veces:** lo de una sesión de procedimiento ya se descuenta al sellarla. El cobro lo recuerda y no repite esos insumos.
+- **Bitácora:** «Descontó del inventario (cobro)» y «Devolvió al inventario (cobro anulado)», sin datos del paciente.
+
+---
+
 ## Avance
 
 ### 5.8 Presentación y cierre ✅ (aprobada el 25/11/2026)
@@ -1027,13 +1041,13 @@ Paciente ─┬─< Historia (índice + copia de trabajo) ──< Evolución (de
 | **Cita** | → paciente (o nombre y teléfono provisionales para una primera vez), tipo (primera vez, control, valoración estética, sesión de procedimiento o programa de peso), inicio, duración (la del tipo, editable), estado (agendada, confirmada, atendida, no asistió o cancelada) e historial {estado, fecha}, motivo, notas, recordatorio {enviado en}, → plantilla (si es sesión), → cobro, → atención (historia o evolución) | Una cita de sesión o valoración estética exige mayor de edad. La de sesión exige además valoración «apto» vigente |
 | **Horario** | Días y franjas, duración por tipo, bloqueos {inicio, fin, motivo}, festivos calculados | |
 | **Servicio** | Nombre, línea, tarifa, IVA (opcional, apagado), abonable, sesiones del paquete, → plantilla, activo | Las tarifas iniciales son las de tu tabla (pregunta 44), editables |
-| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio, descripción, cantidad, valor unitario, descuento y motivo}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta |
+| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio, descripción, cantidad, valor unitario, descuento y motivo}, insumos usados[] {→ insumo, → lote, cantidad}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta. Los insumos usados se descuentan al registrar el cobro y vuelven si se anula |
 | **Paquete** | → paciente, → servicio, sesiones compradas, usos[] {→ sesión, fecha}, → cobro, estado | No se puede usar más sesiones de las compradas |
 | **Crédito** | → paciente, valor, → cobro de origen, vence, aplicado en | |
 | **CierreDiario** | Fecha, totales por medio de pago, efectivo contado, diferencia, notas, cerrado en | Un día cerrado no se modifica: una anulación posterior cuenta en el día en que se hace |
 | **Insumo** | Nombre, categoría, presentación, unidad, concentración (mg/mL), registro Invima, inyectable, stock mínimo, activo | Sin registro Invima: aviso (más visible en los inyectables) |
 | **Lote** | → insumo, número de lote, vencimiento, proveedor, factura, fecha de ingreso | Su existencia es la suma de sus movimientos |
-| **Movimiento** | → lote, tipo (entrada, salida por sesión, ajuste o baja por vencimiento), cantidad, fecha, → sesión, motivo | Solo se agregan, nunca se editan |
+| **Movimiento** | → lote, tipo (entrada, salida por sesión o por cobro, ajuste o baja por vencimiento), cantidad, fecha, → sesión, → cobro, motivo | Solo se agregan, nunca se editan |
 | **Configuración** | Datos del prestador (nombre del consultorio, código REPS, NIT, habilitación por servicio), certificaciones[] {técnica o familia, entidad, fecha, vigencia, → soporte}, póliza, minutos de bloqueo, días de respaldo, consecutivos, plantillas, horario, notas verificadas, modo presentación | |
 | **Bitácora** | Fecha, acción (crear, anular, unir, exportar, importar, respaldar, restaurar, desbloquear), colección, id, resumen **sin datos del paciente** | Solo se agrega. Sirve para auditoría |
 

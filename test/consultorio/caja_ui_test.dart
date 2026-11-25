@@ -10,6 +10,7 @@ import 'package:historiasclinicas_net/app/tema.dart';
 import 'package:historiasclinicas_net/core/consultorio/agenda/cita.dart';
 import 'package:historiasclinicas_net/core/consultorio/caja/catalogo.dart';
 import 'package:historiasclinicas_net/core/consultorio/caja/movimientos.dart';
+import 'package:historiasclinicas_net/core/consultorio/inventario/insumo.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/registro_historia.dart';
 import 'package:historiasclinicas_net/core/consultorio/servicio.dart';
 import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
@@ -138,6 +139,38 @@ Future<void> _elegirPaciente(WidgetTester t) async {
   await _pulsar(t, find.textContaining('PEÑA').last);
 }
 
+/// Una jeringa con dos lotes: J-1 (2, vence primero) y J-2 (10).
+Future<(Lote, Lote)> _jeringas(BancoConsultorio b) async {
+  final inv = b.servicio.inventario;
+  final i = await inv.guardarInsumo(
+    inv.nuevoInsumo().copyWith(
+      nombre: 'Jeringa de prueba',
+      categoria: CategoriaInsumo.dispositivo,
+      unidad: 'unidad',
+      registroInvima: 'INVIMA PRUEBA-0002',
+    ),
+  );
+  final j2 = await inv.registrarEntrada(
+    insumoId: i.id,
+    numero: 'J-2',
+    vence: DateTime(2027, 6, 30),
+    cantidad: 10,
+  );
+  final j1 = await inv.registrarEntrada(
+    insumoId: i.id,
+    numero: 'J-1',
+    vence: DateTime(2027, 1, 31),
+    cantidad: 2,
+  );
+  return (j1, j2);
+}
+
+final _lineaInsumo = find.byWidgetPredicate(
+  (w) =>
+      w.key is ValueKey<String> &&
+      (w.key! as ValueKey<String>).value.startsWith('insumo-'),
+);
+
 void main() {
   testWidgets('cobrar con abono, recibo, abonar el saldo y anular', (t) async {
     final (b, id) = await _conPaciente();
@@ -196,6 +229,69 @@ void main() {
     // El PDF guardado se vuelve a descargar.
     await _pulsar(t, find.text('Recibo RC-000001'));
     expect(_pdfs.last, 'Recibo_RC-000001.pdf');
+  });
+
+  testWidgets('insumos usados: se descuentan al cobrar y vuelven al anular '
+      'el cobro', (t) async {
+    final (b, _) = await _conPaciente();
+    final (j1, j2) = await _jeringas(b);
+    final inv = b.servicio.inventario;
+    await _montar(t, b);
+    await _pulsar(t, find.text('Cobrar'));
+    await _elegirPaciente(t);
+    expect(_enDialogo(find.text('INSUMOS USADOS')), findsOneWidget);
+    await _pulsar(t, find.text('Agregar un insumo'));
+    // El lote que vence primero, con lo que queda.
+    expect(
+      find.text('J-1 · vence 31/01/2027 · quedan 2 unidades'),
+      findsOneWidget,
+    );
+    final cantidad = find.descendant(
+      of: _lineaInsumo,
+      matching: find.byType(TextField),
+    );
+    await t.enterText(cantidad, '3');
+    await t.pumpAndSettle();
+    expect(
+      find.text(
+        'El lote J-1 de «Jeringa de prueba» tiene 2 unidades; el cobro usa '
+        '3 unidades.',
+      ),
+      findsOneWidget,
+    );
+    expect(_boton(t, 'Registrar y descargar el recibo').onPressed, isNull);
+    await t.enterText(cantidad, '2');
+    await t.pumpAndSettle();
+    await _pulsar(t, find.text('Registrar y descargar el recibo'));
+    expect(
+      find.textContaining('Se descontó 1 insumo del inventario.'),
+      findsOneWidget,
+    );
+    expect(inv.existencia(j1.id), 0);
+    expect(inv.existencia(j2.id), 10);
+    expect(
+      find.text('Insumos: Jeringa de prueba, 2 unidades (lote J-1)'),
+      findsOneWidget,
+    );
+
+    // Anular el recibo y luego el cobro: las jeringas vuelven.
+    await _pulsar(t, find.text('Anular RC-000001'));
+    await t.enterText(_enDialogo(find.byType(TextField)), 'Error de prueba');
+    await t.pumpAndSettle();
+    await _pulsar(t, find.text('Anular'));
+    await _pulsar(t, find.text('Anular el cobro'));
+    expect(
+      find.textContaining('Sus insumos vuelven al inventario'),
+      findsOneWidget,
+    );
+    await t.enterText(_enDialogo(find.byType(TextField)), 'Error de prueba');
+    await t.pumpAndSettle();
+    await _pulsar(t, find.text('Anular'));
+    expect(
+      find.text('Cobro anulado: sus insumos volvieron al inventario.'),
+      findsOneWidget,
+    );
+    expect(inv.existencia(j1.id), 2);
   });
 
   testWidgets('descuento con motivo y crédito de la valoración en el '
@@ -403,6 +499,7 @@ void main() {
       await b.servicio.caja.usarPaquete(
         b.servicio.caja.paquetesDe(id).single.id,
       );
+      await _jeringas(b);
       await _montar(t, b, tamano: Size(ancho, 760));
       expect(find.text('RC-000001 · 09:30'), findsOneWidget);
       expect(find.text('Sesiones de paquete'), findsOneWidget);
@@ -410,6 +507,8 @@ void main() {
       await _pulsar(t, find.text('Día'));
       await _pulsar(t, find.text('Cobrar').first);
       await _elegirPaciente(t);
+      await _pulsar(t, find.text('Agregar un insumo'));
+      expect(_lineaInsumo, findsOneWidget);
       await _pulsar(t, find.text('Otro medio de pago'));
       await t.enterText(_campo('Descuento'), '5000');
       await t.pumpAndSettle();
