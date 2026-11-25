@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.7) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.8) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -24,7 +24,7 @@
 // (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
 // valoración, recibos en PDF, informe y cierre del día; (5.7) inventario:
 // entrada de lotes, sesión que los descuenta y bloqueo con un lote vencido;
-// y comprobar que
+// (5.8) notas «VERIFICAR» con su registro y modo presentación; y comprobar que
 // nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
 // (incluida la CSP).
@@ -1760,6 +1760,85 @@ await context.close();
   await p.setViewportSize({ width: 1440, height: 1000 });
   await p.waitForTimeout(900);
   paso('Inventario en móvil (390 px) y 320 px');
+
+  // ─────────────── 9. Notas «VERIFICAR» y modo presentación (5.8) ───────────────
+  // Lo que se ve de la pantalla (texto y etiquetas de accesibilidad).
+  const cuantas = (t) =>
+    p.evaluate((t) => {
+      let n = 0;
+      for (const e of document.querySelectorAll('flt-semantics, flt-semantics-container')) {
+        const a = `${e.getAttribute('aria-label') ?? ''}`;
+        if (a.includes(t)) n++;
+      }
+      for (const e of document.querySelectorAll('flt-semantics')) {
+        if (!e.getAttribute('aria-label') && (e.textContent ?? '').includes(t)) n++;
+      }
+      return n;
+    }, t);
+  async function ir(ruta, esperado) {
+    await p.evaluate((r) => (location.hash = r), `#${ruta}`);
+    await texto(p, esperado).waitFor({ timeout: 20000 });
+    await p.waitForTimeout(600);
+  }
+
+  // Ajustes: la nota de la DIAN se marca como verificada, con fecha y fuente.
+  await ir('/ajustes', 'Servicios y tarifas');
+  await texto(p, 'Ninguna nota verificada todavía').waitFor();
+  const chipDian = p.getByRole('button', { name: /^Por verificar: DIAN, VERIFICAR con tu contador/ });
+  await hacerClic(chipDian);
+  await texto(p, 'Nota por verificar').waitFor();
+  await escribir(p, 'Fuente', 'Concepto del contador (prueba)');
+  await p.getByRole('button', { name: 'Marcar como verificada', exact: true }).click();
+  await texto(p, 'Verificado el 30/11/2026 · Concepto del contador (prueba)').waitFor();
+  await texto(p, '1 nota verificada').waitFor();
+  await aLaVista(p.getByRole('button', { name: /^Verificado el 30\/11\/2026/ }));
+  await captura(p, 'j1_verificada.png');
+  if (!(await cuantas('Por verificar'))) throw new Error('No hay chips «Por verificar» en Ajustes');
+  paso('Ajustes: chips «Por verificar» con la nota completa; la de la DIAN, verificada el 30/11/2026 con su fuente');
+
+  // Modo presentación: ningún «VERIFICAR» ni chip en las pantallas, ni
+  // notas internas ni montos de la caja en las que ve el paciente.
+  await p.getByRole('button', { name: 'Modo presentación', exact: true }).click();
+  await texto(p, 'Modo presentación: sin notas por verificar').waitFor();
+  const pantallas = [
+    ['/agenda', 'lunes 30/11/2026'],
+    ['/pacientes', 'Pacientes'],
+    ['/caja', 'Totales del día'],
+    ['/inventario', 'Anestésico de prueba'],
+    ['/ajustes', 'Servicios y tarifas'],
+    ['/medico', 'Datos del médico'],
+    ['/receta', 'Receta'],
+    ['/', 'Historia'],
+  ];
+  for (const [ruta, esperado] of pantallas) {
+    await ir(ruta, esperado);
+    for (const t of ['VERIFICAR', 'Por verificar', 'Verificado el']) {
+      const n = await cuantas(t);
+      if (n) throw new Error(`Modo presentación: «${t}» en ${ruta} (${n})`);
+    }
+  }
+  await ir('/agenda', 'lunes 30/11/2026');
+  if (await cuantas('Saldo $') || await cuantas('Control de tiroides')) {
+    throw new Error('Modo presentación: la agenda muestra montos o el motivo');
+  }
+  await abrirFicha('1032456789');
+  if (await p.getByRole('button', { name: /^Caja$/ }).count()) {
+    throw new Error('Modo presentación: la ficha ofrece la sección Caja');
+  }
+  await captura(p, 'j2_presentacion_ficha.png');
+  await ir('/ajustes', 'Servicios y tarifas');
+  await alInicio();
+  await captura(p, 'j3_presentacion_ajustes.png');
+  paso('Modo presentación: ningún «VERIFICAR» ni chip en agenda, pacientes, caja, inventario, ajustes, datos del médico, receta e historia; sin montos ni el motivo de la cita; la ficha sin la sección Caja');
+
+  // Se apaga al bloquear.
+  await p.getByRole('button', { name: 'Bloquear el consultorio', exact: true }).click();
+  await desbloquear(p);
+  await texto(p, 'Servicios y tarifas').waitFor({ timeout: 30000 });
+  await p.waitForTimeout(600);
+  if (await cuantas('Modo presentación: sin notas')) throw new Error('El modo presentación sigue tras bloquear');
+  if (!(await cuantas('Por verificar'))) throw new Error('Tras bloquear no volvieron los chips');
+  paso('Al bloquear, el modo presentación se apaga: al desbloquear vuelven los chips');
   await abrirFicha('1032456789');
 
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.

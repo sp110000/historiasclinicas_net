@@ -4,7 +4,7 @@ Historia clínica y receta en el navegador. Sin servidor, sin base de datos y si
 
 **Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
-**Fase 5, el consultorio (en curso):** índice de pacientes y datos de gestión en un almacén local cifrado, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público no cambia). Terminadas la 5.0 «Cimientos» (frase de acceso, código de recuperación, bloqueo, respaldo cifrado y Ajustes) la 5.1 «Pacientes» (índice de pacientes con búsqueda, importación de PDF, ficha longitudinal, autorización de tratamiento de datos firmada en pantalla, política de privacidad, recetas con `receta.json`, y borrador y receta en curso cifrados) la 5.2 «Seguimiento y fotos» (mediciones con IMC e ICC y gráficas, consentimiento de uso de imagen, fotos cifradas sin EXIF con guía de encuadre, comparación y cortina, informe de seguimiento en PDF y paquete cifrado del equipo secundario) la 5.3 (programa de peso con GLP-1 y contraindicaciones, plantilla declarativa de hidrolipoclasia con tu protocolo, valoración estética, consentimiento informado por plan, sesión con dosis en mg/kg y reglas de bloqueo, sellada en la historia, y certificaciones por técnica) la 5.4 «Documentos» (certificados, incapacidad, órdenes y remisión con plantillas versionadas, vista previa del PDF real y `documento.json`, e importación en lote que verifica documentos y recetas) la 5.5 «Agenda» (inicio de la app con la bandera: citas por tipo y estado, vista de día y de semana, horas libres, festivos de Colombia, bloqueos, recordatorios por WhatsApp sin datos de salud, `.ics` y «Atender» con la historia prellenada) la 5.6 «Caja y paquetes» (catálogo con tus tarifas, cobro con descuentos, abonos y saldo por medio de pago, recibo RC- en PDF que no es factura electrónica, paquetes de sesiones sin recibo al usarlas, crédito de la valoración por 30 días, anulaciones, cierre del día con el efectivo contado e informe del mes con CSV) y la 5.7 «Inventario» (insumos con registro Invima, lotes con entradas, ajustes y bajas, alertas de vencimiento y mínimo, el lote que vence primero sugerido en la sesión y descontado al sellarla, y bloqueo de un lote vencido o sin existencias). Plan y avance en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
+**Fase 5, el consultorio (terminada; la 5.8 espera el visto bueno):** el sistema del consultorio en el navegador, sin servidor y sin conexión, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público se comporta como siempre). Almacén local cifrado con frase y código de recuperación, y respaldo cifrado (5.0); pacientes con ficha longitudinal e importación de PDF (5.1); seguimiento y fotos cifradas (5.2); programa de peso con GLP-1, valoración, consentimiento y sesión de hidrolipoclasia (5.3); certificados, incapacidad, órdenes y remisión (5.4); agenda (5.5); caja, recibos y paquetes (5.6); inventario con lotes (5.7); y notas «VERIFICAR» con su registro y modo presentación (5.8). Plan, avance y cierre en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
@@ -31,7 +31,7 @@ node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) 
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
 # Consultorio (bandera encendida):
 node tool/e2e/servidor.mjs 8766 build/web-consultorio &
-node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe; programa de peso, valoración, consentimiento y sesión; certificado, incapacidad, orden y remisión, y su reimportación; agenda, WhatsApp interceptado y «Atender» (sin conexión)
+node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe; programa de peso, valoración, consentimiento y sesión; certificado, incapacidad, orden y remisión, y su reimportación; agenda, WhatsApp interceptado y «Atender»; caja con abono, paquete, recibos y cierre; inventario con lotes; notas verificadas y modo presentación (sin conexión)
 ```
 GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
@@ -48,7 +48,9 @@ lib/
                     índice de pacientes (fichas, historias, recetas), plantillas y documentos firmados;
                     mediciones, fotos (sin EXIF), informe de seguimiento y paquete .hcpaquete;
                     programa de peso y GLP-1, plantillas de procedimiento, valoración,
-                    consentimiento informado, sesión y certificaciones; reglas puras (reglas/)
+                    consentimiento informado, sesión y certificaciones; agenda y festivos;
+                    caja (catálogo, cobros, recibos, paquetes, créditos, cierre); inventario
+                    (insumos, lotes, movimientos); registro de verificaciones; reglas puras (reglas/)
     imagenes/       firma, sello y logo: quitar fondo, recortar, reducir
     integridad/     JSON canónico y cadena SHA-256
     models/         historia, paciente, antecedentes, revisión por sistemas, signos, diagnósticos, evoluciones, médico
@@ -58,11 +60,13 @@ lib/
     pwa/            avisos del service worker (sin conexión, versión nueva)
     receta/         ítems, número en letras, cantidad sugerida, alertas, "Mis medicamentos"
     storage/        preferencias, borrador, médico, receta y "Mis medicamentos" (localStorage)
-    widgets/        campos de formulario (con sugerencias), tarjeta de sección, lienzo de firma
+    widgets/        campos de formulario (con sugerencias), tarjeta de sección, lienzo de firma;
+                    texto_verificar: las notas «VERIFICAR» de siempre (con la bandera, con chip)
   features/
     consultorio/    Fase 5: contenedor (riel y menú), desbloqueo, Ajustes, respaldo, pacientes y ficha,
                     documentos (plantillas, autorización, consentimiento de imagen), seguimiento,
                     fotos, equipo secundario, peso, estética (valoración, consentimiento, sesión),
+                    agenda, caja, inventario, notas «VERIFICAR» y modo presentación,
                     enganches con la historia y la receta
     historia/       pantalla, estado (Riverpod), formularios, evoluciones
     cie10/          estado del catálogo e importación

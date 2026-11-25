@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: 5.5 «Agenda» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). De la 5.0 a la 5.4 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
+> **Estado: la Fase 5 está terminada.** La 5.8 «Presentación y cierre» espera tu visto bueno (ver [«Avance»](#avance) y [«Cierre de la Fase 5»](#cierre-de-la-fase-5)); de la 5.0 a la 5.7 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`, sin fusionar.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para seguir:** el visto bueno de la 5.5 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos de los consentimientos, certificados, incapacidad y órdenes; catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo; los límites de la incapacidad del Decreto 1427 de 2022; los festivos y el mensaje del recordatorio por WhatsApp). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.6, dímelo.
+**Qué necesito de ti:** el visto bueno de la 5.8 y, sobre todo, revisar lo que quedó marcado VERIFICAR. Ahora cada nota sale en pantalla con un chip «Por verificar»: tócalo y, cuando la revises con la norma, tu abogado o tu contador, registra la fecha y la fuente (ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Fusionar el PR y publicar la versión del consultorio lo decides tú ([fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
 
 ---
 
@@ -29,9 +29,79 @@
 
 ---
 
+## Cierre de la Fase 5
+
+**Qué quedó**, todo detrás de `CONSULTORIO_ENABLED` y sin conexión:
+
+| Subfase | En una línea |
+|---|---|
+| 5.0 Cimientos | Almacén cifrado (AES-256-GCM, frase y código de recuperación), bloqueo, respaldo `.hcrespaldo` verificado y Ajustes |
+| 5.1 Pacientes | Índice de pacientes con búsqueda e importación de PDF, ficha longitudinal, autorización de datos firmada, `receta.json` y borrador cifrado |
+| 5.2 Seguimiento y fotos | Mediciones con gráficas, consentimiento de imagen, fotos cifradas sin EXIF, comparación, informe en PDF y equipo secundario |
+| 5.3 Peso y estética | Programa de peso con GLP-1, plantilla de hidrolipoclasia con tu protocolo, valoración, consentimiento por plan y sesión sellada con reglas de bloqueo |
+| 5.4 Documentos | Certificado, incapacidad, orden y remisión con plantillas versionadas, vista previa real e importación verificada |
+| 5.5 Agenda | Inicio de la app: citas, día y semana, horas libres, festivos, recordatorio por WhatsApp sin datos de salud y «Atender» |
+| 5.6 Caja y paquetes | Cobro con abonos por medio de pago, recibo RC- (no es factura), paquetes, crédito de la valoración, cierre del día e informe con CSV |
+| 5.7 Inventario | Insumos con registro Invima, lotes, alertas, lote que vence primero sugerido en la sesión y descontado al sellarla |
+| 5.8 Presentación | Notas «VERIFICAR» con chip y registro de verificaciones, modo presentación y pulido de la navegación |
+
+**Cifras:** 753 pruebas (y 15 con la bandera encendida), **66 pasos** en la e2e del consultorio en Chromium sin conexión y con la CSP, las e2e de siempre en verde y la Regla 10 de IHCE en verde. El sitio público no cambió de comportamiento.
+
+**El flujo completo sin conexión** está en la e2e, en este orden: frase y código → respaldo y restauración → importar historias → ficha y autorización de datos → mediciones y fotos → protocolo aprobado → **valoración «apto»** → **consentimiento informado firmado** → **sesión** (bloqueada sin consentimiento y por un lote vencido, luego sellada) → documentos → agenda y «Atender» → **cobro** con abono, paquete y crédito → cierre del día con **respaldo** → inventario y una sesión que lo descuenta → notas verificadas y modo presentación.
+
+**Antes de atender pacientes reales con esto:**
+1. Revisa con tu abogado y apruébalos en Ajustes: la autorización de datos, la política de privacidad, el consentimiento de imagen, el consentimiento informado, y las plantillas de certificados, incapacidad, órdenes y remisión.
+2. Escribe y aprueba tu protocolo de hidrolipoclasia y, si usas GLP-1, los esquemas de titulación con la ficha técnica.
+3. Configura el prestador y la póliza, el horario de la agenda, las tarifas y el inventario.
+4. Guarda el código de recuperación y haz el primer respaldo; guárdalo en dos lugares.
+5. Publica la versión del consultorio en un subdominio aparte, con la guía [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md). `main` no se toca hasta que lo decidas.
+
+**Lo que sigue marcado VERIFICAR** (cada nota tiene su chip en pantalla): la Resolución 1995 de 1999 y la custodia; la Ley 1581 de 2012 y los textos de los consentimientos; la Ley 1799 de 2016 (menores); el PL 187 de 2026 (no es ley) y las certificaciones; la Ley 23 de 1981 (certificados); el Decreto 1427 de 2022 (incapacidad); el catálogo GLP-1 contra las fichas técnicas con registro Invima; los tamizajes SCOFF y DCQ (cortes y licencia); los festivos (Ley 51 de 1983); el mensaje de WhatsApp; la factura electrónica (DIAN); y la dirección de la consulta de Invima.
+
+---
+
 ## Avance
 
-### 5.7 Inventario simple ✅ (pendiente de tu visto bueno)
+### 5.8 Presentación y cierre ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Notas «VERIFICAR» en pantalla** (pregunta 50, opciones a y b, solo con la bandera):
+  - el texto sale limpio y, al lado, un **chip discreto «Por verificar»** con la nota completa en su globo («(Ley 51 de 1983, VERIFICAR)» queda «(Ley 51 de 1983)»; una oración «VERIFICAR su validez legal…» sale del texto y queda en el chip);
+  - **tocando el chip** se lee la nota y se registra la verificación **con fecha y fuente**; el chip pasa a «Verificado el 30/11/2026 · Concepto del contador». Registro cifrado, en la bitácora y en **Ajustes → Verificaciones**, donde se quita si hace falta. Si el texto cambia, hay que verificarlo de nuevo;
+  - la marca sigue en el código y en los documentos, y **los PDF nunca imprimen los chips**;
+  - en las **pantallas de siempre** (historia, receta y datos del médico) igual, con la bandera encendida. Con ella apagada, el mismo texto de hoy.
+- **Modo presentación** (cuando te ve un paciente o un auditor): un interruptor junto al candado (riel y barra del móvil), con una franja arriba que lo dice y «Salir». Oculta los chips, **las notas internas** de la ficha, **el motivo** de la cita (es solo para ti), **el cobro de la cita** y **la sección Caja** de la ficha. **Se apaga solo al bloquear.**
+- **Navegación** (pregunta 51): el logotipo arriba del riel (con el nombre del consultorio al pasar el puntero) y el nombre del consultorio en la barra del móvil. En el teléfono, el aviso de respaldo es corto (título y botón): el aviso entero ocupaba casi media pantalla.
+- **Chips con fondo opaco**: el verde de «Vigente», «Caja abierta» o «Verificado» sobre el fondo gris bajaba a 4,28:1.
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **753 en verde** (734 en la 5.7) y **15 con la bandera encendida** (14 antes). Por tabla: separar la nota (10 casos, con los textos reales de la historia, la receta, la agenda y la caja). El registro (validaciones, cifrado y al reabrir, bitácora). El chip (un botón propio para el lector de pantalla), verificar y el modo presentación, que se apaga al bloquear. **Modo presentación: ningún «VERIFICAR» ni chip** en 11 pantallas (agenda en un festivo, pacientes, ficha y sus 5 secciones, caja e informe, inventario, ajustes, sesión, valoración, certificado, incapacidad y protocolo), sin notas internas, motivo ni montos; con la bandera, **la historia, la receta y los datos del médico** tampoco. **Contraste de lo nuevo** (≥ 4,5:1). **390 y 320 px en cada pantalla**, con y sin el modo presentación |
+| Bandera apagada | El `main.dart.js` público pasa de 5.333.404 a **5.333.170 bytes** (los 7 textos de las pantallas de siempre pasan por un ayudante que, con la bandera apagada, devuelve el mismo `Text`) y no lleva el módulo. La prueba de la bandera apagada vigila el ayudante (lista cerrada y uso solo dentro de la bandera), y las e2e de siempre (`historia_offline`, `pwa_offline`) siguen en verde |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **6.232 KB** (6.219 KB en la 5.7) |
+| Regla 10 | En verde: los archivos de siempre que se tocaron están en el inventario de abajo (0 de tema) |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **66 de 66 pasos** (63 de antes y 3 nuevos), con el flujo completo de la fase (ver «Cierre de la Fase 5»). Nuevos: en Ajustes, los chips «Por verificar» y **la nota de la DIAN marcada como verificada** con fecha y fuente; **modo presentación**: ningún «VERIFICAR» ni chip (texto y etiquetas de accesibilidad) en agenda, pacientes, caja, inventario, ajustes, **datos del médico, receta e historia**, sin montos ni el motivo de la cita y la ficha sin la sección Caja; **al bloquear se apaga**. 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.8**
+1. **En un teléfono, el aviso de respaldo ocupaba casi media pantalla** (360 de 760 px) y dejaba a la pantalla del documento sin lugar: la prueba de 390 px lo encontró. Ahora, en el teléfono, solo el título y «Respaldar ahora».
+2. **El verde de los chips sobre el fondo gris tenía 4,28:1** («Vigente» en las filas de lotes, «Caja abierta»). Ahora el fondo del chip es opaco.
+3. En el editor del protocolo, la referencia de los tamizajes y una etiqueta mostraban la marca en el modo presentación; la prueba de pantallas lo encontró.
+4. Las barras de sellar y emitir mostraban el chip dentro del primer bloqueo, más alto que la barra; ahora dicen el bloqueo sin la nota, que está con su chip en la lista.
+5. **Accesibilidad: con el chip dentro del párrafo, el motor web leía el párrafo entero como un botón** (con el globo de ayuda como nombre). La e2e no encontraba el chip por su nombre y lo destapó. Ahora el chip va debajo del texto como su propio botón, «Por verificar: <la nota>», y el párrafo sigue siendo texto; hay prueba.
+6. **En el modo presentación, Ajustes todavía mostraba la marca**: en la lista de «Verificaciones» (la nota completa) y en la bitácora («Marcó una nota «VERIFICAR»…»). La e2e lo encontró; ahora la lista se oculta en ese modo, la bitácora dice «Marcó una nota como verificada», y la prueba de pantallas tiene una nota verificada.
+
+**Desviaciones del plan**
+- **En etiquetas, ayudas, confirmaciones y mensajes de las reglas no hay chip** (no tienen dónde): fuera del modo presentación se ven con la marca, y en él, sin ella.
+- **La caja y la agenda siguen mostrando los nombres de los demás pacientes** en el modo presentación: el plan solo pedía ocultar las notas internas y los montos.
+- **El sitio público cambió 234 bytes** (no de comportamiento): los 7 textos de las pantallas de siempre se tocaron para la pregunta 50, como estaba previsto.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):** [nota verificada en Ajustes](fase5/escritorio_nota_verificada.png) · [ficha en el modo presentación](fase5/escritorio_presentacion_ficha.png) · [Ajustes en el modo presentación](fase5/escritorio_presentacion_ajustes.png)
+
+### 5.7 Inventario simple ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
 - **Inventario** en el riel (Agenda, Pacientes, Historia, Caja, **Inventario** y Ajustes). Empieza vacío (pregunta 48).
