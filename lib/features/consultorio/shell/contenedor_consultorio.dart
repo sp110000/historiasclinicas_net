@@ -56,6 +56,12 @@ const destinosConsultorio = [
     requiereDesbloqueo: false,
   ),
   DestinoConsultorio(
+    ruta: '/caja',
+    etiqueta: 'Caja',
+    icono: Icons.point_of_sale_outlined,
+    iconoActivo: Icons.point_of_sale,
+  ),
+  DestinoConsultorio(
     ruta: '/ajustes',
     etiqueta: 'Ajustes',
     icono: Icons.settings_outlined,

@@ -20,6 +20,8 @@ import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
 import '../agenda/agenda_page.dart' show TarjetaCita;
 import '../agenda/dialogo_cita.dart';
+import '../caja/dialogo_cobro.dart';
+import '../caja/seccion_caja.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../documentos/linea_tiempo_documentos.dart';
 import '../fotos/seccion_fotos.dart';
@@ -46,7 +48,8 @@ enum SeccionFicha {
   seguimiento('Seguimiento', Icons.show_chart),
   peso('Peso', Icons.monitor_weight_outlined),
   estetica('Estética', Icons.spa_outlined),
-  fotos('Fotos', Icons.photo_library_outlined);
+  fotos('Fotos', Icons.photo_library_outlined),
+  caja('Caja', Icons.point_of_sale_outlined);
 
   const SeccionFicha(this.etiqueta, this.icono);
 
@@ -150,6 +153,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
             SeccionEstetica(ficha: f)
           else if (_seccion == SeccionFicha.fotos)
             SeccionFotos(ficha: f)
+          else if (_seccion == SeccionFicha.caja)
+            SeccionCaja(ficha: f)
           else ...[
             _Clinico(ficha: f, ultima: historias.firstOrNull),
             const SizedBox(height: 16),
@@ -419,6 +424,11 @@ class _Acciones extends ConsumerWidget {
         },
       ),
       (
+        Icons.point_of_sale,
+        'Cobrar',
+        () => abrirCobro(context, ref, pacienteId: ficha.id),
+      ),
+      (
         Icons.warning_amber_rounded,
         'Actualizar alergias',
         () => _alergias(context, ref),
@@ -468,9 +478,9 @@ class _Acciones extends ConsumerWidget {
         child: MenuAnchor(
           menuChildren: [
             for (final (icono, texto, accion) in [
-              ...acciones.take(4),
+              ...acciones.take(5),
               ...documentos,
-              ...acciones.skip(4),
+              ...acciones.skip(5),
             ])
               MenuItemButton(
                 leadingIcon: Icon(icono),
@@ -502,7 +512,7 @@ class _Acciones extends ConsumerWidget {
                   icon: Icon(icono),
                   label: Text(texto),
                 ),
-          if (i == 3)
+          if (i == 4)
             MenuAnchor(
               menuChildren: [
                 for (final (icono, texto, accion) in documentos)

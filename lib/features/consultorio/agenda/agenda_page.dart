@@ -6,11 +6,13 @@ import '../../../app/tema.dart';
 import '../../../core/consultorio/agenda/cita.dart';
 import '../../../core/consultorio/agenda/festivos.dart';
 import '../../../core/consultorio/agenda/horario.dart';
+import '../../../core/consultorio/caja/catalogo.dart';
 import '../../../core/consultorio/reglas/agenda.dart';
 import '../../../core/consultorio/reglas/estetica.dart';
 import '../../../core/utils/fechas.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../caja/dialogo_cobro.dart';
 import '../widgets/comunes.dart';
 import 'acciones_cita.dart';
 import 'dialogo_cita.dart';
@@ -372,6 +374,13 @@ class TarjetaCita extends ConsumerWidget {
       for (final e in EstadoCita.values)
         if (problemaCambioEstado(c, e, ahora) == null) e,
     ];
+    final cobros = s.caja.cobrosDeCita(c.id);
+    final saldoCita = cobros.fold(0, (a, x) => a + s.caja.saldo(x));
+    final cobrado = cobros.isEmpty
+        ? null
+        : saldoCita > 0
+        ? 'Saldo ${formatoPesos(saldoCita)}'
+        : 'Cobrada';
     // En una sesión: si hay «apto» vigente ese día y consentimiento. (En
     // una valoración no: es la que da el «apto».)
     String? estetica;
@@ -442,6 +451,14 @@ class TarjetaCita extends ConsumerWidget {
                           texto: c.estado.etiqueta,
                           color: estado.color,
                         ),
+                        if (cobrado != null)
+                          EtiquetaEstado(
+                            icono: Icons.point_of_sale,
+                            texto: cobrado,
+                            color: cobrado.startsWith('Saldo')
+                                ? ColoresMarca.aviso
+                                : ColoresMarca.estadoOk,
+                          ),
                         if (c.recordatorioEnviado != null)
                           const EtiquetaEstado(
                             icono: Icons.chat_outlined,
@@ -558,6 +575,14 @@ class TarjetaCita extends ConsumerWidget {
                             label: const Text('Atender'),
                           ),
                         ],
+                        if (ficha != null &&
+                            c.estado != EstadoCita.cancelada &&
+                            c.estado != EstadoCita.noAsistio)
+                          OutlinedButton.icon(
+                            onPressed: () => abrirCobro(context, ref, cita: c),
+                            icon: const Icon(Icons.point_of_sale),
+                            label: const Text('Cobrar'),
+                          ),
                       ],
                     ),
                   ],

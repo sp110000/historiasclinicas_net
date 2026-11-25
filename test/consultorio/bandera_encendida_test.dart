@@ -35,6 +35,7 @@ void main() {
         '/receta',
         '/medico',
         '/agenda',
+        '/caja',
         '/pacientes',
         '/ajustes',
       ]);
@@ -80,6 +81,14 @@ void main() {
       expect(
         t.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
         0,
+      );
+      // Agenda, Pacientes, Historia, Caja y Ajustes (pregunta 51).
+      expect(
+        t
+            .widget<NavigationRail>(find.byType(NavigationRail))
+            .destinations
+            .map((d) => (d.label as Text).data),
+        ['Agenda', 'Pacientes', 'Historia', 'Caja', 'Ajustes'],
       );
       await t.tap(find.text('Ajustes'));
       await t.pumpAndSettle();

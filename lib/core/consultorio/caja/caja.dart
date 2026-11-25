@@ -150,6 +150,24 @@ class CajaConsultorio {
       ..sort((a, b) => b.fecha.compareTo(a.fecha));
   }
 
+  /// Todos los cobros vigentes con saldo, del más viejo al más nuevo.
+  List<Cobro> cobrosConSaldo() =>
+      _cobros.values.where((c) => saldo(c) > 0).toList()
+        ..sort((a, b) => a.fecha.compareTo(b.fecha));
+
+  /// Los cobros vigentes hechos desde la cita [citaId].
+  List<Cobro> cobrosDeCita(String citaId) => [
+    for (final c in _cobros.values)
+      if (!c.anulado && c.citaId == citaId) c,
+  ];
+
+  /// Los recibos de la ficha, del más nuevo al más viejo.
+  List<Recibo> recibosDePaciente(String pacienteId) {
+    final ids = _indice.idsUnidos(pacienteId);
+    return _recibos.values.where((r) => ids.contains(r.pacienteId)).toList()
+      ..sort((a, b) => b.fecha.compareTo(a.fecha));
+  }
+
   /// Lo que la ficha debe (cobros vigentes con saldo).
   int saldoPaciente(String pacienteId) =>
       cobrosDe(pacienteId).fold(0, (s, c) => s + saldo(c));

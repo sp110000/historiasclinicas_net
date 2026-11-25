@@ -12,6 +12,7 @@ import '../../../core/widgets/campos.dart';
 import '../../../core/widgets/titulo_dialogo.dart';
 import '../desbloqueo/panel_codigo.dart';
 import '../agenda/ajustes_agenda.dart';
+import '../caja/ajustes_caja.dart';
 import '../documentos/plantillas_ajustes.dart';
 import '../estado/consultorio_provider.dart';
 import '../estetica/ajustes_procedimientos.dart';
@@ -42,6 +43,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           _Respaldo(),
           SizedBox(height: 16),
           TarjetaAgenda(),
+          SizedBox(height: 16),
+          TarjetaCaja(),
           SizedBox(height: 16),
           TarjetaPlantillas(),
           SizedBox(height: 16),
