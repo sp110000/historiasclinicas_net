@@ -369,8 +369,10 @@ class TarjetaCita extends ConsumerWidget {
       for (final e in EstadoCita.values)
         if (problemaCambioEstado(c, e, ahora) == null) e,
     ];
+    // En una sesión: si hay «apto» vigente ese día y consentimiento. (En
+    // una valoración no: es la que da el «apto».)
     String? estetica;
-    if (ficha != null && c.plantillaId != null) {
+    if (ficha != null && c.plantillaId != null && c.tipo == TipoCita.sesion) {
       final v = ultimaValoracion(
         s.procedimientos.valoracionesDe(ficha.id),
         c.plantillaId!,
@@ -384,8 +386,7 @@ class TarjetaCita extends ConsumerWidget {
         ev == EstadoValoracion.vigente
             ? '✓ apto hasta ${formatoFecha(v!.vigenteHasta!)}'
             : '⚠ sin «apto» vigente',
-        if (c.tipo == TipoCita.sesion)
-          ci == null ? '⚠ sin consentimiento' : '✓ consentimiento ${ci.numero}',
+        ci == null ? '⚠ sin consentimiento' : '✓ consentimiento ${ci.numero}',
       ].join(' · ');
     }
     return Container(
