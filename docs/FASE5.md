@@ -1,6 +1,6 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: 5.4 «Documentos» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). De la 5.0 a la 5.3 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
+> **Estado: 5.5 «Agenda» terminada, pendiente de tu visto bueno** (ver [«Avance»](#avance)). De la 5.0 a la 5.4 están aprobadas. Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`.
 > Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
@@ -8,7 +8,7 @@
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué necesito de ti para seguir:** el visto bueno de la 5.4 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos de los consentimientos, certificados, incapacidad y órdenes; catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo; los límites de la incapacidad del Decreto 1427 de 2022). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.5, dímelo.
+**Qué necesito de ti para seguir:** el visto bueno de la 5.5 y, sobre todo, revisar lo que quedó marcado VERIFICAR (textos de los consentimientos, certificados, incapacidad y órdenes; catálogo GLP-1, contraindicaciones, tamizajes y tu protocolo; los límites de la incapacidad del Decreto 1427 de 2022; los festivos y el mensaje del recordatorio por WhatsApp). Las preguntas de las subfases siguientes ya están aprobadas con su opción por defecto; si quieres cambiar alguna antes de la 5.6, dímelo.
 
 ---
 
@@ -31,7 +31,69 @@
 
 ## Avance
 
-### 5.4 Documentos ✅ (pendiente de tu visto bueno)
+### 5.5 Agenda ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **La agenda es el inicio** con la bandera encendida y la primera del riel (pregunta 51). La historia sigue a un clic.
+- **Citas por tipo, con duración, estado e historial:**
+  - tipos y duraciones: primera vez 30 min, control 20, programa de peso 30, valoración estética 40 y sesión 60 (editables);
+  - estados: agendada, confirmada, atendida, no asistió y cancelada. Cancelar pide motivo, y cada cambio queda con su fecha.
+- **Vistas:**
+  - de día, con el horario, los festivos y los bloqueos;
+  - de semana, una columna por día con bloques por tipo, que se distinguen por color **y** por ícono;
+  - en móvil solo la de día, deslizando entre días.
+- **Agendar** (agenda → «+ Cita», o la ficha → «Agendar cita»):
+  - paciente con buscador o «Paciente nuevo»;
+  - tipo y procedimiento (en la valoración y la sesión);
+  - día, hora y duración, con las **horas libres** de ese día.
+- **Reglas puras con pruebas por tabla.**
+  - **Bloquean:** falta el paciente o la duración no es válida; en una valoración estética o una sesión, un menor de 18 años o sin fecha de nacimiento (Ley 1799 de 2016, VERIFICAR); una **sesión sin un «apto» vigente el día de la cita** (falta, «no apto», «diferir» o vencido).
+  - **Avisan sin bloquear:** cita en el pasado, festivo, fuera del horario, bloqueo y cruce con otra cita (pregunta 42).
+- **Festivos de Colombia calculados**, con los que se trasladan al lunes y los que dependen de la Pascua (Ley 51 de 1983, VERIFICAR).
+- **Recordatorios** (pregunta 43):
+  - «Mañana: N citas sin recordatorio», con «Enviar» por cita;
+  - WhatsApp con el **mensaje editable y sin datos de salud** ni el tipo de cita, al celular con +57; se abre en otra pestaña y la cita queda con el recordatorio enviado;
+  - un **`.ics`** que solo dice «Cita médica», con la hora y el lugar.
+- **Desde la cita:** estado, WhatsApp, `.ics`, Ficha, Reprogramar y **Atender**, que abre la evolución de la historia más reciente (o una historia nueva) con el paciente cargado y deja la cita atendida.
+- **«Controles vencidos (N)»** en la agenda lleva a la lista de pacientes filtrada.
+- **En la ficha:** «Agendar cita», la próxima cita, el contador de inasistencias y las citas en la línea de tiempo. «No asistió» no consume nada y deja vigente el control vencido.
+- **Ajustes → Agenda:** horario por día («8:00–12:00, 14:00–18:00»), duraciones, mensaje del recordatorio y bloqueos (vacaciones, reuniones).
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **644 en verde** (587 en la 5.4). Por tabla: 10 bloqueos y 6 avisos de la cita, 10 cambios de estado, los festivos de 2025 y 2026 (con San Pedro y el Sagrado Corazón el mismo lunes de 2025), franjas escritas a mano, horas libres, número de WhatsApp (8 casos), mensaje y URL codificada, y `.ics` sin datos de salud y con líneas de 75 octetos o menos. Además, el servicio (cifrado y al reabrir) y 12 pruebas de interfaz, también a 390 y 320 px |
+| Bandera apagada | La 5.5 no tocó ningún archivo compartido: el `main.dart.js` público **pesa lo mismo desde la 5.1** (5.333.404 bytes) y no lleva el módulo |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **6.077 KB** (6.000 KB en la 5.4) |
+| Contraste | Textos con los colores del tema (≥ 4,5:1); el color de cada tipo solo pinta la franja y el ícono, con el texto en tinta |
+| 320 px | Agenda (solo de día) sin desbordes, con prueba |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **50 de 50 pasos** (44 de antes, uno de ellos ahora «abre en la agenda», y 6 nuevos). Abre en la agenda. Con el reloj del navegador fijado al lunes 30/11/2026, 9:15: «Agendar cita» desde la ficha con una hora libre; dos citas más desde «+ Cita» (una buscada por nombre, otra para mañana); el aviso de mañana sin recordatorio; «Confirmada»; **WhatsApp interceptado** (`wa.me/57…`, sin datos de salud); el `.ics`; la semana; **«Atender»** con la historia prellenada y la cita atendida; móvil y 320 px. 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.5**
+1. **Un bloqueo que terminaba justo a la medianoche no tapaba ese día** en las horas libres (por ejemplo, unas vacaciones de domingo a lunes). Corregido, con prueba.
+2. **A 390 y 320 px, el nombre del paciente en «Mañana: … sin recordatorio» empujaba «Enviar» fuera de la pantalla.** Ahora el nombre se parte, con prueba.
+3. Al abrir en la agenda, el primer paso de la e2e esperaba la historia, y una prueba con la bandera esperaba las rutas de antes. Se actualizaron.
+4. «Programa de peso» aparece dos veces en Ajustes (también es un tipo de cita); la prueba de la 5.3 busca ahora su tarjeta.
+5. **Al angostar la ventana de la agenda, el motor web lanzaba «Null check…».** El gesto de deslizar entre días solo existía en móvil, y al cruzar el corte el área cambiaba de rol en el árbol de accesibilidad. Ahora el gesto está siempre y queda fuera de ese árbol; los lectores de pantalla usan «‹» y «›». Lo encontró la e2e, que lo reprodujo antes del arreglo y no después.
+6. **En una cita de valoración estética, la tarjeta avisaba «sin «apto» vigente»**, y confundía: la valoración es la que da el «apto». Ese aviso (y el del consentimiento) sale ahora solo en las sesiones.
+7. En la e2e: el riel nombra sus destinos «Agenda Pestaña 1 de 4», «Día» y «Semana» son radios, las horas libres son chips sin el rol de botón, y la franja de la historia dibuja la flecha como ícono. La e2e los busca así.
+
+**Desviaciones del plan**
+- **Una cita siempre es de una ficha.** Para una primera vez, «Paciente nuevo» crea la ficha con lo mínimo, en lugar de guardar en la cita un nombre y un teléfono provisionales.
+- **Fuera del horario, festivo y bloqueo avisan, no bloquean.** El plan lo decía solo de los cruces.
+- **WhatsApp solo se ofrece a celulares colombianos** (10 dígitos que empiezan por 3) o a números con «+indicativo». Un fijo no.
+- **«Cobrar» llega con la caja (5.6).** «Atender» marca la cita atendida al abrir la historia; ligar la cita con la evolución guardada queda para cuando el cobro lo necesite.
+- **El aviso de recordatorios de mañana se ve siempre en la agenda**, no solo en la mañana.
+- **El paquete del equipo secundario no lleva citas:** se agendan en el principal.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):** [agenda del día](fase5/escritorio_agenda_dia.png) · [recordatorio por WhatsApp](fase5/escritorio_agenda_whatsapp.png) · [semana](fase5/escritorio_agenda_semana.png) · [«Atender»](fase5/escritorio_agenda_atender.png)
+- **Móvil (390 px):** [agenda](fase5/movil_agenda.png)
+- **320 px:** [agenda](fase5/320_agenda.png)
+
+### 5.4 Documentos ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
 - **Cuatro documentos nuevos, con consecutivo propio:** certificado (CE-), incapacidad (IN-), orden de laboratorio o imágenes (OR-) y remisión o interconsulta (RM-) (pregunta 40).

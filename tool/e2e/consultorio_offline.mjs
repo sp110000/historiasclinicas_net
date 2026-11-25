@@ -177,9 +177,13 @@ const page = await nuevaPagina(context);
 await texto(page, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
 await texto(page, 'ya funciona sin conexión').desaparece({ timeout: 20000 });
 await context.setOffline(true);
+// Con la bandera abre en la agenda (pregunta 51); la primera vez, cerrada,
+// pide crear la frase. La historia sigue a un clic en el riel.
+await texto(page, 'Crea tu frase de acceso').waitFor({ timeout: 30000 });
+await pulsar(page, 'Historia');
 await page.getByRole('button', { name: /receta/i }).first().waitFor({ timeout: 30000 });
 await captura(page, 'c0_historia_con_riel.png');
-paso('Con la bandera: la historia de siempre, con el riel del consultorio (sin conexión)');
+paso('Con la bandera abre en la agenda; la historia de siempre sigue en el riel (sin conexión)');
 
 await pulsar(page, 'Ajustes');
 await texto(page, 'Crea tu frase de acceso').waitFor({ timeout: 30000 });
@@ -1237,6 +1241,168 @@ await context.close();
   paso('Ajustes → Documentos clínicos: 4 de 12 plantillas aprobadas, con versiones y «Agregar plantilla»');
   await abrirFicha('1032456789');
 
+  // ─────────────── 6. Agenda (5.5) ───────────────
+  // Reloj del navegador fijado al lunes 30/11/2026, 9:15 (las capturas no
+  // dependen del día de la corrida). WhatsApp no se abre: window.open queda
+  // interceptado y solo se anota el enlace.
+  await p.clock.setFixedTime(new Date('2026-11-30T09:15:00-05:00'));
+  // Botones por su nombre exacto («Agenda» no es «Agendar cita»; «Día» no
+  // es «Día anterior»).
+  // (el riel nombra sus destinos «Agenda Pestaña 1 de 4»; «Día» y «Semana»
+  // son radios).
+  const exactoBoton = (nombre) =>
+    p
+      .getByRole('button', { name: nombre, exact: true })
+      .or(p.getByRole('tab', { name: nombre, exact: true }))
+      .or(p.getByRole('radio', { name: nombre, exact: true }))
+      .or(p.getByRole('button', { name: new RegExp(`^${nombre}\\s+Pestaña`) }))
+      .first();
+  async function pulsarExacto(nombre) {
+    await exactoBoton(nombre).click();
+    await p.waitForTimeout(400);
+  }
+  // Las horas libres son chips: no siempre tienen el rol «button». El clic
+  // va directo al nodo (en un diálogo, otro nodo de atrás puede taparlo).
+  async function elegirHora(hora) {
+    const chip = p
+      .getByRole('button', { name: hora, exact: true })
+      .or(p.locator(`flt-semantics[aria-label="${hora}"]`))
+      .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: new RegExp(`^${hora}$`) }))
+      .last();
+    await chip.waitFor();
+    await chip.dispatchEvent('click');
+    await p.waitForTimeout(400);
+  }
+  await p.evaluate(() => {
+    window.__enlaces = [];
+    window.open = (url) => {
+      window.__enlaces.push(String(url));
+      return null;
+    };
+  });
+  // Desde la ficha de Peña: «Agendar cita», un control a las 10:00.
+  await alInicio();
+  await hacerClic(p.getByRole('button', { name: 'Agendar cita', exact: true }));
+  await texto(p, 'Nueva cita').waitFor();
+  await elegirHora('10:00');
+  await escribir(p, 'Motivo', 'Control de tiroides');
+  await p.getByRole('button', { name: 'Agendar', exact: true }).click();
+  await texto(p, 'Próxima cita 30/11/2026 10:00 · Control').waitFor();
+  paso('Desde la ficha: «Agendar cita» con la hora libre de las 10:00; la ficha muestra la próxima cita');
+
+  // En la agenda: otra cita hoy (Muñoz, valoración estética, buscada por
+  // nombre) y una para mañana (Gómez, primera vez).
+  await pulsarExacto('Agenda');
+  await texto(p, 'lunes 30/11/2026').waitFor();
+  async function nuevaCita({ busqueda, tipo, dia, hora }) {
+    await p.getByRole('button', { name: 'Cita', exact: true }).click();
+    await texto(p, 'Nueva cita').waitFor();
+    await escribir(p, 'Paciente', busqueda);
+    await p.waitForTimeout(500);
+    await p.keyboard.press('Enter'); // la primera sugerencia
+    await p.waitForTimeout(400);
+    // El nombre queda en el campo (sin foco no está en el DOM): basta con
+    // que ya no falte el paciente.
+    await texto(p, 'Elige el paciente.').desaparece({ timeout: 10000 });
+    if (tipo) {
+      // La lista se llama «Tipo de cita Control».
+      await p.getByRole('button', { name: /^Tipo de cita/ }).last().dispatchEvent('click');
+      await p.waitForTimeout(400);
+      await p
+        .getByRole('menuitem', { name: tipo, exact: true })
+        .or(p.getByRole('option', { name: tipo, exact: true }))
+        .or(p.locator(`flt-semantics[aria-label="${tipo}"]`))
+        .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: new RegExp(`^${tipo}$`) }))
+        .last()
+        .dispatchEvent('click');
+      await p.waitForTimeout(400);
+    }
+    if (dia) {
+      await escribir(p, 'Día', dia);
+      await p.keyboard.press('Tab');
+      await p.waitForTimeout(400);
+    }
+    await elegirHora(hora);
+    await p.getByRole('button', { name: 'Agendar', exact: true }).click();
+    await texto(p, 'Cita agendada').waitFor();
+    await texto(p, 'Cita agendada').desaparece({ timeout: 20000 });
+  }
+  await nuevaCita({ busqueda: 'munoz maria', tipo: 'Valoración estética', hora: '10:20' });
+  await nuevaCita({ busqueda: 'gomez', dia: '01/12/2026', hora: '08:00' });
+  await pulsarExacto('Hoy');
+  await texto(p, 'lunes 30/11/2026').waitFor();
+  await texto(p, '10:00–10:20').waitFor();
+  await texto(p, '10:20–11:00').waitFor();
+  await texto(p, 'Mañana: 1 cita sin recordatorio').waitFor();
+  await captura(p, 'g1_agenda_dia.png');
+  paso('Agenda del día: dos citas (una buscada por nombre, con su procedimiento) y el aviso de la de mañana sin recordatorio');
+
+  // Estado, WhatsApp interceptado y .ics.
+  await alInicio();
+  await p.getByRole('button', { name: 'Estado', exact: true }).last().click();
+  await p.waitForTimeout(300);
+  await p
+    .getByRole('menuitem', { name: 'Confirmada', exact: true })
+    .or(p.getByRole('button', { name: 'Confirmada', exact: true }))
+    .last()
+    .dispatchEvent('click');
+  await texto(p, 'Confirmada').waitFor();
+  await p.getByRole('button', { name: 'WhatsApp', exact: true }).first().click();
+  await texto(p, 'Recordatorio por WhatsApp').waitFor();
+  await captura(p, 'g2_whatsapp.png');
+  await p.getByRole('button', { name: 'Abrir WhatsApp', exact: true }).click();
+  await texto(p, 'Recordatorio enviado').waitFor();
+  const enlaces = await p.evaluate(() => window.__enlaces);
+  if (enlaces.length !== 1 || !enlaces[0].startsWith('https://wa.me/573001234567?text=Hola%20Jos%C3%A9')) {
+    throw new Error(`Enlace de WhatsApp: ${enlaces}`);
+  }
+  const mensaje = decodeURIComponent(enlaces[0].split('text=')[1]);
+  for (const prohibido of ['Control', 'tiroides', 'Valoración']) {
+    if (mensaje.includes(prohibido)) throw new Error(`El mensaje dice «${prohibido}»: ${mensaje}`);
+  }
+  const ics = await descargar(p, () => p.getByRole('button', { name: '.ics', exact: true }).first().click());
+  if (path.basename(ics) !== 'Cita_2026-11-30_1000.ics') throw new Error(`.ics: ${path.basename(ics)}`);
+  const textoIcs = fs.readFileSync(ics, 'utf8');
+  if (!textoIcs.includes('SUMMARY:Cita médica') || /PEÑA|tiroides|Control/.test(textoIcs)) {
+    throw new Error(`.ics con datos de más: ${textoIcs}`);
+  }
+  paso(`Estado «Confirmada»; WhatsApp interceptado (wa.me/57…, sin datos de salud) y ${path.basename(ics)} solo con «Cita médica»`);
+
+  // Semana.
+  await pulsarExacto('Semana');
+  await texto(p, 'Semana del 30/11/2026 al 06/12/2026').waitFor();
+  await texto(p, 'martes 1').waitFor();
+  await captura(p, 'g3_agenda_semana.png');
+  await pulsarExacto('Día');
+  paso('Vista de semana: una columna por día con bloques por tipo (color e ícono)');
+
+  // Atender: la historia más reciente de Peña con una evolución nueva.
+  await texto(p, 'lunes 30/11/2026').waitFor();
+  await p.getByRole('button', { name: 'Atender', exact: true }).first().click();
+  await p.waitForTimeout(800);
+  if (await p.getByText('¿Reemplazar la historia en curso?').count()) {
+    await p.getByRole('button', { name: 'Reemplazar', exact: true }).click();
+  }
+  // La franja lleva la flecha como ícono y «Ficha» como texto.
+  await texto(p, 'Historia abierta').waitFor({ timeout: 30000 });
+  await texto(p, 'PEÑA MUÑOZ, José Ángel').waitFor();
+  await captura(p, 'g4_atender_historia.png');
+  await pulsarExacto('Agenda');
+  await texto(p, 'Atendida').waitFor();
+  paso('«Atender»: la historia de Peña con la evolución nueva y la franja «← Ficha»; la cita queda atendida');
+
+  // Móvil: solo la vista de día.
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(900);
+  await captura(p, 'g5_agenda_movil.png');
+  await p.setViewportSize({ width: 320, height: 640 });
+  await p.waitForTimeout(900);
+  await captura(p, 'g6_agenda_320.png');
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  await p.waitForTimeout(900);
+  paso('Agenda en móvil (390 px) y 320 px: solo la vista de día');
+  await abrirFicha('1032456789');
+
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
   const enClaro = await p.evaluate(
     () =>
@@ -1261,7 +1427,7 @@ await context.close();
             bd.close();
             const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
             listo(
-              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog'].filter((t) =>
+              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog', 'tiroides'].filter((t) =>
                 todo.includes(t),
               ),
             );
