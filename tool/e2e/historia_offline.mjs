@@ -109,7 +109,7 @@ async function cargar(page) {
   const receta = page.getByRole('button', { name: /receta/i }).first();
   // Con el consultorio encendido (lo que publica pages.yml) la app abre en la
   // agenda: la historia está a un clic.
-  // «Historia» en el riel (seguido de «Pestaña 3 de 6»); en el celular, sin
+  // «Historia» en el riel (seguido de «Pestaña 3 de 7»); en el celular, sin
   // riel, la agenda ofrece «Ir a la historia».
   const riel = page.getByRole('button', { name: /^Historia(\s|$)|^Ir a la historia$/ }).first();
   await receta.or(riel).first().waitFor({ timeout: 30000 });

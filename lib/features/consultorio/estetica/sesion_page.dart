@@ -217,9 +217,10 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                 ),
                 _Seccion(
                   angosta: angosta,
-                  titulo:
-                      'Zonas · ${formatoNumero(s.volumenTotalMl)} mL'
-                      '${d.volumenMaximoSesionMl == null ? '' : ' de ${formatoNumero(d.volumenMaximoSesionMl!)}'}',
+                  titulo: d.usaSolucion
+                      ? 'Zonas · ${formatoNumero(s.volumenTotalMl)} mL'
+                            '${d.volumenMaximoSesionMl == null ? '' : ' de ${formatoNumero(d.volumenMaximoSesionMl!)}'}'
+                      : 'Zonas',
                   children: [
                     Wrap(
                       spacing: 8,
@@ -243,21 +244,23 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                       ],
                     ),
                     for (final (i, z) in s.zonas.indexed)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: CampoNumero(
-                          key: ValueKey('zona${z.zona}'),
-                          etiqueta: 'Volumen (${z.zona})',
-                          unidad: 'mL',
-                          valor: z.volumenMl,
-                          alCambiar: (v) => _poner(
-                            s.copyWith(
-                              zonas: [...s.zonas]
-                                ..[i] = ZonaSesion(zona: z.zona, volumenMl: v),
+                      if (d.usaSolucion)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: CampoNumero(
+                            key: ValueKey('zona${z.zona}'),
+                            etiqueta: 'Volumen (${z.zona})',
+                            unidad: 'mL',
+                            valor: z.volumenMl,
+                            alCambiar: (v) => _poner(
+                              s.copyWith(
+                                zonas: [
+                                  ...s.zonas,
+                                ]..[i] = ZonaSesion(zona: z.zona, volumenMl: v),
+                              ),
                             ),
                           ),
                         ),
-                      ),
                   ],
                 ),
                 if (s.componentes.isNotEmpty)
@@ -282,31 +285,32 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                         ),
                     ],
                   ),
-                _Seccion(
-                  angosta: angosta,
-                  titulo: 'Anestésico',
-                  children: [
-                    _Anestesico(
-                      s: s,
-                      d: d,
-                      insumoDelLote: servicio.inventario.insumoDeLote,
-                      pedirPeso: _pedirPeso,
-                      alCambiar: _poner,
-                      alPesarHoy: (p) {
-                        final a = servicio.reloj.ahora();
-                        _registrarPeso = p != null;
-                        _poner(
-                          s.copyWith(
-                            pesoKg: p ?? _pesoAnterior,
-                            fechaPeso: p == null
-                                ? _fechaPesoAnterior
-                                : DateTime(a.year, a.month, a.day),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                if (d.usaAnestesico)
+                  _Seccion(
+                    angosta: angosta,
+                    titulo: 'Anestésico',
+                    children: [
+                      _Anestesico(
+                        s: s,
+                        d: d,
+                        insumoDelLote: servicio.inventario.insumoDeLote,
+                        pedirPeso: _pedirPeso,
+                        alCambiar: _poner,
+                        alPesarHoy: (p) {
+                          final a = servicio.reloj.ahora();
+                          _registrarPeso = p != null;
+                          _poner(
+                            s.copyWith(
+                              pesoKg: p ?? _pesoAnterior,
+                              fechaPeso: p == null
+                                  ? _fechaPesoAnterior
+                                  : DateTime(a.year, a.month, a.day),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 _Seccion(
                   angosta: angosta,
                   titulo: 'Equipo',

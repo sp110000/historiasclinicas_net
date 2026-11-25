@@ -10,8 +10,9 @@ import '../widgets/comunes.dart';
 import '../widgets/editor_versionado.dart';
 import '../widgets/texto_normativo.dart';
 
-/// Ajustes → Procedimientos: plantillas declarativas (hidrolipoclasia) con
-/// versiones; sin el protocolo completo no se pueden aprobar ni usar.
+/// Procedimientos: plantillas declarativas (la hidrolipoclasia de fábrica y
+/// las que agrega el médico) con versiones; sin el protocolo completo no se
+/// pueden aprobar ni usar.
 class TarjetaProcedimientos extends ConsumerWidget {
   const TarjetaProcedimientos({super.key});
 
@@ -48,7 +49,7 @@ class TarjetaProcedimientos extends ConsumerWidget {
               textoAprobar:
                   'Desde ahora las valoraciones y sesiones nuevas de '
                   '«${p.nombre}» usan este protocolo.',
-              alEditar: () => context.go('/ajustes/procedimientos/${p.id}'),
+              alEditar: () => context.go('/procedimientos/${p.id}'),
               alAprobar: () async {
                 await ref
                     .read(servicioConsultorioProvider)

@@ -503,14 +503,11 @@ void main() {
       await t.pump(const Duration(seconds: 5));
     });
 
-    testWidgets('Ajustes: el editor del protocolo y la aprobación', (t) async {
+    testWidgets('Procedimientos: el editor del protocolo y la aprobación', (
+      t,
+    ) async {
       final (b, _) = await _paciente(aprobar: false);
-      await montar(t, b, '/ajustes');
-      await t.scrollUntilVisible(
-        find.text('Procedimientos'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await montar(t, b, '/procedimientos');
       expect(
         find.textContaining('Falta: la familia de técnicas'),
         findsNothing,
@@ -524,6 +521,49 @@ void main() {
         b.servicio.procedimientos.plantilla('hidrolipoclasia')!.usable,
         isFalse,
       );
+      await t.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('Procedimientos en el menú: agregar uno sin anestésico ni '
+        'solución y editarlo', (t) async {
+      final (b, _) = await _paciente(aprobar: false);
+      await montar(t, b, '/procedimientos');
+      expect(find.text('Hidrolipoclasia'), findsOneWidget);
+      await pulsar(t, find.text('Agregar un procedimiento'));
+      expect(find.text('Procedimiento nuevo'), findsOneWidget);
+      final crear = find.widgetWithText(FilledButton, 'Crear y editar');
+      expect(t.widget<FilledButton>(crear).onPressed, isNull);
+      await t.enterText(
+        find
+            .descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(TextField),
+            )
+            .first,
+        'Radiofrecuencia de prueba',
+      );
+      await t.pumpAndSettle();
+      await pulsar(t, crear);
+      expect(
+        find.text('Radiofrecuencia de prueba · borrador v1'),
+        findsOneWidget,
+      );
+      // Sin anestésico ni solución: no se piden.
+      expect(find.text('ANESTÉSICOS'), findsNothing);
+      expect(find.text('Volumen máximo por zona'), findsNothing);
+      await pulsar(t, find.text('Usa anestésico local'));
+      expect(find.text('ANESTÉSICOS'), findsOneWidget);
+      await pulsar(t, find.text('Usa anestésico local'));
+      await pulsar(t, find.text('Guardar borrador'));
+      expect(find.text('Borrador v1 guardado.'), findsOneWidget);
+      expect(find.text('Radiofrecuencia de prueba'), findsOneWidget);
+      expect(
+        find.textContaining('Falta: la familia de técnicas'),
+        findsOneWidget,
+      );
+      final nuevo = b.servicio.procedimientos.plantillas.last;
+      expect(nuevo.ultima.definicion.usaAnestesico, isFalse);
+      expect(nuevo.ultima.definicion.usaSolucion, isFalse);
       await t.pump(const Duration(seconds: 5));
     });
 

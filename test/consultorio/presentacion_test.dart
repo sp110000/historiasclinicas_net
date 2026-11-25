@@ -198,11 +198,12 @@ void main() {
     ('caja', (_) => '/caja'),
     ('inventario', (_) => '/inventario'),
     ('ajustes', (_) => '/ajustes'),
+    ('procedimientos', (_) => '/procedimientos'),
     ('sesión', (id) => '/pacientes/$id/sesion/hidrolipoclasia'),
     ('valoración', (id) => '/pacientes/$id/valoracion/hidrolipoclasia'),
     ('certificado', (id) => '/pacientes/$id/documento/certificado'),
     ('incapacidad', (id) => '/pacientes/$id/documento/incapacidad'),
-    ('protocolo', (_) => '/ajustes/procedimientos/hidrolipoclasia'),
+    ('protocolo', (_) => '/procedimientos/hidrolipoclasia'),
   ];
 
   testWidgets('sin el modo presentación: chips «Por verificar» en lugar de '

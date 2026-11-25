@@ -18,7 +18,8 @@
 // firmar la autorización de datos, evolución y receta desde la ficha; luego
 // (5.2) mediciones, consentimiento de imagen, fotos de antes y después
 // (con el reloj del navegador fijado), comparación y cortina, informe de
-// seguimiento y fotos en PDF; (5.3) protocolo, programa de peso con GLP-1,
+// seguimiento y fotos en PDF; (5.3) protocolo en Procedimientos (y uno nuevo
+// sin anestésico ni solución), programa de peso con GLP-1,
 // valoración, consentimiento informado y sesión (bloqueada sin
 // consentimiento y con un lote vencido, luego sellada); (5.4) documentos;
 // (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
@@ -892,6 +893,9 @@ await context.close();
   await hacerClic(p.getByRole('button', { name: 'Aprobar v1' })); // «Déficit moderado».
   await texto(p, 'Déficit moderado').waitFor();
   await aprobarConfirmando();
+  // El protocolo está en Procedimientos (en el menú, debajo de Historia).
+  await pulsar(p, 'Procedimientos');
+  await texto(p, 'Agregar un procedimiento').waitFor();
   await hacerClic(p.getByRole('button', { name: 'Editar borrador' }).last());
   await texto(p, 'Hidrolipoclasia · borrador v1').waitFor({ timeout: 15000 });
   // Protocolo sintético de prueba (no es una recomendación clínica).
@@ -917,13 +921,32 @@ await context.close();
   if (await p.getByText(/Para aprobarla falta/).count()) {
     throw new Error('La plantilla del procedimiento no se aprobó');
   }
+  // Un procedimiento nuevo, sin anestésico ni solución: queda en borrador
+  // y el editor no pide anestésicos ni volúmenes.
+  // Está en la barra de arriba: se pulsa directo, sin desplazar la página.
+  await p.getByRole('button', { name: 'Agregar un procedimiento', exact: true }).click();
+  await texto(p, 'Procedimiento nuevo').waitFor();
+  await escribir(p, 'Nombre', 'Radiofrecuencia de prueba');
+  await hacerClic(p.getByRole('button', { name: 'Crear y editar', exact: true }));
+  await texto(p, 'Radiofrecuencia de prueba · borrador v1').waitFor({ timeout: 15000 });
+  if ((await p.getByText('ANESTÉSICOS').count()) || (await p.getByText('Volumen máximo por zona').count())) {
+    throw new Error('Sin anestésico ni solución, el editor los pide');
+  }
+  await tocarAbajo('Guardar borrador');
+  await texto(p, 'Borrador v1 guardado').waitFor();
+  await texto(p, 'Falta: la familia de técnicas').waitFor();
+  await alInicio();
+  await captura(p, 'p0_procedimientos.png');
+  paso('Procedimientos en el menú (debajo de Historia): protocolo de hidrolipoclasia aprobado y un procedimiento nuevo sin anestésico ni solución, en borrador');
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Plantillas de documentos').waitFor();
   await escribirAbajo('Código de prestador (REPS)', '00000-PRUEBA');
   await escribirAbajo('Habilitación del servicio', 'Servicio de prueba');
   await escribirAbajo('Aseguradora de la póliza', 'Aseguradora de prueba');
   await escribirAbajo('Número de la póliza', 'P-0001');
   await hacerClic(p.getByRole('button', { name: 'Guardar datos del prestador' }));
   await texto(p, 'Datos del prestador guardados').waitFor();
-  paso('Ajustes: consentimiento informado y plan aprobados; protocolo de hidrolipoclasia escrito y aprobado; prestador y póliza');
+  paso('Ajustes: consentimiento informado y plan aprobados; prestador y póliza');
 
   // Programa de peso (Peña): meta, plan, contraindicaciones y GLP-1.
   await abrirFicha('1032456789');

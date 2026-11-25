@@ -15,7 +15,7 @@ List<String> _lineas(String t) => [
     if (l.trim().isNotEmpty) l.trim(),
 ];
 
-/// Ajustes → Procedimientos → Editar: la definición declarativa de la
+/// Procedimientos → Editar: la definición declarativa de la
 /// plantilla (pregunta 31). Guardar crea o reemplaza el borrador; para
 /// aprobarla hace falta el protocolo completo.
 class EditorProcedimientoPage extends ConsumerStatefulWidget {
@@ -59,7 +59,7 @@ class _EditorProcedimientoPageState
       ref.read(versionIndiceProvider.notifier).cambio();
       if (!mounted) return;
       mostrarMensaje(context, 'Borrador v$_version guardado.');
-      context.go('/ajustes');
+      context.go('/procedimientos');
     } catch (e) {
       if (mounted) {
         setState(() => _guardando = false);
@@ -92,8 +92,8 @@ class _EditorProcedimientoPageState
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Volver a Ajustes',
-          onPressed: () => context.go('/ajustes'),
+          tooltip: 'Volver a Procedimientos',
+          onPressed: () => context.go('/procedimientos'),
           icon: const Icon(Icons.arrow_back),
         ),
         title: Text(
@@ -105,10 +105,10 @@ class _EditorProcedimientoPageState
         children: [
           const TextoNormativo(
             'Lo que viene de fábrica es una referencia (VERIFICAR). El '
-            'protocolo (componentes, volúmenes, anestésico con su máximo, '
-            'sesiones, intervalo, indicaciones, control, riesgos y '
-            'alternativas) lo escribes tú: sin él la plantilla no se puede '
-            'aprobar ni usar.',
+            'protocolo (sesiones, intervalo, indicaciones, control, riesgos '
+            'y alternativas y, si los usa, componentes, volúmenes y '
+            'anestésico con su máximo) lo escribes tú: sin él la plantilla '
+            'no se puede aprobar ni usar.',
             style: TextStyle(color: ColoresMarca.textoSuave),
           ),
           const SizedBox(height: 12),
@@ -127,6 +127,24 @@ class _EditorProcedimientoPageState
                 ),
                 valorInicial: d.familia,
                 alCambiar: (v) => _poner(_d.copyWith(familia: v.trim())),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: d.usaAnestesico,
+                onChanged: (v) => _poner(_d.copyWith(usaAnestesico: v)),
+                title: const Text('Usa anestésico local'),
+                subtitle: const Text(
+                  'La sesión pide el peso y calcula la dosis en mg/kg.',
+                ),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: d.usaSolucion,
+                onChanged: (v) => _poner(_d.copyWith(usaSolucion: v)),
+                title: const Text('Se infiltra una solución por zona'),
+                subtitle: const Text(
+                  'Componentes, volumen por zona y sus máximos.',
+                ),
               ),
             ],
           ),
@@ -204,28 +222,31 @@ class _EditorProcedimientoPageState
           _Seccion(
             titulo: 'Protocolo de la sesión',
             children: [
-              _CampoLista(
-                etiqueta: 'Componentes de la solución (uno por línea)',
-                valores: d.componentes,
-                alCambiar: (l) => _poner(_d.copyWith(componentes: l)),
-              ),
+              if (d.usaSolucion)
+                _CampoLista(
+                  etiqueta: 'Componentes de la solución (uno por línea)',
+                  valores: d.componentes,
+                  alCambiar: (l) => _poner(_d.copyWith(componentes: l)),
+                ),
               RejillaCampos(
                 anchoMinimo: 200,
                 children: [
-                  CampoNumero(
-                    etiqueta: 'Volumen máximo por zona',
-                    unidad: 'mL',
-                    valor: d.volumenMaximoZonaMl,
-                    alCambiar: (v) =>
-                        _poner(_d.copyWith(volumenMaximoZonaMl: v)),
-                  ),
-                  CampoNumero(
-                    etiqueta: 'Volumen máximo por sesión',
-                    unidad: 'mL',
-                    valor: d.volumenMaximoSesionMl,
-                    alCambiar: (v) =>
-                        _poner(_d.copyWith(volumenMaximoSesionMl: v)),
-                  ),
+                  if (d.usaSolucion) ...[
+                    CampoNumero(
+                      etiqueta: 'Volumen máximo por zona',
+                      unidad: 'mL',
+                      valor: d.volumenMaximoZonaMl,
+                      alCambiar: (v) =>
+                          _poner(_d.copyWith(volumenMaximoZonaMl: v)),
+                    ),
+                    CampoNumero(
+                      etiqueta: 'Volumen máximo por sesión',
+                      unidad: 'mL',
+                      valor: d.volumenMaximoSesionMl,
+                      alCambiar: (v) =>
+                          _poner(_d.copyWith(volumenMaximoSesionMl: v)),
+                    ),
+                  ],
                   CampoNumero(
                     etiqueta: 'Intervalo entre sesiones',
                     unidad: 'días',
@@ -251,39 +272,42 @@ class _EditorProcedimientoPageState
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              const Text('ANESTÉSICOS', style: EstilosMarca.rotulo),
-              const TextoNormativo(
-                'El máximo en mg/kg lo fijas tú (pregunta 32, VERIFICAR). La '
-                'sesión avisa desde el 80 % y bloquea por encima del 100 %.',
-                style: TextStyle(color: ColoresMarca.textoSuave),
-              ),
-              for (final (i, a) in d.anestesicos.indexed)
-                _FilaAnestesico(
-                  key: ValueKey('anestesico$i${d.anestesicos.length}'),
-                  anestesico: a,
-                  alCambiar: (x) => _poner(
-                    _d.copyWith(anestesicos: [...d.anestesicos]..[i] = x),
-                  ),
-                  alQuitar: () => _poner(
-                    _d.copyWith(anestesicos: [...d.anestesicos]..removeAt(i)),
-                  ),
+              if (d.usaAnestesico) ...[
+                const SizedBox(height: 4),
+                const Text('ANESTÉSICOS', style: EstilosMarca.rotulo),
+                const TextoNormativo(
+                  'El máximo en mg/kg lo fijas tú (pregunta 32, VERIFICAR). '
+                  'La sesión avisa desde el 80 % y bloquea por encima del '
+                  '100 %.',
+                  style: TextStyle(color: ColoresMarca.textoSuave),
                 ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => _poner(
-                    _d.copyWith(
-                      anestesicos: [
-                        ...d.anestesicos,
-                        const AnestesicoProtocolo(nombre: ''),
-                      ],
+                for (final (i, a) in d.anestesicos.indexed)
+                  _FilaAnestesico(
+                    key: ValueKey('anestesico$i${d.anestesicos.length}'),
+                    anestesico: a,
+                    alCambiar: (x) => _poner(
+                      _d.copyWith(anestesicos: [...d.anestesicos]..[i] = x),
+                    ),
+                    alQuitar: () => _poner(
+                      _d.copyWith(anestesicos: [...d.anestesicos]..removeAt(i)),
                     ),
                   ),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Agregar anestésico'),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _poner(
+                      _d.copyWith(
+                        anestesicos: [
+                          ...d.anestesicos,
+                          const AnestesicoProtocolo(nombre: ''),
+                        ],
+                      ),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Agregar anestésico'),
+                  ),
                 ),
-              ),
+              ],
               _CampoLista(
                 etiqueta: 'Lista de verificación previa (un ítem por línea)',
                 valores: d.listaVerificacion,

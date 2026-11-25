@@ -133,6 +133,8 @@ class DefinicionProcedimiento {
   const DefinicionProcedimiento({
     required this.nombre,
     this.familia = '',
+    this.usaAnestesico = true,
+    this.usaSolucion = true,
     this.imcMaximoAviso,
     this.vigenciaDias = 90,
     this.zonas = const [],
@@ -157,6 +159,13 @@ class DefinicionProcedimiento {
 
   /// Familia de técnicas, para las certificaciones (pregunta 36).
   final String familia;
+
+  /// Lleva anestésico local con su dosis en mg/kg (la sesión pide el peso).
+  final bool usaAnestesico;
+
+  /// Se infiltra una solución: componentes y volumen por zona, con sus
+  /// máximos. Sin ella, la sesión solo registra las zonas.
+  final bool usaSolucion;
 
   /// IMC desde el que avisa (no bloquea; pregunta 28).
   final double? imcMaximoAviso;
@@ -192,12 +201,15 @@ class DefinicionProcedimiento {
     return [
       if (familia.trim().isEmpty) 'la familia de técnicas',
       if (zonas.isEmpty) 'al menos una zona',
-      if (componentes.isEmpty) 'los componentes de la solución',
-      if ((volumenMaximoZonaMl ?? 0) <= 0) 'el volumen máximo por zona',
-      if ((volumenMaximoSesionMl ?? 0) <= 0) 'el volumen máximo por sesión',
+      if (usaSolucion && componentes.isEmpty) 'los componentes de la solución',
+      if (usaSolucion && (volumenMaximoZonaMl ?? 0) <= 0)
+        'el volumen máximo por zona',
+      if (usaSolucion && (volumenMaximoSesionMl ?? 0) <= 0)
+        'el volumen máximo por sesión',
       if ((intervaloDias ?? 0) <= 0) 'el intervalo entre sesiones',
       if ((numeroSesiones ?? 0) <= 0) 'el número de sesiones',
-      if (anestesicos.isEmpty || anestesicos.any((a) => !a.completo))
+      if (usaAnestesico &&
+          (anestesicos.isEmpty || anestesicos.any((a) => !a.completo)))
         'la concentración y el máximo en mg/kg de cada anestésico',
       if (listaVerificacion.isEmpty) 'la lista de verificación',
       if (enBlanco(indicacionesPosteriores)) 'las indicaciones posteriores',
@@ -210,6 +222,8 @@ class DefinicionProcedimiento {
   DefinicionProcedimiento copyWith({
     String? nombre,
     String? familia,
+    bool? usaAnestesico,
+    bool? usaSolucion,
     Object? imcMaximoAviso = sin,
     int? vigenciaDias,
     List<String>? zonas,
@@ -231,6 +245,8 @@ class DefinicionProcedimiento {
   }) => DefinicionProcedimiento(
     nombre: nombre ?? this.nombre,
     familia: familia ?? this.familia,
+    usaAnestesico: usaAnestesico ?? this.usaAnestesico,
+    usaSolucion: usaSolucion ?? this.usaSolucion,
     imcMaximoAviso: cambio(imcMaximoAviso, this.imcMaximoAviso),
     vigenciaDias: vigenciaDias ?? this.vigenciaDias,
     zonas: zonas ?? this.zonas,
@@ -258,6 +274,9 @@ class DefinicionProcedimiento {
   Map<String, Object?> aMapa() => compacto({
     'nombre': nombre,
     'familia': familia,
+    // Solo se guardan cuando no se usan: lo guardado antes vale «sí».
+    'usaAnestesico': usaAnestesico ? null : false,
+    'usaSolucion': usaSolucion ? null : false,
     'imcMaximoAviso': imcMaximoAviso,
     'vigenciaDias': vigenciaDias,
     'zonas': zonas,
@@ -282,6 +301,8 @@ class DefinicionProcedimiento {
       DefinicionProcedimiento(
         nombre: m.texto('nombre'),
         familia: m.texto('familia'),
+        usaAnestesico: m.booleano('usaAnestesico', porDefecto: true),
+        usaSolucion: m.booleano('usaSolucion', porDefecto: true),
         imcMaximoAviso: m.decimal('imcMaximoAviso'),
         vigenciaDias: m.entero('vigenciaDias') ?? 90,
         zonas: m.listaTextos('zonas'),

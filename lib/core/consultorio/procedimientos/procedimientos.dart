@@ -118,6 +118,45 @@ class ProcedimientosConsultorio {
     return p;
   }
 
+  /// Un procedimiento nuevo, con su versión 1 en borrador: en blanco o
+  /// copiando la última versión de [copiarDe] (sin su aprobación). Lanza
+  /// [StateError] sin nombre o si ya hay uno con ese nombre.
+  Future<PlantillaProcedimiento> crearPlantilla({
+    required String nombre,
+    String familia = '',
+    bool usaAnestesico = true,
+    bool usaSolucion = true,
+    String? copiarDe,
+  }) async {
+    final n = nombre.trim();
+    if (n.isEmpty) throw StateError('Escribe el nombre del procedimiento.');
+    String clave(String t) => t.trim().toLowerCase();
+    if (plantillas.any((p) => clave(p.nombre) == clave(n))) {
+      throw StateError('Ya hay un procedimiento «$n».');
+    }
+    final base = copiarDe == null
+        ? const DefinicionProcedimiento(nombre: '')
+        : _plantilla(copiarDe).ultima.definicion;
+    final d = base.copyWith(
+      nombre: n,
+      familia: familia.trim(),
+      usaAnestesico: usaAnestesico,
+      usaSolucion: usaSolucion,
+    );
+    final p = PlantillaProcedimiento(
+      id: 'proc-${nuevoUuid()}',
+      versiones: [VersionProcedimiento(version: 1, definicion: d)],
+    );
+    await _repo.guardar(PlantillaProcedimiento.coleccion, p.id, p.aMapa());
+    _plantillas[p.id] = p;
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.crearProcedimiento,
+      fecha: reloj.ahora(),
+    );
+    return p;
+  }
+
   Future<PlantillaProcedimiento> guardarBorrador(
     String id,
     DefinicionProcedimiento d,
@@ -146,7 +185,7 @@ class ProcedimientosConsultorio {
     if (v == null) {
       throw StateError(
         'La plantilla «${p.nombre}» no está aprobada: escribe tu protocolo '
-        'y apruébala en Ajustes → Procedimientos.',
+        'y apruébala en Procedimientos.',
       );
     }
     return v;
@@ -294,7 +333,7 @@ class ProcedimientosConsultorio {
           if (d.zonas.contains(z.zona)) z.zona,
       ],
       sesiones: d.numeroSesiones ?? 1,
-      producto: d.componentes.join(', '),
+      producto: d.usaSolucion ? d.componentes.join(', ') : '',
     );
   }
 
@@ -434,7 +473,7 @@ class ProcedimientosConsultorio {
         break;
       }
     }
-    final a = d.anestesicos.firstOrNull;
+    final a = d.usaAnestesico ? d.anestesicos.firstOrNull : null;
     final borrador = Sesion(
       id: '',
       pacienteId: ficha.id,
@@ -450,7 +489,10 @@ class ProcedimientosConsultorio {
       zonas: [
         for (final z in plan?.zonas ?? const <String>[]) ZonaSesion(zona: z),
       ],
-      componentes: [for (final c in d.componentes) ComponenteSesion(nombre: c)],
+      componentes: [
+        if (d.usaSolucion)
+          for (final c in d.componentes) ComponenteSesion(nombre: c),
+      ],
       anestesico: a == null
           ? null
           : AnestesicoSesion(
@@ -691,8 +733,11 @@ String textoSesion(
     if (s.consentimientoNumero.isNotEmpty)
       'Consentimiento ${s.consentimientoNumero}.',
     'Lista de verificación previa completa ($marcados/${s.verificacion.length}).',
-    'Zonas: ${s.zonas.map((z) => '${z.zona} ${formatoNumero(z.volumenMl ?? 0)} mL').join('; ')} '
-        '(total ${formatoNumero(s.volumenTotalMl)} mL).',
+    if (d.usaSolucion)
+      'Zonas: ${s.zonas.map((z) => '${z.zona} ${formatoNumero(z.volumenMl ?? 0)} mL').join('; ')} '
+          '(total ${formatoNumero(s.volumenTotalMl)} mL).'
+    else
+      'Zonas: ${s.zonas.map((z) => z.zona).join('; ')}.',
     if (s.componentes.isNotEmpty)
       'Solución: ${s.componentes.map((c) => '${c.nombre} (${_lote(c.lote)})').join('; ')}.',
     if (a != null)

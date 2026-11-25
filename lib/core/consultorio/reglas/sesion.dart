@@ -49,7 +49,7 @@ EvaluacionSesion evaluarSesion({
     return EvaluacionSesion(
       bloqueos: [
         'La plantilla «${plantilla.nombre}» no está aprobada: apruébala en '
-            'Ajustes → Procedimientos.',
+            'Procedimientos.',
       ],
       avisos: const [],
     );
@@ -128,9 +128,9 @@ EvaluacionSesion evaluarSesion({
     );
   }
 
-  // Zonas y volúmenes del protocolo.
+  // Zonas y, si se infiltra una solución, sus volúmenes.
   if (s.zonas.isEmpty) bloqueos.add('Elige al menos una zona.');
-  for (final z in s.zonas) {
+  for (final z in d.usaSolucion ? s.zonas : const <ZonaSesion>[]) {
     if ((z.volumenMl ?? 0) <= 0) {
       bloqueos.add('Escribe el volumen de «${z.zona}».');
     } else if (d.volumenMaximoZonaMl != null &&
@@ -141,7 +141,8 @@ EvaluacionSesion evaluarSesion({
       );
     }
   }
-  if (d.volumenMaximoSesionMl != null &&
+  if (d.usaSolucion &&
+      d.volumenMaximoSesionMl != null &&
       s.volumenTotalMl > d.volumenMaximoSesionMl!) {
     bloqueos.add(
       'El volumen total (${formatoNumero(s.volumenTotalMl)} mL) supera el '
@@ -150,9 +151,11 @@ EvaluacionSesion evaluarSesion({
     );
   }
 
-  // Anestésico y dosis (pregunta 32).
-  final a = s.anestesico;
-  if (a == null || (a.volumenMl ?? 0) <= 0) {
+  // Anestésico y dosis (pregunta 32), si el procedimiento lo usa.
+  final a = d.usaAnestesico ? s.anestesico : null;
+  if (!d.usaAnestesico) {
+    // Sin anestésico: no hay dosis que calcular.
+  } else if (a == null || (a.volumenMl ?? 0) <= 0) {
     bloqueos.add('Escribe el anestésico y su volumen.');
   } else {
     final peso = s.pesoKg;

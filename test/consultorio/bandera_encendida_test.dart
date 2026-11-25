@@ -39,6 +39,7 @@ void main() {
         '/caja',
         '/inventario',
         '/pacientes',
+        '/procedimientos',
         '/ajustes',
       ]);
       // Abre en la agenda de hoy (pregunta 51).
@@ -84,13 +85,22 @@ void main() {
         t.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
         0,
       );
-      // Agenda, Pacientes, Historia, Caja, Inventario y Ajustes (pregunta 51).
+      // Agenda, Pacientes, Historia, Procedimientos, Caja, Inventario y
+      // Ajustes (pregunta 51; Procedimientos, desde el 25/11/2026).
       expect(
         t
             .widget<NavigationRail>(find.byType(NavigationRail))
             .destinations
-            .map((d) => (d.label as Text).data),
-        ['Agenda', 'Pacientes', 'Historia', 'Caja', 'Inventario', 'Ajustes'],
+            .map((d) => ((d.label as FittedBox).child! as Text).data),
+        [
+          'Agenda',
+          'Pacientes',
+          'Historia',
+          'Procedimientos',
+          'Caja',
+          'Inventario',
+          'Ajustes',
+        ],
       );
       await t.tap(find.text('Ajustes'));
       await t.pumpAndSettle();

@@ -146,7 +146,7 @@ async function esperarApp(page) {
   await page.waitForSelector('flt-semantics-placeholder', { state: 'attached', timeout: 60000 });
   await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
   const receta = page.getByRole('button', { name: /receta/i }).first();
-  // «Historia» en el riel (seguido de «Pestaña 3 de 6»); en el celular, sin
+  // «Historia» en el riel (seguido de «Pestaña 3 de 7»); en el celular, sin
   // riel, la agenda ofrece «Ir a la historia».
   const riel = page.getByRole('button', { name: /^Historia(\s|$)|^Ir a la historia$/ }).first();
   await receta.or(riel).first().waitFor({ timeout: 30000 });

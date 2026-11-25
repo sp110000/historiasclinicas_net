@@ -36,8 +36,8 @@ class DestinoConsultorio {
   final bool requiereDesbloqueo;
 }
 
-/// Destinos construidos hasta la 5.5 (pregunta 51). Las subfases
-/// siguientes agregan Caja e Inventario.
+/// Destinos del consultorio (pregunta 51); Procedimientos va debajo de la
+/// historia y encima de la caja.
 const destinosConsultorio = [
   DestinoConsultorio(
     ruta: '/agenda',
@@ -57,6 +57,12 @@ const destinosConsultorio = [
     icono: Icons.description_outlined,
     iconoActivo: Icons.description,
     requiereDesbloqueo: false,
+  ),
+  DestinoConsultorio(
+    ruta: '/procedimientos',
+    etiqueta: 'Procedimientos',
+    icono: Icons.spa_outlined,
+    iconoActivo: Icons.spa,
   ),
   DestinoConsultorio(
     ruta: '/caja',
@@ -397,7 +403,12 @@ class _Riel extends StatelessWidget {
             NavigationRailDestination(
               icon: Icon(d.icono),
               selectedIcon: Icon(d.iconoActivo),
-              label: Text(d.etiqueta),
+              // «Procedimientos» no cabe en el riel: se encoge en una línea
+              // en lugar de partirse.
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(d.etiqueta, maxLines: 1),
+              ),
             ),
         ],
       ),

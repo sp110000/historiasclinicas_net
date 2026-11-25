@@ -40,6 +40,7 @@ enum AccionBitacora {
   borrarMedicion('Borró una medición'),
   borrarFoto('Borró una foto'),
   exportarFotos('Exportó fotos de un paciente en PDF'),
+  crearProcedimiento('Agregó un procedimiento'),
   sellarSesion('Selló una sesión de procedimiento'),
   sesionSinCertificacion(
     'Selló una sesión sin certificación vigente en la técnica',
