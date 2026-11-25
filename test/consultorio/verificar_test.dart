@@ -190,6 +190,26 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Por verificar'), findsOneWidget);
+    // Accesibilidad: el chip es su propio botón, con la nota en el nombre;
+    // el párrafo sigue siendo texto.
+    final semantica = t.ensureSemantics();
+    expect(
+      t.getSemantics(find.byType(ChipVerificar)),
+      matchesSemantics(
+        label: 'Por verificar: VERIFICAR su validez legal en tu país.',
+        isButton: true,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      t
+          .getSemantics(find.textContaining('no equivalen a una firma digital'))
+          .getSemanticsData()
+          .flagsCollection
+          .isButton,
+      isFalse,
+    );
+    semantica.dispose();
 
     await t.tap(find.text('Por verificar'));
     await t.pumpAndSettle();

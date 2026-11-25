@@ -65,20 +65,27 @@ class TextoNormativo extends ConsumerWidget {
       );
     }
     ref.watch(versionIndiceProvider);
-    return Text.rich(
-      TextSpan(
-        children: [
-          if (sep.limpio.isNotEmpty) TextSpan(text: '${sep.limpio} '),
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: ChipVerificar(texto: texto, notas: sep.notas),
+    // El texto y, debajo, el chip como su propio botón: dentro del párrafo,
+    // el lector de pantalla leía el párrafo entero como un botón.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: textAlign == TextAlign.center
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        if (sep.limpio.isNotEmpty)
+          Text(
+            sep.limpio,
+            style: style,
+            textAlign: textAlign,
+            maxLines: maxLines,
+            overflow: overflow,
           ),
-        ],
-      ),
-      style: style,
-      textAlign: textAlign,
-      maxLines: maxLines,
-      overflow: overflow,
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: ChipVerificar(texto: texto, notas: sep.notas),
+        ),
+      ],
     );
   }
 }
@@ -98,13 +105,15 @@ class ChipVerificar extends ConsumerWidget {
     final etiqueta = v == null
         ? 'Por verificar'
         : 'Verificado el ${formatoFecha(v.fecha)} · ${v.fuente}';
-    return Tooltip(
-      message: notas.join('\n'),
-      child: Semantics(
-        button: true,
-        label: '$etiqueta: ${notas.join('; ')}',
-        excludeSemantics: true,
-        onTap: () => verificarNota(context, ref, texto),
+    return Semantics(
+      container: true,
+      button: true,
+      label: '$etiqueta: ${notas.join('; ')}',
+      excludeSemantics: true,
+      onTap: () => verificarNota(context, ref, texto),
+      child: Tooltip(
+        message: notas.join('\n'),
+        excludeFromSemantics: true,
         child: InkWell(
           borderRadius: RadiosMarca.pildora,
           onTap: () => verificarNota(context, ref, texto),
