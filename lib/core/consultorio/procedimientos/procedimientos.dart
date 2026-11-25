@@ -389,6 +389,10 @@ class ProcedimientosConsultorio {
 
   /// Las sesiones selladas de la ficha (y de las unidas), de la más vieja
   /// a la más reciente.
+  /// Todas las sesiones y valoraciones (para el volumen por técnica).
+  Iterable<Sesion> get todasLasSesiones => _sesiones.values;
+  Iterable<Valoracion> get todasLasValoraciones => _valoraciones.values;
+
   List<Sesion> sesionesDe(String pacienteId, {String? plantillaId}) {
     final ids = _indice.idsUnidos(pacienteId);
     return [
