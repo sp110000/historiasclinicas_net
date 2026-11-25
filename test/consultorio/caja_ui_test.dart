@@ -242,10 +242,8 @@ void main() {
     expect(_enDialogo(find.text('INSUMOS USADOS')), findsOneWidget);
     await _pulsar(t, find.text('Agregar un insumo'));
     // El lote que vence primero, con lo que queda.
-    expect(
-      find.text('J-1 · vence 31/01/2027 · quedan 2 unidades'),
-      findsOneWidget,
-    );
+    expect(find.text('J-1 · vence 31/01/2027'), findsOneWidget);
+    expect(find.text('En el lote J-1 quedan 2 unidades.'), findsOneWidget);
     final cantidad = find.descendant(
       of: _lineaInsumo,
       matching: find.byType(TextField),

@@ -8,7 +8,6 @@ import '../../../core/consultorio/agenda/cita.dart';
 import '../../../core/consultorio/caja/caja.dart';
 import '../../../core/consultorio/caja/catalogo.dart';
 import '../../../core/consultorio/caja/movimientos.dart';
-import '../../../core/consultorio/inventario/insumo.dart';
 import '../../../core/consultorio/inventario/inventario.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/consultorio/reglas/caja.dart';
@@ -701,12 +700,10 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
       if (!_inv.usables.any((i) => i.id == l.insumoId))
         Opcion(l.insumoId, l.nombre),
     ];
-    String etiquetaLote(Lote lote) =>
-        '${lote.numero} · vence ${formatoFecha(lote.vence)} · quedan '
-        '${cantidadTexto(_inv.existencia(lote.id), unidad)}';
     final disponibles = _inv.disponibles(l.insumoId);
     final lotes = [
-      for (final lote in disponibles) Opcion(lote.id, etiquetaLote(lote)),
+      for (final lote in disponibles)
+        Opcion(lote.id, '${lote.numero} · vence ${formatoFecha(lote.vence)}'),
       if (!disponibles.any((lote) => lote.id == l.loteId))
         Opcion(l.loteId, l.lote),
     ];
@@ -722,9 +719,8 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: RejillaCampos(
-              anchoMinimo: 160,
-              maxColumnas: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 CampoDesplegable(
                   etiqueta: 'Insumo',
@@ -737,24 +733,37 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
                     }
                   }),
                 ),
-                CampoDesplegable(
-                  etiqueta: 'Lote',
-                  opciones: lotes,
-                  valor: l.loteId,
-                  alCambiar: (v) => _cambio(() {
-                    final lote = _inv.lote(v);
-                    if (lote != null) {
-                      x.linea = _inv.insumoCobro(lote, l.cantidad);
-                    }
-                  }),
+                const SizedBox(height: 8),
+                RejillaCampos(
+                  anchoMinimo: 150,
+                  maxColumnas: 2,
+                  children: [
+                    CampoDesplegable(
+                      etiqueta: 'Lote',
+                      opciones: lotes,
+                      valor: l.loteId,
+                      alCambiar: (v) => _cambio(() {
+                        final lote = _inv.lote(v);
+                        if (lote != null) {
+                          x.linea = _inv.insumoCobro(lote, l.cantidad);
+                        }
+                      }),
+                    ),
+                    CampoNumero(
+                      key: ValueKey('cantidad-insumo-${x.clave}'),
+                      etiqueta: 'Cantidad',
+                      unidad: unidad,
+                      valor: l.cantidad,
+                      alCambiar: (v) =>
+                          _cambio(() => x.linea = x.linea.conCantidad(v ?? 0)),
+                    ),
+                  ],
                 ),
-                CampoNumero(
-                  key: ValueKey('cantidad-insumo-${x.clave}'),
-                  etiqueta: 'Cantidad',
-                  unidad: unidad,
-                  valor: l.cantidad,
-                  alCambiar: (v) =>
-                      _cambio(() => x.linea = x.linea.conCantidad(v ?? 0)),
+                const SizedBox(height: 4),
+                Text(
+                  'En el lote ${l.lote} quedan '
+                  '${cantidadTexto(_inv.existencia(l.loteId), unidad)}.',
+                  style: const TextStyle(color: ColoresMarca.textoSuave),
                 ),
               ],
             ),
