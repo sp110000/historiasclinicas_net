@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../ihce/reloj.dart';
+import 'agenda/agenda.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
@@ -111,6 +112,12 @@ class ServicioConsultorio {
       configuracion: () => _configuracion,
       reloj: reloj,
     );
+    agenda = AgendaConsultorio(
+      repositorio,
+      indice,
+      procedimientos,
+      reloj: reloj,
+    );
   }
 
   final MotorAes motor;
@@ -136,6 +143,9 @@ class ServicioConsultorio {
 
   /// Plantillas de procedimiento, valoraciones y sesiones.
   late final ProcedimientosConsultorio procedimientos;
+
+  /// Citas, horario y bloqueos (5.5).
+  late final AgendaConsultorio agenda;
 
   final _pendientes = <HistoriaPendiente>[];
   final _recetasPendientes = <RecetaPendiente>[];
@@ -173,6 +183,7 @@ class ServicioConsultorio {
       await seguimiento.cargar();
       await peso.cargar();
       await procedimientos.cargar();
+      await agenda.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -255,6 +266,7 @@ class ServicioConsultorio {
     seguimiento.olvidar();
     peso.olvidar();
     procedimientos.olvidar();
+    agenda.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();
@@ -480,6 +492,7 @@ class ServicioConsultorio {
     await seguimiento.cargar();
     await peso.cargar();
     await procedimientos.cargar();
+    await agenda.cargar();
     await registrarEnBitacora(
       repositorio,
       AccionBitacora.combinarPaquete,
