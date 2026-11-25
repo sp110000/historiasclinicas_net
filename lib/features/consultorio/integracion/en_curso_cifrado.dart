@@ -5,15 +5,21 @@
 ///
 /// * con el consultorio abierto, cada guardado va cifrado al almacén;
 /// * con el consultorio bloqueado, queda solo en memoria hasta desbloquear;
+/// * si en este navegador nadie ha creado el consultorio, se guarda en claro
+///   como sin la bandera (el sitio público no cambia para quien no lo usa) y
+///   se cifra al crearlo;
 /// * lo que hubiera en claro de antes se usa al iniciar y se borra con el
-///   primer guardado (o al abrir el consultorio, que lo cifra).
+///   primer guardado con el consultorio creado (o al abrirlo, que lo cifra).
 library;
+
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/consultorio/repositorio/repositorio.dart';
+import '../../../core/consultorio/seguridad/boveda.dart';
 import '../../../core/consultorio/servicio.dart';
 import '../../../core/receta/receta.dart';
 import '../../../core/storage/borrador_store.dart';
@@ -62,6 +68,41 @@ class EnCursoCifrado {
     await _prefs.remove(Claves.receta);
   }
 
+  /// `true` si en este navegador no hay consultorio creado. Si no se puede
+  /// saber (el almacén falló), `false`: mejor en memoria que en claro.
+  Future<bool> _sinConsultorio() async {
+    try {
+      return await _servicio.estado() == EstadoBoveda.sinConfigurar;
+    } on Object catch (e) {
+      debugPrint('Consultorio: no se leyó el estado: $e');
+      return false;
+    }
+  }
+
+  /// Sin consultorio creado: lo de [ids] en claro, como sin la bandera. Queda
+  /// también pendiente, para cifrarlo si se crea el consultorio.
+  Future<void> _escribirEnClaro(Set<String> ids) async {
+    final recetas = RecetaStore(_prefs);
+    for (final id in ids) {
+      switch (id) {
+        case _idBorrador when _borrador != null:
+          await _prefs.setString(
+            Claves.borrador,
+            jsonEncode(_mapa(_idBorrador)),
+          );
+        case _idBorrador:
+          await _prefs.remove(Claves.borrador);
+        case _idReceta when _receta != null:
+          await recetas.guardar(_receta!);
+        case _idReceta:
+          await recetas.borrar();
+      }
+    }
+    _hayEnClaro =
+        _prefs.containsKey(Claves.borrador) ||
+        _prefs.containsKey(Claves.receta);
+  }
+
   Map<String, Object?>? _mapa(String id) => switch (id) {
     _idBorrador when _borrador != null => {
       'guardadoEn': _borrador!.guardadoEn.toIso8601String(),
@@ -74,8 +115,12 @@ class EnCursoCifrado {
   /// Escribe (o borra, si ya no hay nada) [ids] en el almacén, si está
   /// abierto; si no, quedan pendientes.
   Future<void> _escribir(Set<String> ids) async {
-    await _quitarEnClaro();
     _sinEscribir.addAll(ids);
+    if (!_abierto && await _sinConsultorio()) {
+      await _escribirEnClaro(ids);
+      return;
+    }
+    await _quitarEnClaro();
     if (!_abierto) return;
     final pendientes = {..._sinEscribir};
     _sinEscribir.clear();

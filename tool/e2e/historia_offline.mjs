@@ -98,12 +98,26 @@ async function nuevaPagina({ ancho = 1440, alto = 1000, sinRed = true, initScrip
   return { context, page };
 }
 
+/** `true` si la app abrió en la agenda: la versión con el consultorio. */
+let conConsultorio = false;
+
 async function cargar(page) {
   await page.goto(BASE);
   await page.waitForSelector('flt-semantics-placeholder', { state: 'attached', timeout: 60000 });
   await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
   // "Formular receta" en escritorio; "Receta" en la barra inferior del móvil.
-  await page.getByRole('button', { name: /receta/i }).first().waitFor({ timeout: 30000 });
+  const receta = page.getByRole('button', { name: /receta/i }).first();
+  // Con el consultorio encendido (lo que publica pages.yml) la app abre en la
+  // agenda: la historia está a un clic.
+  // «Historia» en el riel (seguido de «Pestaña 3 de 6»); en el celular, sin
+  // riel, la agenda ofrece «Ir a la historia».
+  const riel = page.getByRole('button', { name: /^Historia(\s|$)|^Ir a la historia$/ }).first();
+  await receta.or(riel).first().waitFor({ timeout: 30000 });
+  if (!(await receta.isVisible())) {
+    conConsultorio = true;
+    await riel.click();
+    await receta.waitFor({ timeout: 30000 });
+  }
   await page.waitForLoadState('networkidle');
 }
 
@@ -734,13 +748,18 @@ let medicoGuardado;
   await captura(page, 'r6_receta_movil_vista_previa.png');
   paso('Móvil: receta con pestañas Editar y Vista previa');
 
-  // Fase 5: sin CONSULTORIO_ENABLED (lo que se publica), el consultorio no
-  // existe: ninguna pantalla lo abre y su base de IndexedDB no se crea.
+  // Fase 5: sin CONSULTORIO_ENABLED, el consultorio no existe: ninguna
+  // pantalla lo abre y su base de IndexedDB no se crea. Con la bandera (lo
+  // que publica pages.yml), todo lo anterior funcionó sin crear la frase.
   const bases = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
-  if (bases.includes('historiasclinicas_consultorio')) {
-    throw new Error(`Sin la bandera se creó la base del consultorio: ${bases}`);
+  if (conConsultorio) {
+    paso('Con el consultorio encendido, la historia y la receta funcionan sin crear la frase');
+  } else {
+    if (bases.includes('historiasclinicas_consultorio')) {
+      throw new Error(`Sin la bandera se creó la base del consultorio: ${bases}`);
+    }
+    paso(`Sin la bandera del consultorio no se crea su base (bases: ${bases.length ? bases.join(', ') : 'ninguna'})`);
   }
-  paso(`Sin la bandera del consultorio no se crea su base (bases: ${bases.length ? bases.join(', ') : 'ninguna'})`);
   await context.close();
 }
 

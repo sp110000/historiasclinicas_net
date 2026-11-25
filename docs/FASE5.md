@@ -1,14 +1,14 @@
 # Fase 5: el sistema de tu consultorio
 
-> **Estado: la Fase 5 está terminada y aprobada** (la 5.8 y el cierre, el 25/11/2026; ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Plan aprobado el 21/11/2026. Rama `claude/fase5-consultorio`, PR abierto hacia `main`, **sin fusionar**: fusionar y publicar lo decides tú.
-> Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio público se comporta exactamente como hoy, y hay pruebas que lo comprueban (ver 5.0).
+> **Estado: la Fase 5 está terminada y aprobada** (la 5.8 y el cierre, el 25/11/2026; ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Plan aprobado el 21/11/2026. Fusionada en `main` el 25/11/2026 y, por decisión tuya del mismo día, **publicada en `historiasclinicas.net`** (ver [«Publicación en historiasclinicas.net»](#publicación-en-historiasclinicasnet-25112026)).
+> Todo lo nuevo va detrás de la bandera **`CONSULTORIO_ENABLED`** (`--dart-define`, apagada por defecto). Con la bandera apagada, el sitio se comporta exactamente como antes de la Fase 5, y hay pruebas que lo comprueban (ver 5.0). `pages.yml` la enciende desde el 25/11/2026.
 > Todo lo normativo va marcado **VERIFICAR**: son referencias para orientar, no asesoría legal. La validación legal la haces tú, idealmente con un abogado y un contador.
 
 **Para qué es:** convertir la app en el sistema de tu consultorio en Santander de Quilichao, con dos líneas (medicina general con programa de peso, y contorno corporal con hidrolipoclasia), sin servidor y sin software de terceros.
 
 **En una frase:** un almacén local cifrado con tu frase de acceso guarda el índice de pacientes, la copia de trabajo de las historias y los datos de gestión (agenda, caja, inventario, fotos). El PDF sellado sigue siendo el registro clínico legal, y un respaldo cifrado obligatorio protege todo contra la pérdida del equipo.
 
-**Qué queda de tu lado:** revisar lo que quedó marcado VERIFICAR. Ahora cada nota sale en pantalla con un chip «Por verificar»: tócalo y, cuando la revises con la norma, tu abogado o tu contador, registra la fecha y la fuente (ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Fusionar el PR y publicar la versión del consultorio lo decides tú ([fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
+**Qué queda de tu lado:** revisar lo que quedó marcado VERIFICAR. Ahora cada nota sale en pantalla con un chip «Por verificar»: tócalo y, cuando la revises con la norma, tu abogado o tu contador, registra la fecha y la fuente (ver [«Cierre de la Fase 5»](#cierre-de-la-fase-5)). Y la primera vez, crear tu frase en `https://historiasclinicas.net` y hacer el primer respaldo ([fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
 
 ---
 
@@ -17,7 +17,7 @@
 | # | Tema | Decisión |
 |---|---|---|
 | 1 | Arquitectura | Aprobada con los ocho ajustes |
-| 2 | Dónde corre | Otra dirección (subdominio), con la guía [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md). No publico nada |
+| 2 | Dónde corre | **Cambió el 25/11/2026:** en `historiasclinicas.net`, con la bandera encendida en `pages.yml`, para no usar otra dirección. Antes: un subdominio aparte. Guía: [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md) |
 | 3 | Equipos | Portátil principal y celular secundario, con el paquete cifrado (5.2) |
 | 4 | Frase y recuperación | Frase de 12 caracteres o más con medidor; código de recuperación de 24 caracteres con hoja PDF y confirmación de los últimos 4 |
 | 5 | Derivación | PBKDF2-HMAC-SHA256 con 600.000 iteraciones; Argon2id se mide en tus equipos con «Medir la derivación» |
@@ -54,9 +54,26 @@
 2. Escribe y aprueba tu protocolo de hidrolipoclasia y, si usas GLP-1, los esquemas de titulación con la ficha técnica.
 3. Configura el prestador y la póliza, el horario de la agenda, las tarifas y el inventario.
 4. Guarda el código de recuperación y haz el primer respaldo; guárdalo en dos lugares.
-5. Publica la versión del consultorio en un subdominio aparte, con la guía [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md). `main` no se toca hasta que lo decidas.
+5. Abre `https://historiasclinicas.net` en cada equipo y sigue la guía [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md).
 
 **Lo que sigue marcado VERIFICAR** (cada nota tiene su chip en pantalla): la Resolución 1995 de 1999 y la custodia; la Ley 1581 de 2012 y los textos de los consentimientos; la Ley 1799 de 2016 (menores); el PL 187 de 2026 (no es ley) y las certificaciones; la Ley 23 de 1981 (certificados); el Decreto 1427 de 2022 (incapacidad); el catálogo GLP-1 contra las fichas técnicas con registro Invima; los tamizajes SCOFF y DCQ (cortes y licencia); los festivos (Ley 51 de 1983); el mensaje de WhatsApp; la factura electrónica (DIAN); y la dirección de la consulta de Invima.
+
+---
+
+## Publicación en historiasclinicas.net (25/11/2026)
+
+Pediste el consultorio en la misma página, sin otro dominio. Cambia la decisión 2: ya no hay subdominio aparte.
+
+**Qué cambió:**
+
+- **`pages.yml`** compila con `--dart-define=CONSULTORIO_ENABLED=true`. Antes de publicar corre también las pruebas con la bandera encendida y comprueba que el consultorio quedó en `main.dart.js` (6.383.584 bytes; sin el consultorio, 5.333.170). `test/tool/consultorio_compilacion_test.dart` exige esa línea y que el módulo IHCE siga apagado.
+- **El borrador de quien no usa el consultorio** (ajuste a la pregunta 6). Si en ese navegador nadie ha creado el consultorio, el borrador de la historia y la receta en curso se guardan como antes, en claro, para no perder lo escrito al cerrar la pestaña. Al crear el consultorio se cifran y se borran de donde estaban. Con el consultorio creado y bloqueado, siguen solo en memoria, como aprobaste. Sin este ajuste, cualquier visitante habría perdido su borrador al recargar.
+- **La CI prueba lo publicado:** compila igual que `pages.yml` (CSP dentro de `index.html`, sin `_headers`) y corre ahí las tres pruebas en Chromium: consultorio, historia y app instalada. Las dos últimas abren la historia desde el riel, porque la app abre en la agenda.
+- **Guías:** [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md) explica ahora cómo usarlo en `historiasclinicas.net` (la frase, el respaldo y los equipos); también se actualizaron `DESPLIEGUE.md` y el README.
+
+**Qué ve quien abre la página:** la agenda, que pide crear una frase la primera vez. La historia, la receta y los datos del médico siguen a un clic en el riel, y funcionan sin frase. Los datos del consultorio quedan cifrados en cada navegador; no van a GitHub ni a ningún servidor.
+
+**Para apagarlo:** quitar el `--dart-define` de la línea *Compilar* de `pages.yml` y ajustar la prueba. Lo guardado en los navegadores no se borra, pero deja de verse hasta volver a encenderlo.
 
 ---
 

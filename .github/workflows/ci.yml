@@ -1,6 +1,7 @@
 # Análisis, tests, compilación y prueba en Chromium (con y sin conexión) en
-# cada push y pull request. El sitio compilado queda como artefacto
-# "sitio-web" (el contenido de build/web, listo para publicar).
+# cada push y pull request. Quedan dos artefactos: "sitio-consultorio", lo
+# mismo que publica pages.yml (consultorio encendido), y "sitio-web", el
+# sitio sin el consultorio, con _headers y .htaccess para otros hostings.
 name: CI
 
 on:
@@ -44,8 +45,8 @@ jobs:
       - name: Compilar el sitio (sin CDN, con service worker)
         run: ./tool/construir_web.sh
 
-      # Con CONSULTORIO_ENABLED apagada (lo que publica pages.yml), el código
-      # del consultorio no debe estar en main.dart.js.
+      # Con CONSULTORIO_ENABLED apagada (el sitio de antes de encenderla en
+      # pages.yml), el código del consultorio no debe estar en main.dart.js.
       - name: El sitio público no incluye el consultorio
         run: dart run tool/consultorio/verificar_compilacion.dart build/web --sin-modulo
 
@@ -101,8 +102,10 @@ jobs:
           path: build/e2e
           retention-days: 7
 
+  # La compilación que publica pages.yml: consultorio encendido, CSP dentro de
+  # index.html y sin _headers ni .htaccess (GitHub Pages no los usa).
   consultorio:
-    name: Compilación del consultorio (bandera encendida)
+    name: Compilación publicada (consultorio encendido)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -120,8 +123,10 @@ jobs:
       - name: Pruebas de widgets con la bandera encendida
         run: flutter test --dart-define=CONSULTORIO_ENABLED=true test/consultorio/bandera_encendida_test.dart test/consultorio/interfaz_test.dart
 
-      - name: Compilar la versión del consultorio
-        run: ./tool/construir_web.sh --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio
+      - name: Compilar como pages.yml
+        run: |
+          ./tool/construir_web.sh --csp-en-html --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio
+          rm -f build/web-consultorio/_headers build/web-consultorio/.htaccess
 
       - name: La compilación incluye el consultorio
         run: dart run tool/consultorio/verificar_compilacion.dart build/web-consultorio --con-modulo
@@ -130,11 +135,10 @@ jobs:
         with:
           name: sitio-consultorio
           path: build/web-consultorio
-          include-hidden-files: true # .htaccess
           retention-days: 14
 
   e2e-consultorio:
-    name: Prueba del consultorio en Chromium sin conexión
+    name: Prueba de lo publicado en Chromium sin conexión
     needs: consultorio
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -150,17 +154,35 @@ jobs:
         with:
           node-version: 22
 
-      - name: Playwright
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Playwright, poppler y pikepdf
         working-directory: tool/e2e
         run: |
           npm install
           npx playwright install --with-deps chromium
+          sudo apt-get install -y poppler-utils
+          pip install pikepdf
 
       - name: Consultorio sin conexión (frase, bloqueo, respaldo y restauración)
         run: |
           node tool/e2e/servidor.mjs 8766 build/web-consultorio &
           sleep 1
           node tool/e2e/consultorio_offline.mjs
+
+      # Las de siempre, sobre lo publicado: la historia y la receta sin
+      # consultorio creado, y la app instalada (actualizar sin perder lo
+      # escrito).
+      - name: Historia, receta y PDF sin conexión (consultorio encendido)
+        run: |
+          node tool/e2e/servidor.mjs 8767 build/web-consultorio &
+          sleep 1
+          BASE_URL=http://localhost:8767/ OUT_DIR=build/e2e-consultorio/historia node tool/e2e/historia_offline.mjs
+
+      - name: App instalada (consultorio encendido)
+        run: SITIO=build/web-consultorio OUT_DIR=build/e2e-consultorio/pwa node tool/e2e/pwa_offline.mjs
 
       - uses: actions/upload-artifact@v4
         if: always()

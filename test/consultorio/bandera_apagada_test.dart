@@ -21,8 +21,9 @@ import '../ejemplos.dart';
 import '../../tool/consultorio/verificar_compilacion.dart' show marcaModulo;
 import 'ayudas_consultorio.dart';
 
-/// Monta la app tal como la publica `pages.yml`, contando si alguien pide
-/// el servicio del consultorio (que abriría su base de IndexedDB).
+/// Monta la app sin la bandera (el sitio de antes de encender el
+/// consultorio en `pages.yml`), contando si alguien pide el servicio del
+/// consultorio (que abriría su base de IndexedDB).
 Future<({ProviderContainer container, int Function() aperturas})> _montarApp(
   WidgetTester t,
   Size tamano,
