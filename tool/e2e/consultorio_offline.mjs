@@ -1868,9 +1868,9 @@ await context.close();
   await texto(p, 'CI-000001 · MUÑOZ').waitFor();
   await aLaVista(conTexto('CI-000001 · MUÑOZ'));
   await captura(p, 'p1_consentimientos_firmados.png');
-  const ci = await descargar(p, () => hacerClic(p.getByRole('button', { name: 'PDF CI-000001', exact: true })));
-  if (!path.basename(ci).startsWith('Consentimiento_informado_')) throw new Error(`Firmado: ${path.basename(ci)}`);
-  paso(`Procedimientos: consentimientos firmados de todos los pacientes, con estado y PDF (${path.basename(ci)})`);
+  const firmado = await descargar(p, () => hacerClic(p.getByRole('button', { name: 'PDF CI-000001', exact: true })));
+  if (!path.basename(firmado).startsWith('Consentimiento_informado_')) throw new Error(`Firmado: ${path.basename(firmado)}`);
+  paso(`Procedimientos: consentimientos firmados de todos los pacientes, con estado y PDF (${path.basename(firmado)})`);
 
   // ─────────────── 9. Notas «VERIFICAR» y modo presentación (5.8) ───────────────
   // Lo que se ve de la pantalla (texto y etiquetas de accesibilidad).
