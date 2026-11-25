@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.6) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.7) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -22,7 +22,9 @@
 // valoración, consentimiento informado y sesión (bloqueada sin
 // consentimiento y con un lote vencido, luego sellada); (5.4) documentos;
 // (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
-// valoración, recibos en PDF, informe y cierre del día; y comprobar que
+// valoración, recibos en PDF, informe y cierre del día; (5.7) inventario:
+// entrada de lotes, sesión que los descuenta y bloqueo con un lote vencido;
+// y comprobar que
 // nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
 // (incluida la CSP).
@@ -1587,6 +1589,177 @@ await context.close();
   await p.setViewportSize({ width: 1440, height: 1000 });
   await p.waitForTimeout(900);
   paso('Caja en móvil (390 px) y 320 px');
+
+  // ─────────────── 8. Inventario (5.7) ───────────────
+  async function nuevoInsumo({ nombre, unidad, contenido, concentracion, minimo, registro, inyectable }) {
+    await p.getByRole('button', { name: 'Insumo', exact: true }).click();
+    await texto(p, 'Insumo nuevo').waitFor();
+    await escribir(p, 'Nombre', nombre);
+    await escribir(p, 'Unidad', unidad);
+    if (contenido) await escribir(p, 'Contenido por unidad', contenido);
+    if (concentracion) await escribir(p, 'Concentración', concentracion);
+    if (minimo) await escribir(p, 'Mínimo', minimo);
+    if (registro) await escribir(p, 'Registro Invima', registro);
+    if (inyectable) {
+      await p
+        .getByRole('switch', { name: /Inyectable/ })
+        .or(p.getByRole('checkbox', { name: /Inyectable/ }))
+        .first()
+        .click();
+      await p.waitForTimeout(300);
+    }
+    if (!registro) await texto(p, 'no tiene registro Invima').waitFor();
+    await p.getByRole('button', { name: 'Guardar el insumo', exact: true }).click();
+    await texto(p, `Insumo «${nombre}» guardado.`).waitFor();
+  }
+  async function nuevaEntrada({ insumo, lote, vence, cantidad, aviso }) {
+    await p.getByRole('button', { name: 'Entrada', exact: true }).first().click();
+    await texto(p, 'Entrada de un lote').waitFor();
+    await elegirOpcion('Insumo', insumo);
+    await escribir(p, 'Lote', lote);
+    await escribir(p, 'Cantidad', cantidad);
+    await escribir(p, 'Vence', vence);
+    await p.keyboard.press('Tab');
+    if (aviso) await texto(p, aviso).waitFor();
+    await p.getByRole('button', { name: 'Registrar la entrada', exact: true }).click();
+    await texto(p, `Entrada registrada: lote ${lote}`).waitFor();
+    await texto(p, `Entrada registrada: lote ${lote}`).desaparece({ timeout: 20000 });
+  }
+
+  await pulsarExacto('Inventario');
+  await texto(p, 'Inventario vacío').waitFor();
+  await nuevoInsumo({
+    nombre: 'Anestésico de prueba',
+    unidad: 'ampolla',
+    contenido: '5',
+    concentracion: '20',
+    minimo: '5',
+    registro: 'INVIMA PRUEBA-0001',
+  });
+  await nuevoInsumo({ nombre: 'Componente A de prueba', unidad: 'frasco', inyectable: true });
+  await texto(p, '«Componente A de prueba» es inyectable y no tiene registro Invima').waitFor();
+  // Un lote que se ingresó el 01/10/2026 y venció el 31/10/2026.
+  await p.clock.setFixedTime(new Date('2026-10-01T09:00:00-05:00'));
+  await nuevaEntrada({ insumo: 'Anestésico de prueba', lote: 'L-OCT', vence: '31/10/2026', cantidad: '2', aviso: 'Vence en 30 días.' });
+  await p.clock.setFixedTime(new Date('2026-11-30T09:15:00-05:00'));
+  // Hoy: un lote vencido no se ingresa.
+  await p.getByRole('button', { name: 'Entrada', exact: true }).first().click();
+  await texto(p, 'Entrada de un lote').waitFor();
+  await elegirOpcion('Insumo', 'Anestésico de prueba');
+  await escribir(p, 'Lote', 'L0000');
+  await escribir(p, 'Cantidad', '1');
+  await escribir(p, 'Vence', '01/11/2026');
+  await p.keyboard.press('Tab');
+  await texto(p, 'El lote L0000 venció el 01/11/2026: no se ingresa.').waitFor();
+  if (await p.getByRole('button', { name: 'Registrar la entrada', exact: true }).isEnabled()) {
+    throw new Error('Un lote vencido se puede ingresar');
+  }
+  await p.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await nuevaEntrada({ insumo: 'Anestésico de prueba', lote: 'L7788', vence: '15/12/2026', cantidad: '6', aviso: 'Vence en 15 días.' });
+  await nuevaEntrada({ insumo: 'Componente A de prueba', lote: 'CA-01', vence: '30/06/2027', cantidad: '3' });
+  paso('Inventario: un insumo con registro y uno inyectable sin él (aviso); un lote ingresado el 01/10/2026 que ya venció; un lote vencido no se ingresa');
+
+  await alInicio();
+  await texto(p, '1 lote vencido con existencias').waitFor();
+  await texto(p, '1 lote vence en 30 días o menos').waitFor();
+  await texto(p, '1 insumo sin registro Invima').waitFor();
+  await texto(p, 'Vence en 15 días').waitFor();
+  await captura(p, 'i1_inventario.png');
+  await p.getByRole('button', { name: 'Consultar en Invima', exact: true }).first().click();
+  await p.waitForTimeout(400);
+  const invima = (await p.evaluate(() => window.__enlaces)).at(-1);
+  if (invima !== 'https://consultaregistro.invima.gov.co/') throw new Error(`Invima: ${invima}`);
+  await pulsarExacto('Agenda');
+  await texto(p, 'Inventario: 1 lote vencido · 1 por vencer').waitFor();
+  paso('Alertas: lote vencido con existencias, por vencer y sin registro Invima (también en la agenda); «Consultar en Invima» en otra pestaña');
+
+  // Sesión 2 de Muñoz: sugiere el lote que vence primero (L7788, no el
+  // vencido); con el vencido elegido a propósito, no se sella.
+  await abrirFicha('52222333');
+  await tocar('Estética');
+  await tocarAbajo('Registrar sesión');
+  await texto(p, 'Sesión 2 de 4 · Hidrolipoclasia').waitFor();
+  for (const item of verificacion) {
+    const c = p.getByRole('checkbox', { name: item, exact: true });
+    if (!(await c.isChecked())) await hacerClic(c);
+    if (!(await c.isChecked())) throw new Error(`«${item}» sin marcar`);
+  }
+  await escribirAbajo('Volumen (Abdomen inferior)', '300');
+  await escribirAbajo('Volumen (Flancos)', '200');
+  await escribirAbajo('Lote (Componente B de prueba)', 'C-0002');
+  await escribirAbajo('Vence (Componente B de prueba)', '31/03/2027');
+  await escribirAbajo('Volumen del anestésico', '10');
+  await escribirAbajo('Duración', '45');
+  await texto(p, 'Del inventario: lote L7788 · vence 15/12/2026').waitFor();
+  await texto(p, 'Del inventario: lote CA-01 · vence 30/06/2027').waitFor();
+  await texto(p, 'se descuentan 2 ampollas al sellar').waitFor();
+  await texto(p, 'Lista para sellar').waitFor();
+  async function elegirLote(numero) {
+    await hacerClic(p.getByRole('button', { name: 'Cambiar lote', exact: true }).last());
+    await texto(p, 'Lote de «Anestésico de prueba»').waitFor();
+    await p
+      .getByRole('button', { name: new RegExp(`^Lote ${numero}`) })
+      .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: new RegExp(`Lote ${numero}`) }))
+      .last()
+      .dispatchEvent('click');
+    await p.waitForTimeout(500);
+  }
+  await elegirLote('L-OCT');
+  await texto(p, 'El lote L-OCT de «Anestésico de prueba» venció el 31/10/2026.').waitFor();
+  await texto(p, 'Vencido: con este lote no se sella la sesión.').waitFor();
+  if (await p.getByRole('button', { name: 'Sellar sesión' }).isEnabled()) {
+    throw new Error('Con un lote vencido se puede sellar');
+  }
+  await aLaVista(conTexto('Vencido: con este lote no se sella la sesión.'));
+  await captura(p, 'i2_sesion_lote_vencido.png');
+  paso('Sesión 2 de 4: sugiere el lote que vence primero; con el lote vencido del inventario no se sella');
+
+  await elegirLote('L7788');
+  await texto(p, 'Lista para sellar').waitFor();
+  await aLaVista(conTexto('Del inventario: lote L7788'));
+  await captura(p, 'i3_sesion_inventario.png');
+  const hv4 = await descargar(p, () => pulsar(p, 'Sellar sesión'));
+  if (path.basename(hv4) !== 'Historia_MUNOZ_52222333_v4.pdf') throw new Error(`Historia: ${path.basename(hv4)}`);
+  try {
+    const t = execFileSync('pdftotext', [hv4, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+    for (const esperado of ['Sesión 2 de 4 de Hidrolipoclasia', 'lote L7788, vence 15/12/2026', 'Componente A de prueba (lote CA-01, vence 30/06/2027)']) {
+      if (!t.includes(esperado)) throw new Error(`La historia no dice «${esperado}»`);
+    }
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  await texto(p, 'Ficha del paciente').waitFor();
+  paso(`Sesión sellada con los lotes del inventario → ${path.basename(hv4)} (lote L7788 y CA-01)`);
+
+  // El inventario: 2 ampollas y 1 frasco descontados; bajo el mínimo; el
+  // lote vencido se da de baja.
+  await pulsarExacto('Inventario');
+  await texto(p, 'Existencia: 4 ampollas (mínimo 5)').waitFor();
+  await texto(p, '1 bajo el mínimo').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Movimientos (3)', exact: true }));
+  await texto(p, 'Salida · lote L7788 · -2 · Sesión 2 de 4: Anestésico de prueba').waitFor();
+  await texto(p, 'Vence el 30/06/2027 · quedan 2 frascos').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Dar de baja L-OCT', exact: true }));
+  await escribir(p, 'Motivo', 'Vencido');
+  await p.getByRole('button', { name: 'Dar de baja', exact: true }).click();
+  await texto(p, 'Lote L-OCT dado de baja.').waitFor();
+  await texto(p, 'Lote L-OCT dado de baja.').desaparece({ timeout: 20000 });
+  if (await p.getByText('lote vencido con existencias').count()) {
+    throw new Error('Sigue la alerta del lote vencido');
+  }
+  await alInicio();
+  await captura(p, 'i4_inventario_despues.png');
+  paso('El inventario descontó 2 ampollas y 1 frasco (queda bajo el mínimo, con la salida de la sesión); el lote vencido se da de baja');
+
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(900);
+  await captura(p, 'i5_inventario_movil.png');
+  await p.setViewportSize({ width: 320, height: 640 });
+  await p.waitForTimeout(900);
+  await captura(p, 'i6_inventario_320.png');
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  await p.waitForTimeout(900);
+  paso('Inventario en móvil (390 px) y 320 px');
   await abrirFicha('1032456789');
 
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
@@ -1613,7 +1786,7 @@ await context.close();
             bd.close();
             const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
             listo(
-              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog', 'tiroides', 'TR-0042', 'RC-000001'].filter((t) =>
+              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog', 'tiroides', 'TR-0042', 'RC-000001', 'PRUEBA-0001', 'L7788'].filter((t) =>
                 todo.includes(t),
               ),
             );

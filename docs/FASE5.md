@@ -31,7 +31,58 @@
 
 ## Avance
 
-### 5.6 Caja y paquetes ✅ (pendiente de tu visto bueno)
+### 5.7 Inventario simple ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Inventario** en el riel (Agenda, Pacientes, Historia, Caja, **Inventario** y Ajustes). Empieza vacío (pregunta 48).
+- **Insumos:**
+  - con categoría (medicamento, dispositivo médico, insumo y sustancia modelante, esta para el futuro), presentación, **unidad** en la que se lleva la existencia (ampolla, frasco, unidad), contenido en mL por unidad, concentración en mg/mL, registro Invima, si es inyectable, mínimo y activo;
+  - **sin registro Invima avisa**, y en un inyectable en rojo: «… es inyectable y no tiene registro Invima: verifícalo antes de usarlo.». **«Consultar en Invima»** abre su sitio en otra pestaña, sin enviarle datos (la dirección, VERIFICAR).
+- **Lotes y movimientos** (solo se agregan):
+  - **entrada** con número, vencimiento, cantidad, proveedor y factura; el mismo número y vencimiento suma al lote; **un lote vencido no se ingresa**;
+  - **ajuste** (sumar o restar, con motivo, sin quedar en negativo) y **baja** de todo el lote (vencido, dañado), con motivo;
+  - la existencia es la suma de los movimientos, y cada insumo muestra los suyos.
+- **Alertas** (pregunta 49), en el inventario y en la agenda: lotes **vencidos con existencias**, **bajo el mínimo** (sin contar lo vencido) y **por vencer** en 30 días o menos; en el inventario, además, los insumos sin registro Invima.
+- **En la sesión** (pregunta 49):
+  - cada línea cuyo nombre está en el inventario trae **el lote que vence primero** (sin los vencidos ni los agotados), con lo que queda;
+  - el anestésico **descuenta las ampollas por volumen** (10 mL en ampollas de 5 mL son 2; una abierta no se guarda); los componentes, las unidades que escribas (1 por defecto); los insumos, su cantidad;
+  - «Cambiar lote» elige otro (el vencido se puede elegir, pero **no deja sellar**: «El lote … venció el …»), y «Escribirlo a mano» deja el lote escrito, como en la 5.3;
+  - **sin existencias suficientes no se sella** («El lote L-A de «…» tiene 1 ampolla; la sesión usa 2 ampollas.»), y lo dice junto al lote;
+  - un lote escrito a mano de un insumo que sí está en el inventario avisa que no se descontará;
+  - **al sellar, se descuenta**: una salida por línea, con la sesión.
+- Todo queda en la bitácora (insumos, entradas, ajustes, bajas y salidas).
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **734 en verde** (686 en la 5.6). Por tabla: **existencias por movimientos** (6 casos), estado del lote (7, con el día del vencimiento y los 30 días justos), entrada (9: **un lote vencido no se ingresa**, el mismo número con otro vencimiento, vence pronto y **sin registro Invima**), ampollas del anestésico (5) e inventario en la sesión (8: no alcanza, dos líneas del mismo lote, lote que ya no está, sin registro y escrito a mano). Además: el que vence primero, alertas, cantidades en palabras, y en el servicio (cifrado y al reabrir): entradas, ajuste, baja, **descuento al sellar** (con la salida ligada a la sesión) y **lote vencido que bloquea**. 5 pruebas de interfaz, también a 390 y 320 px |
+| Bandera apagada | La 5.7 no tocó ningún archivo compartido: el `main.dart.js` público **pesa lo mismo desde la 5.1** (5.333.404 bytes) y no lleva el módulo |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **6.219 KB** (6.172 KB en la 5.6) |
+| Contraste | Textos con los colores del tema (≥ 4,5:1); cada estado del lote lleva ícono y texto, no solo color |
+| 320 px | Inventario, entrada y el lote en la sesión sin desbordes, con prueba |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **63 de 63 pasos** (57 de antes y 6 nuevos). Dos insumos (uno con registro, otro inyectable sin él, con su aviso); **con el reloj del navegador en el 01/10/2026, la entrada de un lote que vence el 31/10/2026**, y de vuelta al 30/11/2026: **un lote vencido no se ingresa**; dos entradas más; las alertas (vencido con existencias, por vencer y sin registro, también en la agenda) y «Consultar en Invima» interceptado. **Sesión 2 de 4:** sugiere el lote que vence primero (no el vencido); **con el vencido elegido no se sella**; con el sugerido se sella (historia v4, leída con `pdftotext`). **El inventario descontó 2 ampollas y 1 frasco**, con la salida de la sesión en los movimientos, y queda bajo el mínimo; el vencido se da de baja; móvil y 320 px. Nada en claro (tampoco el registro Invima ni el lote). 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.7**
+1. **En la caja (5.6), al abonar todo un saldo, a veces no se descargaba el recibo.** La fila de «Saldos por cobrar» sale de la lista al quedar pagada, y la descarga usaba esa fila después de esperar. Era una carrera, y la e2e la encontró en esta corrida. Ahora el cobro, el abono y las anulaciones toman lo que necesitan antes de abrir el diálogo, y el abono descarga el PDF que devuelve.
+2. **«No alcanza» solo se veía cuando era el primer bloqueo** (la barra de sellar dice uno solo). Ahora el lote lo dice debajo («No alcanza: quedan 1 ampolla.»), igual que «Vencido: con este lote no se sella la sesión.».
+3. En las pruebas de 320 px, los bloques de la sesión están plegados: la prueba abre el del anestésico antes de buscar el lote.
+
+**Desviaciones del plan**
+- **Las ampollas del anestésico salen del volumen** (y del contenido por unidad del insumo); los componentes de la solución se descuentan por unidades que escribes, porque el protocolo no reparte el volumen entre ellos.
+- **Un lote vencido se puede elegir en la sesión**, pero no deja sellar: así la pantalla dice por qué. Sugerirlo, nunca.
+- **El lote escrito a mano sigue posible** (sin inventario, o para un producto que no está en él), con un aviso si el insumo sí está.
+- **Una sesión sellada no se anula**, así que su salida tampoco: si algo quedó mal, un ajuste con motivo lo corrige.
+- **El equipo de la sesión no se liga al inventario** (no se consume).
+- **El inventario no viaja en el paquete del equipo secundario**: se lleva en el principal.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):** [inventario con alertas](fase5/escritorio_inventario_alertas.png) · [sesión con el lote vencido del inventario](fase5/escritorio_sesion_lote_inventario_vencido.png) · [sesión con el lote sugerido](fase5/escritorio_sesion_lote_inventario.png) · [inventario después de la sesión y de la baja](fase5/escritorio_inventario_despues.png)
+- **Móvil (390 px):** [inventario](fase5/movil_inventario.png)
+- **320 px:** [inventario](fase5/320_inventario.png)
+
+### 5.6 Caja y paquetes ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
 - **Catálogo** con tus tarifas iniciales (pregunta 44), en **Ajustes → Caja**: cambiar una tarifa no toca lo ya cobrado; se agregan servicios (simples, valoración abonable o paquete de N sesiones de un procedimiento) y se desactivan los que no uses. El control del programa de peso usa la tarifa del control; si quieres otra, agrégala como servicio.
