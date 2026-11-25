@@ -14,6 +14,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import '../widgets/editor_versionado.dart';
+import '../widgets/texto_normativo.dart';
 import 'dialogos_peso.dart' show InfoMedicamento;
 
 ProgramasPeso _peso(WidgetRef ref) =>
@@ -35,9 +36,9 @@ class TarjetaProgramaPeso extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Todo el catálogo va VERIFICAR contra la ficha técnica con '
-            'registro Invima. La app no trae dosis: el esquema de titulación '
+          const TextoNormativo(
+            'Todo el catálogo se revisa contra la ficha técnica con registro '
+            'Invima (VERIFICAR). La app no trae dosis: el esquema de titulación '
             'lo escribes y lo apruebas tú; mientras no esté aprobado solo se '
             'muestra como referencia.',
             style: TextStyle(color: ColoresMarca.textoSuave),
@@ -91,10 +92,12 @@ class _FilaMedicamento extends ConsumerWidget {
     final si = await confirmar(
       context,
       titulo: '¿Aprobar el esquema de ${m.generico}?',
-      texto:
-          '${m.esquema.map((p) => p.texto).join(' · ')}. Desde ahora el '
-          'cambio de dosis sugiere este esquema. Confirma que lo revisaste '
-          'contra la ficha técnica (VERIFICAR).',
+      texto: textoPresentableAhora(
+        ref,
+        '${m.esquema.map((p) => p.texto).join(' · ')}. Desde ahora el '
+        'cambio de dosis sugiere este esquema. Confirma que lo revisaste '
+        'contra la ficha técnica (VERIFICAR).',
+      ),
       aceptar: 'Aprobar',
       icono: Icons.verified_outlined,
     );

@@ -6,6 +6,7 @@ import '../../../core/consultorio/modelos/configuracion.dart';
 import '../../../core/widgets/campos.dart';
 import '../estado/consultorio_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Ajustes → Prestador y póliza: código REPS, NIT, habilitación del
 /// servicio y póliza de complicaciones (pregunta 34), y los límites de la
@@ -45,7 +46,7 @@ class _TarjetaPrestadorState extends ConsumerState<TarjetaPrestador> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Los usan el consentimiento informado y la incapacidad. VERIFICAR '
             'la habilitación del servicio en el REPS (Resolución 3100 de '
             '2019) y la póliza que te exija la norma.',
@@ -105,7 +106,7 @@ class _TarjetaPrestadorState extends ConsumerState<TarjetaPrestador> {
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          const Text(
+          const TextoNormativo(
             'Escríbelos solo cuando los verifiques en el Decreto 1427 de 2022 '
             '(VERIFICAR). En blanco, la incapacidad no avisa por los días; '
             'una retroactiva avisa siempre.',

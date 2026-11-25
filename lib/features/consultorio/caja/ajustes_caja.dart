@@ -11,6 +11,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import 'campo_pesos.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Ajustes → Caja: servicios y tarifas (pregunta 44).
 class TarjetaCaja extends ConsumerStatefulWidget {
@@ -73,7 +74,7 @@ class _TarjetaCajaState extends ConsumerState<TarjetaCaja> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Cambiar una tarifa no cambia lo ya cobrado. La valoración '
             'abonable deja su valor como crédito por 30 días para el '
             'tratamiento. Los recibos dicen que no son factura electrónica: '

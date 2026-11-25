@@ -16,6 +16,7 @@ import '../estado/consultorio_provider.dart';
 import '../integracion/sellado.dart';
 import '../widgets/chip_seleccion.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Valoración para un procedimiento estético con su plantilla vigente
 /// (5.3): candidato, contraindicaciones, tamizajes y resultado. Se sella
@@ -120,7 +121,7 @@ class _ValoracionPageState extends ConsumerState<ValoracionPage> {
       body: v == null || d == null
           ? CuerpoConsultorio(
               children: [
-                Text(
+                TextoNormativo(
                   _bloqueo ?? '',
                   style: const TextStyle(color: ColoresMarca.error),
                 ),
@@ -159,7 +160,7 @@ class _ValoracionPageState extends ConsumerState<ValoracionPage> {
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
+                    child: TextoNormativo(
                       _error!,
                       style: const TextStyle(color: ColoresMarca.error),
                     ),
@@ -264,7 +265,7 @@ class _Candidato extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
+                  child: TextoNormativo(
                     a,
                     style: const TextStyle(color: ColoresMarca.aviso),
                   ),
@@ -458,7 +459,7 @@ class _Tamizajes extends StatelessWidget {
             color: t.positivo ? ColoresMarca.aviso : null,
           ),
         ),
-        Text(
+        TextoNormativo(
           t.instrumento.referencia,
           style: const TextStyle(color: ColoresMarca.textoSuave, fontSize: 13),
         ),

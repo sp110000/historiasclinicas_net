@@ -23,6 +23,7 @@ import '../estado/pacientes_provider.dart';
 import '../pacientes/dialogo_ficha.dart';
 import '../widgets/comunes.dart';
 import 'campo_pesos.dart';
+import '../widgets/texto_normativo.dart';
 
 /// El servicio que se sugiere al cobrar una cita de tipo [t].
 String servicioDeCita(TipoCita t) => switch (t) {
@@ -232,7 +233,7 @@ class LineaRegla extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(texto, style: TextStyle(color: color)),
+            child: TextoNormativo(texto, style: TextStyle(color: color)),
           ),
         ],
       ),

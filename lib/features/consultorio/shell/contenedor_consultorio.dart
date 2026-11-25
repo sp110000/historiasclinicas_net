@@ -9,10 +9,13 @@ import 'package:go_router/go_router.dart';
 import '../../../app/tema.dart';
 import '../../historia/widgets/avisos.dart';
 import '../desbloqueo/pantalla_desbloqueo.dart';
+import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
+import '../estado/presentacion_provider.dart';
 import '../pacientes/franja_ficha.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Un destino de la navegación del consultorio.
 class DestinoConsultorio {
@@ -136,6 +139,7 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
     final cuerpo = Column(
       key: _cuerpo,
       children: [
+        const _FranjaPresentacion(),
         const _AvisoRespaldo(),
         if (ubicacion == '/') const FranjaFicha(),
         Expanded(
@@ -226,6 +230,125 @@ class _BotonCandado extends ConsumerWidget {
   }
 }
 
+/// Enciende y apaga el modo presentación (pregunta 50). Solo con el
+/// consultorio abierto: al bloquear se apaga.
+class _BotonPresentacion extends ConsumerWidget {
+  const _BotonPresentacion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(consultorioProvider).desbloqueado) {
+      return const SizedBox.shrink();
+    }
+    final on = ref.watch(modoPresentacionProvider);
+    return IconButton(
+      isSelected: on,
+      onPressed: () => ref.read(modoPresentacionProvider.notifier).cambiar(!on),
+      icon: const Icon(Icons.co_present_outlined),
+      selectedIcon: const Icon(Icons.co_present, color: ColoresMarca.primario),
+      tooltip: on ? 'Salir del modo presentación' : 'Modo presentación',
+    );
+  }
+}
+
+/// Mientras el modo presentación está encendido, lo dice arriba (con
+/// «Salir»), para que no quede encendido sin querer.
+class _FranjaPresentacion extends ConsumerWidget {
+  const _FranjaPresentacion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(modoPresentacionProvider)) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      color: ColoresMarca.tinte,
+      padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        children: [
+          const Icon(Icons.co_present, size: 18, color: ColoresMarca.primario),
+          const Text(
+            'Modo presentación: sin notas por verificar, notas internas ni '
+            'montos de la caja.',
+            style: TextStyle(
+              color: ColoresMarca.primario,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextButton(
+            onPressed: () =>
+                ref.read(modoPresentacionProvider.notifier).apagar(),
+            child: const Text('Salir'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// El logotipo del médico arriba del riel, con el nombre del consultorio
+/// al pasar el puntero (pregunta 51).
+class _Logotipo extends ConsumerWidget {
+  const _Logotipo();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final m = ref.watch(medicoProvider);
+    final logo = m.logo;
+    if (logo == null) return const SizedBox(height: 8);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      child: Tooltip(
+        message: m.consultorio.trim().isEmpty ? m.nombre : m.consultorio,
+        child: Image.memory(
+          logo,
+          width: 44,
+          height: 44,
+          fit: BoxFit.contain,
+          semanticLabel: m.consultorio.trim().isEmpty
+              ? 'Logotipo'
+              : 'Logotipo de ${m.consultorio.trim()}',
+        ),
+      ),
+    );
+  }
+}
+
+/// En la barra del móvil: el logotipo y el nombre del consultorio.
+class _NombreConsultorio extends ConsumerWidget {
+  const _NombreConsultorio();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final m = ref.watch(medicoProvider);
+    final nombre = m.consultorio.trim().isEmpty
+        ? 'Consultorio'
+        : m.consultorio.trim();
+    return Row(
+      children: [
+        if (m.logo != null) ...[
+          Image.memory(
+            m.logo!,
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
+            excludeFromSemantics: true,
+          ),
+          const SizedBox(width: 8),
+        ],
+        Expanded(
+          child: Text(
+            nombre,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _Riel extends StatelessWidget {
   const _Riel({required this.indice, required this.alElegir});
 
@@ -256,13 +379,16 @@ class _Riel extends StatelessWidget {
           color: ColoresMarca.textoSuave,
           fontSize: 12,
         ),
-        leading: const SizedBox(height: 8),
+        leading: const _Logotipo(),
         trailing: const Expanded(
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: EdgeInsets.only(bottom: 16),
-              child: _BotonCandado(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [_BotonPresentacion(), _BotonCandado()],
+              ),
             ),
           ),
         ),
@@ -297,13 +423,8 @@ class _BarraCompacta extends StatelessWidget {
             icon: const Icon(Icons.menu),
             tooltip: 'Menú del consultorio',
           ),
-          const Expanded(
-            child: Text(
-              'Consultorio',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
+          const Expanded(child: _NombreConsultorio()),
+          const _BotonPresentacion(),
           const _BotonCandado(),
         ],
       ),
@@ -367,11 +488,16 @@ class _AvisoRespaldo extends ConsumerWidget {
         titulo: r == null
             ? 'Todavía no has respaldado el consultorio'
             : 'Último respaldo ${haceDias(r.fecha, ahora)}',
-        texto: const Text(
-          'La custodia de las historias es tuya (Resolución 1995 de 1999, '
-          'VERIFICAR): si este equipo se daña o se pierde, o se borran los '
-          'datos del navegador, solo el respaldo recupera el consultorio.',
-        ),
+        // En el teléfono, corto: el aviso entero se comía media pantalla y
+        // dejaba sin lugar a pantallas como la del documento.
+        texto: movil
+            ? null
+            : const TextoNormativo(
+                'La custodia de las historias es tuya (Resolución 1995 de '
+                '1999, VERIFICAR): si este equipo se daña o se pierde, o se '
+                'borran los datos del navegador, solo el respaldo recupera '
+                'el consultorio.',
+              ),
         acciones: [
           FilledButton.icon(
             onPressed: () => respaldarYDescargar(context, ref),

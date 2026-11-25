@@ -17,6 +17,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../integracion/copiar_evolucion.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 ProgramasPeso _peso(WidgetRef ref) =>
     ref.read(servicioConsultorioProvider).peso;
@@ -409,7 +410,10 @@ class _DialogoContraindicacionesState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SelectorOpciones(
-            etiqueta: '${item.texto}${item.absoluta ? ' · absoluta' : ''}',
+            etiqueta: textoPresentable(
+              ref,
+              '${item.texto}${item.absoluta ? ' · absoluta' : ''}',
+            ),
             opciones: [
               for (final o in RespuestaContra.values)
                 Opcion(o.name, o.etiqueta),
@@ -461,7 +465,7 @@ class _DialogoContraindicacionesState
       aceptar: 'Guardar revisión',
       alAceptar: _guardar,
       children: [
-        const Text(
+        const TextoNormativo(
           'Las absolutas en «Sí» o sin aclarar impiden iniciar el GLP-1. Una '
           'precaución en «Sí» o «No sabe» pide una nota. Lista de referencia: '
           'VERIFICAR contra la ficha técnica con registro Invima.',
@@ -646,13 +650,13 @@ class _DialogoDosisState extends ConsumerState<_DialogoDosis> {
 
 /// Registro Invima, indicación y esquema de un medicamento del catálogo,
 /// con sus avisos.
-class InfoMedicamento extends StatelessWidget {
+class InfoMedicamento extends ConsumerWidget {
   const InfoMedicamento({super.key, required this.medicamento});
 
   final MedicamentoGlp1 medicamento;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final m = medicamento;
     return Wrap(
       spacing: 6,
@@ -671,9 +675,12 @@ class InfoMedicamento extends StatelessWidget {
               ),
         EtiquetaEstado(
           icono: Icons.info_outline,
-          texto: m.indicacion.isEmpty
-              ? 'Indicación aprobada sin confirmar (VERIFICAR)'
-              : 'Indicación aprobada: ${m.indicacion} (VERIFICAR)',
+          texto: textoPresentable(
+            ref,
+            m.indicacion.isEmpty
+                ? 'Indicación aprobada sin confirmar (VERIFICAR)'
+                : 'Indicación aprobada: ${m.indicacion} (VERIFICAR)',
+          ),
           color: ColoresMarca.aviso,
         ),
         m.esquemaAprobado

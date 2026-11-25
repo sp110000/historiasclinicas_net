@@ -12,6 +12,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../pacientes/dialogo_ficha.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Agenda una cita nueva (o reprograma [cita]). Devuelve la guardada.
 Future<Cita?> editarCita(
@@ -368,7 +369,7 @@ class _Linea extends StatelessWidget {
         Icon(icono, size: 18, color: color),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(texto, style: TextStyle(color: color)),
+          child: TextoNormativo(texto, style: TextStyle(color: color)),
         ),
       ],
     ),

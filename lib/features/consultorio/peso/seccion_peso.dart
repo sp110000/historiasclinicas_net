@@ -14,6 +14,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import 'dialogos_peso.dart';
+import '../widgets/texto_normativo.dart';
 
 String _fechaCorta(DateTime f) =>
     '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}';
@@ -260,7 +261,7 @@ class _Glp1 extends ConsumerWidget {
         : eval.bloqueos.isNotEmpty
         ? EtiquetaEstado(
             icono: Icons.block_outlined,
-            texto: eval.bloqueos.first,
+            texto: textoPresentable(ref, eval.bloqueos.first),
             color: ColoresMarca.error,
           )
         : EtiquetaEstado(

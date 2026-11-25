@@ -10,6 +10,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import '../widgets/editor_versionado.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Ajustes → Plantillas: versiones, editar, aprobar y la política en PDF.
 class TarjetaPlantillas extends ConsumerWidget {
@@ -26,7 +27,7 @@ class TarjetaPlantillas extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Los textos base siguen la Ley 1581 de 2012 y el Decreto 1377 de '
             '2013, pero son un borrador: revísalos con tu abogado antes de '
             'aprobarlos (VERIFICAR). Cada documento firmado guarda la versión '
@@ -94,9 +95,11 @@ class _FilaPlantilla extends ConsumerWidget {
       nombre: p.tipo.etiqueta,
       versiones: p.versiones,
       alEditar: () => _editar(context, ref),
-      textoAprobar:
-          'Desde ahora los documentos nuevos de «${p.tipo.etiqueta}» usan '
-          'este texto (VERIFICAR con tu abogado).',
+      textoAprobar: textoPresentable(
+        ref,
+        'Desde ahora los documentos nuevos de «${p.tipo.etiqueta}» usan '
+        'este texto (VERIFICAR con tu abogado).',
+      ),
       alAprobar: () async {
         await ref.read(servicioConsultorioProvider).documentos.aprobar(p.tipo);
         ref.read(versionIndiceProvider.notifier).cambio();
@@ -185,7 +188,7 @@ class _TarjetaPlantillasClinicasState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Los textos de fábrica son borradores con espacios «______»: '
             'revísalos y apruébalos antes de usarlos (VERIFICAR). El '
             'diagnóstico, los días, las fechas, la finalidad y el destino se '
@@ -273,9 +276,11 @@ class _FilaPlantillaClinica extends ConsumerWidget {
         );
         if (guardada) ref.read(versionIndiceProvider.notifier).cambio();
       },
-      textoAprobar:
-          'Desde ahora los documentos nuevos de «${p.nombre}» usan este '
-          'texto (VERIFICAR).',
+      textoAprobar: textoPresentable(
+        ref,
+        'Desde ahora los documentos nuevos de «${p.nombre}» usan este '
+        'texto (VERIFICAR).',
+      ),
       alAprobar: () async {
         await ref.read(servicioConsultorioProvider).documentos.aprobarDe(p.id);
         ref.read(versionIndiceProvider.notifier).cambio();

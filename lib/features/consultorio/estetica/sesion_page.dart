@@ -21,6 +21,8 @@ import '../integracion/sellado.dart';
 import '../inventario/dialogos_inventario.dart';
 import '../widgets/chip_seleccion.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
+import '../../../core/consultorio/verificar/verificar.dart';
 import 'seccion_estetica.dart' show etiquetaValoracion;
 
 /// Registro de una sesión del procedimiento (5.3, pregunta 35): verificación
@@ -175,7 +177,7 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text(
+                            child: TextoNormativo(
                               a,
                               style: const TextStyle(color: ColoresMarca.aviso),
                             ),
@@ -993,12 +995,14 @@ class _BarraSellar extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  motivo ??
-                      (evaluacion.avisos.isEmpty
-                          ? 'Lista para sellar.'
-                          : 'Lista para sellar, con '
-                                '${evaluacion.avisos.length} '
-                                '${evaluacion.avisos.length == 1 ? 'aviso' : 'avisos'}.'),
+                  // Sin la nota «VERIFICAR»: está, con su chip, en la lista.
+                  motivo != null
+                      ? separarVerificar(motivo).limpio
+                      : (evaluacion.avisos.isEmpty
+                            ? 'Lista para sellar.'
+                            : 'Lista para sellar, con '
+                                  '${evaluacion.avisos.length} '
+                                  '${evaluacion.avisos.length == 1 ? 'aviso' : 'avisos'}.'),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

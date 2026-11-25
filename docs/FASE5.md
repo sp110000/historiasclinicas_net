@@ -1308,6 +1308,7 @@ docs/FASE5.md, docs/fase5/           # este plan, resultados y capturas
 | `tool/ihce/regla10.dart` | Aceptar el inventario de esta tabla y la carpeta `lib/features/consultorio/` (pregunta 8) |
 | `tool/construir_web.sh`, `.github/workflows/ci.yml` | Carpeta de salida como parámetro, y un trabajo de CI que compila con la bandera encendida y corre el e2e del consultorio. **`pages.yml` no cambia** |
 | `tool/e2e/historia_offline.mjs` | Paso nuevo: sin la bandera no existe la base del consultorio |
+| `lib/core/widgets/texto_verificar.dart` (nuevo), `lib/features/medico/medico_page.dart`, `lib/features/historia/secciones/formulario_paciente.dart`, `lib/features/historia/secciones/formularios_clinicos.dart`, `lib/features/receta/receta_page.dart`, `lib/features/receta/widgets/paciente_y_alertas.dart` | **5.8 (pregunta 50):** los 7 textos con «VERIFICAR» de estas pantallas pasan por `textoConVerificar` (y la ayuda del título de la hoja por `ayudaConVerificar`). Con la bandera apagada devuelven el mismo `Text` (y la misma ayuda) de hoy; con ella encendida, el chip «Por verificar» y el modo presentación. El uso del consultorio va dentro de `if (consultorioHabilitado)`, y la prueba de la bandera apagada lo vigila |
 
 El código de IHCE (`lib/core/ihce/`, `lib/features/ihce/`) no cambia.
 

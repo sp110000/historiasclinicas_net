@@ -179,6 +179,12 @@ void main() {
         'lib/core/consultorio/documentos/receta_json.dart',
         'lib/features/consultorio/integracion/enganche_receta.dart',
       },
+      // Las notas «VERIFICAR» de las pantallas de siempre (5.8): con la
+      // bandera apagada, el mismo Text de hoy.
+      'lib/core/widgets/texto_verificar.dart': {
+        'lib/core/consultorio/config.dart',
+        'lib/features/consultorio/widgets/texto_normativo.dart',
+      },
     };
     final enganches = {
       for (final f in [
@@ -186,8 +192,10 @@ void main() {
         'lib/features/consultorio/integracion/enganche_receta.dart',
         'lib/features/consultorio/integracion/en_curso_cifrado.dart',
         'lib/core/consultorio/documentos/receta_json.dart',
+        'lib/features/consultorio/widgets/texto_normativo.dart',
       ])
         ..._funcionesPublicas(f),
+      'TextoNormativo',
     };
     expect(
       enganches,
@@ -197,6 +205,7 @@ void main() {
         'adjuntosReceta',
         'crearBorradorStoreConsultorio',
         'crearRecetaStoreConsultorio',
+        'textoPresentable',
       ]),
     );
 

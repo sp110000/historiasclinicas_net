@@ -20,6 +20,8 @@ import '../widgets/campo_diagnostico.dart';
 import '../widgets/comunes.dart';
 import '../widgets/editor_versionado.dart';
 import '../widgets/vista_previa_pdf.dart';
+import '../widgets/texto_normativo.dart';
+import '../../../core/consultorio/verificar/verificar.dart';
 
 /// Certificado, incapacidad, orden o remisión (5.4): el mismo formulario
 /// corto para todos, con la vista previa del PDF real. Al emitir se
@@ -381,7 +383,7 @@ class _Formulario extends StatelessWidget {
                 style: const TextStyle(color: ColoresMarca.textoSuave),
               )
             else ...[
-              const Text(
+              const TextoNormativo(
                 'En borrador: revísala y apruébala antes de emitir '
                 '(VERIFICAR). También está en Ajustes → Documentos clínicos.',
                 style: TextStyle(color: ColoresMarca.aviso),
@@ -398,7 +400,7 @@ class _Formulario extends StatelessWidget {
             ],
             if (b.plantillaId == 'certificado_laboral') ...[
               const SizedBox(height: 6),
-              const Text(
+              const TextoNormativo(
                 'Las evaluaciones médicas ocupacionales (de ingreso, '
                 'periódicas y de retiro) tienen su propia norma y pueden '
                 'exigir licencia en seguridad y salud en el trabajo '
@@ -545,7 +547,7 @@ class _Formulario extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          const Text(
+          const TextoNormativo(
             'Si no perteneces a la red de la EPS del paciente, la EPS puede '
             'pedir validarla (Decreto 1427 de 2022, VERIFICAR).',
             style: TextStyle(color: ColoresMarca.textoSuave),
@@ -628,7 +630,7 @@ class _Linea extends StatelessWidget {
         Icon(icono, size: 18, color: color),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(texto, style: TextStyle(color: color)),
+          child: TextoNormativo(texto, style: TextStyle(color: color)),
         ),
       ],
     ),
@@ -680,11 +682,14 @@ class _BarraEmitir extends StatelessWidget {
   Widget build(BuildContext context) {
     final motivo = error ?? evaluacion.bloqueos.firstOrNull;
     final n = evaluacion.avisos.length;
+    // La barra dice el primer bloqueo sin la nota «VERIFICAR»: la nota (con
+    // su chip) está en la lista del formulario.
     final estado = Text(
-      motivo ??
-          (n == 0
-              ? 'Listo para emitir.'
-              : 'Listo para emitir, con $n ${n == 1 ? 'aviso' : 'avisos'}.'),
+      motivo != null
+          ? separarVerificar(motivo).limpio
+          : (n == 0
+                ? 'Listo para emitir.'
+                : 'Listo para emitir, con $n ${n == 1 ? 'aviso' : 'avisos'}.'),
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(

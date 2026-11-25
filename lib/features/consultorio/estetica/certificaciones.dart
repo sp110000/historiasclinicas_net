@@ -12,6 +12,7 @@ import '../../historia/widgets/dialogos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Ajustes → Certificaciones por técnica (pregunta 36): técnica o familia,
 /// entidad, fecha, vigencia y soporte cifrado. Sin certificación vigente la
@@ -66,7 +67,7 @@ class TarjetaCertificaciones extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'El Proyecto de Ley 187 de 2026 (no es ley, VERIFICAR) pide '
             'certificación por familia de técnicas. Mientras no sea ley, usar '
             'una técnica sin certificación vigente avisa y queda en la '

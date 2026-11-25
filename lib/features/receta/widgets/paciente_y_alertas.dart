@@ -9,6 +9,7 @@ import '../../../core/widgets/campos.dart';
 import '../../../core/widgets/recuadro_icono.dart';
 import '../../historia/estado/historia_controller.dart';
 import '../estado/receta_controller.dart';
+import '../../../core/widgets/texto_verificar.dart';
 
 /// Datos del paciente precargados desde la historia. Se pueden corregir
 /// aquí sin tocar la historia.
@@ -227,7 +228,7 @@ class _Alerta extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(texto),
+                  textoConVerificar(texto),
                 ],
               ),
             ),

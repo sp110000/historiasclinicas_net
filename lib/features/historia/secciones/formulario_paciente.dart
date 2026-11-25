@@ -7,6 +7,7 @@ import '../../../core/widgets/campos.dart';
 import '../../ihce/campos_ihce.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
+import '../../../core/widgets/texto_verificar.dart';
 
 class FormularioPaciente extends ConsumerStatefulWidget {
   const FormularioPaciente({super.key});
@@ -234,7 +235,7 @@ class _FormularioPacienteState extends ConsumerState<FormularioPaciente> {
               'Datos complementarios',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
             ),
-            subtitle: const Text(
+            subtitle: textoConVerificar(
               'Estado civil, ocupación, aseguradora y acompañante (VERIFICAR '
               'cuáles exige la norma)',
               style: TextStyle(fontSize: 12.5, color: ColoresMarca.textoSuave),

@@ -26,6 +26,7 @@ import 'widgets/editor_items.dart';
 import 'widgets/mis_medicamentos.dart';
 import 'widgets/paciente_y_alertas.dart';
 import 'widgets/vista_previa.dart';
+import '../../core/widgets/texto_verificar.dart';
 
 /// Receta de media hoja (A5 vertical): editor y vista previa real.
 class RecetaPage extends ConsumerStatefulWidget {
@@ -650,11 +651,13 @@ class _OpcionesHoja extends ConsumerWidget {
               initialValue: titulosReceta.contains(opciones.titulo)
                   ? opciones.titulo
                   : titulosReceta.first,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Título de la hoja',
-                helperText:
-                    'En España, VERIFICAR si debe ser "Hoja de '
-                    'tratamiento"',
+                helperText: ayudaConVerificar(
+                  ref,
+                  'En España, VERIFICAR si debe ser "Hoja de '
+                  'tratamiento"',
+                ),
               ),
               items: [
                 for (final t in titulosReceta)
@@ -701,7 +704,7 @@ class _OpcionesHoja extends ConsumerWidget {
           onChanged: (v) =>
               ref.read(opcionesRecetaProvider.notifier).cambiarNumerar(v),
         ),
-        const Text(
+        textoConVerificar(
           'La firma y el sello son imágenes, no una firma digital certificada. '
           'Los medicamentos de control especial pueden requerir recetario '
           'oficial (VERIFICAR).',

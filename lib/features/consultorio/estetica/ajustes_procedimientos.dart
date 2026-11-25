@@ -8,6 +8,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import '../widgets/editor_versionado.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Ajustes → Procedimientos: plantillas declarativas (hidrolipoclasia) con
 /// versiones; sin el protocolo completo no se pueden aprobar ni usar.
@@ -25,7 +26,7 @@ class TarjetaProcedimientos extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Cada procedimiento es una plantilla con versiones: los criterios '
             'de la valoración, el protocolo de la sesión y los textos del '
             'consentimiento. La app no trae composiciones, volúmenes ni dosis: '

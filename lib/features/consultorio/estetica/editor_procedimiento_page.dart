@@ -8,6 +8,7 @@ import '../../../core/widgets/campos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 List<String> _lineas(String t) => [
   for (final l in t.split('\n'))
@@ -102,7 +103,7 @@ class _EditorProcedimientoPageState
       ),
       body: CuerpoConsultorio(
         children: [
-          const Text(
+          const TextoNormativo(
             'Lo que viene de fábrica es una referencia (VERIFICAR). El '
             'protocolo (componentes, volúmenes, anestésico con su máximo, '
             'sesiones, intervalo, indicaciones, control, riesgos y '
@@ -120,7 +121,10 @@ class _EditorProcedimientoPageState
                 alCambiar: (v) => _poner(_d.copyWith(nombre: v.trim())),
               ),
               CampoTexto(
-                etiqueta: 'Familia de técnicas (certificaciones, VERIFICAR)',
+                etiqueta: textoPresentable(
+                  ref,
+                  'Familia de técnicas (certificaciones, VERIFICAR)',
+                ),
                 valorInicial: d.familia,
                 alCambiar: (v) => _poner(_d.copyWith(familia: v.trim())),
               ),
@@ -183,8 +187,10 @@ class _EditorProcedimientoPageState
                 ),
                 for (final (i, t) in d.tamizajes.indexed)
                   _CampoLista(
-                    etiqueta:
-                        '${t.nombre}: ${t.numeroItems} ítems · ${t.referencia}',
+                    etiqueta: textoPresentable(
+                      ref,
+                      '${t.nombre}: ${t.numeroItems} ítems · ${t.referencia}',
+                    ),
                     valores: t.textos,
                     conservarVacias: true,
                     alCambiar: (l) => _poner(
@@ -247,7 +253,7 @@ class _EditorProcedimientoPageState
               ),
               const SizedBox(height: 4),
               const Text('ANESTÉSICOS', style: EstilosMarca.rotulo),
-              const Text(
+              const TextoNormativo(
                 'El máximo en mg/kg lo fijas tú (pregunta 32, VERIFICAR). La '
                 'sesión avisa desde el 80 % y bloquea por encima del 100 %.',
                 style: TextStyle(color: ColoresMarca.textoSuave),

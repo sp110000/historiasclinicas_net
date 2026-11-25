@@ -16,6 +16,7 @@ import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Exporta la firma dibujada a PNG. Las pruebas lo sustituyen (en la VM no
 /// hay motor para rasterizar).
@@ -199,7 +200,7 @@ class _DialogoAutorizacionState extends ConsumerState<_DialogoAutorizacion> {
     final List<Widget> contenido;
     if (version == null) {
       contenido = [
-        Text(
+        TextoNormativo(
           'La plantilla «${widget.tipo.etiqueta}» está en borrador. '
           'Revísala con tu abogado (VERIFICAR) y apruébala en Ajustes → '
           'Plantillas antes de usarla.',

@@ -16,6 +16,7 @@ import '../../historia/estado/historia_controller.dart';
 import '../../historia/widgets/dialogos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../estado/presentacion_provider.dart';
 import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
 import '../agenda/agenda_page.dart' show TarjetaCita;
@@ -112,6 +113,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
         (c.inicio, TarjetaCita(cita: c, conFecha: true)),
     ]..sort((a, b) => b.$1.compareTo(a.$1));
     final resumen = indice.resumen(f);
+    // Modo presentación: sin los montos de la caja ni las notas internas.
+    final presentacion = ref.watch(modoPresentacionProvider);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -136,12 +139,13 @@ class _FichaPageState extends ConsumerState<FichaPage> {
             runSpacing: 6,
             children: [
               for (final s in SeccionFicha.values)
-                ChoiceChip(
-                  avatar: Icon(s.icono, size: 18),
-                  label: Text(s.etiqueta),
-                  selected: _seccion == s,
-                  onSelected: (_) => setState(() => _seccion = s),
-                ),
+                if (s != SeccionFicha.caja || !presentacion)
+                  ChoiceChip(
+                    avatar: Icon(s.icono, size: 18),
+                    label: Text(s.etiqueta),
+                    selected: _seccion == s,
+                    onSelected: (_) => setState(() => _seccion = s),
+                  ),
             ],
           ),
           const SizedBox(height: 16),
@@ -153,7 +157,7 @@ class _FichaPageState extends ConsumerState<FichaPage> {
             SeccionEstetica(ficha: f)
           else if (_seccion == SeccionFicha.fotos)
             SeccionFotos(ficha: f)
-          else if (_seccion == SeccionFicha.caja)
+          else if (_seccion == SeccionFicha.caja && !presentacion)
             SeccionCaja(ficha: f)
           else ...[
             _Clinico(ficha: f, ultima: historias.firstOrNull),
@@ -303,7 +307,8 @@ class _Encabezado extends ConsumerWidget {
           LineaAutorizacion(ficha: f),
           const SizedBox(height: 6),
           LineaConsentimientoImagen(ficha: f),
-          if (f.notas.trim().isNotEmpty) ...[
+          if (f.notas.trim().isNotEmpty &&
+              !ref.watch(modoPresentacionProvider)) ...[
             const SizedBox(height: 10),
             Text(
               'Notas internas: ${f.notas.trim()}',

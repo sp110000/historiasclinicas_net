@@ -161,8 +161,9 @@ class EtiquetaEstado extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        // 6 %: con más tinte, el verde de «Íntegra» baja de 4,5:1.
-        color: color.withValues(alpha: 0.06),
+        // 6 % sobre blanco, opaco: con más tinte, o transparente sobre el
+        // fondo gris de algunas pantallas, el verde baja de 4,5:1.
+        color: Color.alphaBlend(color.withValues(alpha: 0.06), Colors.white),
         borderRadius: RadiosMarca.pildora,
       ),
       child: Row(

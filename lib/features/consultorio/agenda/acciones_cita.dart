@@ -14,6 +14,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 /// El lugar de la cita para el recordatorio y el `.ics`: el consultorio
 /// (o tu nombre), la dirección y la ciudad.
@@ -146,7 +147,7 @@ class _DialogoRecordatorioState extends State<_DialogoRecordatorio> {
             decoration: const InputDecoration(labelText: 'Mensaje'),
           ),
           const SizedBox(height: 8),
-          const Text(
+          const TextoNormativo(
             'WhatsApp es un tercero: el mensaje no lleva datos de salud ni el '
             'tipo de cita (VERIFICAR con tu abogado). Se abre en otra '
             'pestaña; lo envías tú.',

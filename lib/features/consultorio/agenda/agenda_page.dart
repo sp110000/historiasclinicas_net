@@ -12,11 +12,13 @@ import '../../../core/consultorio/reglas/estetica.dart';
 import '../../../core/utils/fechas.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../estado/presentacion_provider.dart';
 import '../caja/dialogo_cobro.dart';
 import '../widgets/comunes.dart';
 import 'acciones_cita.dart';
 import 'dialogo_cita.dart';
 import 'estilo_cita.dart';
+import '../widgets/texto_normativo.dart';
 
 enum _Vista { dia, semana }
 
@@ -319,7 +321,7 @@ class _VistaDia extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
+        TextoNormativo(
           [
             if (nombreFestivo != null) 'Festivo: $nombreFestivo (VERIFICAR)',
             franjas.isEmpty
@@ -423,6 +425,8 @@ class TarjetaCita extends ConsumerWidget {
       for (final e in EstadoCita.values)
         if (problemaCambioEstado(c, e, ahora) == null) e,
     ];
+    // Modo presentación: sin el motivo (es solo para ti) ni el cobro.
+    final presentacion = ref.watch(modoPresentacionProvider);
     final cobros = s.caja.cobrosDeCita(c.id);
     final saldoCita = cobros.fold(0, (a, x) => a + s.caja.saldo(x));
     final cobrado = cobros.isEmpty
@@ -500,7 +504,7 @@ class TarjetaCita extends ConsumerWidget {
                           texto: c.estado.etiqueta,
                           color: estado.color,
                         ),
-                        if (cobrado != null)
+                        if (cobrado != null && !presentacion)
                           EtiquetaEstado(
                             icono: Icons.point_of_sale,
                             texto: cobrado,
@@ -535,7 +539,7 @@ class TarjetaCita extends ConsumerWidget {
                       ].join(' · '),
                       style: const TextStyle(color: ColoresMarca.textoSuave),
                     ),
-                    if (c.motivo.trim().isNotEmpty)
+                    if (c.motivo.trim().isNotEmpty && !presentacion)
                       Text(
                         'Motivo: ${c.motivo.trim()}',
                         style: const TextStyle(color: ColoresMarca.textoSuave),

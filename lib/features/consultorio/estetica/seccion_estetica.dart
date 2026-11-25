@@ -14,6 +14,7 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import 'consentimiento_informado.dart';
+import '../widgets/texto_normativo.dart';
 
 /// Pastilla del estado de la valoración de un procedimiento.
 Widget etiquetaValoracion(Valoracion? v, DateTime ahora) =>
@@ -137,7 +138,7 @@ class _AvisoEdadState extends ConsumerState<_AvisoEdad> {
                 color: sinFecha ? ColoresMarca.aviso : ColoresMarca.error,
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text(widget.motivo)),
+              Expanded(child: TextoNormativo(widget.motivo)),
             ],
           ),
           if (sinFecha) ...[

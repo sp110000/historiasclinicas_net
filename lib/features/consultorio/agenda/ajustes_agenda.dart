@@ -10,6 +10,7 @@ import '../../../core/widgets/titulo_dialogo.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
+import '../widgets/texto_normativo.dart';
 
 const _nombresDias = [
   'Lunes',
@@ -103,7 +104,7 @@ class _TarjetaAgendaState extends ConsumerState<TarjetaAgenda> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          const TextoNormativo(
             'Horario por día («8:00–12:00, 14:00–18:00»; en blanco, sin '
             'atención). Los festivos de Colombia se calculan solos (Ley 51 de '
             '1983, VERIFICAR). Una cita fuera del horario, en festivo o '
@@ -151,10 +152,12 @@ class _TarjetaAgendaState extends ConsumerState<TarjetaAgenda> {
             etiqueta: 'Mensaje del recordatorio por WhatsApp',
             valorInicial: _h.mensaje,
             lineas: 3,
-            ayuda:
-                'Marcadores: {nombre}, {dia}, {hora}, {consultorio} y '
-                '{direccion}. Sin datos de salud ni el tipo de cita (pregunta '
-                '43, VERIFICAR).',
+            ayuda: textoPresentable(
+              ref,
+              'Marcadores: {nombre}, {dia}, {hora}, {consultorio} y '
+              '{direccion}. Sin datos de salud ni el tipo de cita (pregunta '
+              '43, VERIFICAR).',
+            ),
             alCambiar: (v) => _h = _h.copyWith(
               mensaje: v.trim().isEmpty ? mensajeRecordatorioPorDefecto : v,
             ),

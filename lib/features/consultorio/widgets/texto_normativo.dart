@@ -18,26 +18,51 @@ String textoPresentable(WidgetRef ref, String texto) =>
     ? separarVerificar(texto).limpio
     : texto;
 
+/// Como [textoPresentable], fuera de `build` (en una acción).
+String textoPresentableAhora(WidgetRef ref, String texto) =>
+    ref.read(modoPresentacionProvider) ? separarVerificar(texto).limpio : texto;
+
 /// Un texto con notas «VERIFICAR» (pregunta 50): el texto limpio con un
 /// chip discreto «Por verificar» (o «Verificado el … · fuente») que muestra
 /// la nota completa y permite registrar la verificación. En el modo
 /// presentación, solo el texto limpio. Sin notas, un [Text] común.
 class TextoNormativo extends ConsumerWidget {
-  const TextoNormativo(this.texto, {super.key, this.style, this.textAlign});
+  const TextoNormativo(
+    this.texto, {
+    super.key,
+    this.style,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+  });
 
   final String texto;
   final TextStyle? style;
   final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final presentacion = ref.watch(modoPresentacionProvider);
     final sep = separarVerificar(texto);
     if (sep.notas.isEmpty) {
-      return Text(texto, style: style, textAlign: textAlign);
+      return Text(
+        texto,
+        style: style,
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+      );
     }
     if (presentacion) {
-      return Text(sep.limpio, style: style, textAlign: textAlign);
+      return Text(
+        sep.limpio,
+        style: style,
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+      );
     }
     ref.watch(versionIndiceProvider);
     return Text.rich(
@@ -52,6 +77,8 @@ class TextoNormativo extends ConsumerWidget {
       ),
       style: style,
       textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: overflow,
     );
   }
 }
