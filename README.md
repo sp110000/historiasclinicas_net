@@ -4,7 +4,7 @@ Historia clínica y receta en el navegador. Sin servidor, sin base de datos y si
 
 **Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
-**Fase 5, el consultorio (terminada y aprobada el 25/11/2026; PR sin fusionar):** el sistema del consultorio en el navegador, sin servidor y sin conexión, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público se comporta como siempre). Almacén local cifrado con frase y código de recuperación, y respaldo cifrado (5.0); pacientes con ficha longitudinal e importación de PDF (5.1); seguimiento y fotos cifradas (5.2); programa de peso con GLP-1, valoración, consentimiento y sesión de hidrolipoclasia (5.3); certificados, incapacidad, órdenes y remisión (5.4); agenda (5.5); caja, recibos y paquetes (5.6); inventario con lotes (5.7); y notas «VERIFICAR» con su registro y modo presentación (5.8). Plan, avance y cierre en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
+**Fase 5, el consultorio (terminada y aprobada el 25/11/2026; publicada en `historiasclinicas.net`):** el sistema del consultorio en el navegador, sin servidor y sin conexión, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio se comporta como antes; `pages.yml` la enciende). Almacén local cifrado con frase y código de recuperación, y respaldo cifrado (5.0); pacientes con ficha longitudinal e importación de PDF (5.1); seguimiento y fotos cifradas (5.2); programa de peso con GLP-1, valoración, consentimiento y sesión de hidrolipoclasia (5.3); certificados, incapacidad, órdenes y remisión (5.4); agenda (5.5); caja, recibos y paquetes (5.6); inventario con lotes (5.7); y notas «VERIFICAR» con su registro y modo presentación (5.8). Plan, avance y cierre en [docs/FASE5.md](docs/FASE5.md); para usarlo (la frase, el respaldo y los equipos): [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
 
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
@@ -21,7 +21,7 @@ flutter test
 ```bash
 ./tool/construir_web.sh
 ```
-Con `--salida DIR` compila en otra carpeta; la versión del consultorio se compila con `./tool/construir_web.sh --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio`. El resultado queda en `build/web/` y es lo que se publica (ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)). El script compila con `--no-web-resources-cdn` y genera `sw.js`, el service worker que guarda la app en el navegador para usarla sin conexión. CanvasKit, las fuentes, el CIE-10 y pdf.js (vista previa de la receta, en `web/pdfjs/`) se sirven desde el propio sitio, sin peticiones a terceros.
+Con `--salida DIR` compila en otra carpeta. Lo que publica `pages.yml` (con el consultorio y la CSP dentro de `index.html`) se compila con `./tool/construir_web.sh --csp-en-html --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio`; sin `--dart-define` queda el sitio sin el consultorio, en `build/web/` (ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)). El script compila con `--no-web-resources-cdn` y genera `sw.js`, el service worker que guarda la app en el navegador para usarla sin conexión. CanvasKit, las fuentes, el CIE-10 y pdf.js (vista previa de la receta, en `web/pdfjs/`) se sirven desde el propio sitio, sin peticiones a terceros.
 
 ## Pruebas de extremo a extremo (Chromium, sin conexión)
 ```bash
@@ -29,11 +29,12 @@ cd tool/e2e && npm install && npx playwright install chromium && cd ../..
 node tool/e2e/servidor.mjs &       # build/web con las cabeceras de producción (CSP)
 node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) y poppler-utils (pdfinfo, pdftotext)
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
-# Consultorio (bandera encendida):
+# Lo publicado (consultorio encendido); las dos de arriba también corren ahí
+# con BASE_URL=http://localhost:8766/ y SITIO=build/web-consultorio:
 node tool/e2e/servidor.mjs 8766 build/web-consultorio &
 node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe; programa de peso, valoración, consentimiento y sesión; certificado, incapacidad, orden y remisión, y su reimportación; agenda, WhatsApp interceptado y «Atender»; caja con abono, paquete, recibos y cierre; inventario con lotes; notas verificadas y modo presentación (sin conexión)
 ```
-GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
+GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, las dos compilaciones (sin y con el consultorio) y las pruebas en Chromium en cada push, y `.github/workflows/pages.yml` publica el sitio con el consultorio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
 ## Estructura
 ```

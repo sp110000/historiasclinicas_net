@@ -5,10 +5,25 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/consultorio/verificar_compilacion.dart';
 
 void main() {
-  test('la publicación (pages.yml) no enciende el consultorio', () {
+  test('la publicación (pages.yml) enciende el consultorio, y solo eso', () {
     final flujo = File('.github/workflows/pages.yml').readAsStringSync();
-    expect(flujo, isNot(contains('CONSULTORIO_ENABLED')));
-    expect(flujo, isNot(contains('dart-define')));
+    final compilar = RegExp(
+      r'construir_web\.sh[^\n]*',
+    ).allMatches(flujo).map((m) => m.group(0)!).toList();
+    expect(compilar, hasLength(1));
+    expect(compilar.single, contains('--csp-en-html'));
+    expect(compilar.single, contains('--dart-define=CONSULTORIO_ENABLED=true'));
+    // El módulo IHCE/RDA sigue apagado.
+    expect(flujo, isNot(contains('IHCE_ENABLED')));
+    expect(
+      RegExp('--dart-define=').allMatches(flujo).length,
+      2,
+      reason: 'la compilación y las pruebas con el consultorio encendido',
+    );
+    expect(
+      flujo,
+      contains('verificar_compilacion.dart build/web --con-modulo'),
+    );
   });
 
   test('la CI comprueba las dos compilaciones', () {

@@ -103,7 +103,20 @@ async function cargar(page) {
   await page.waitForSelector('flt-semantics-placeholder', { state: 'attached', timeout: 60000 });
   await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
   // "Formular receta" en escritorio; "Receta" en la barra inferior del móvil.
-  await page.getByRole('button', { name: /receta/i }).first().waitFor({ timeout: 30000 });
+  const receta = page.getByRole('button', { name: /receta/i }).first();
+  // Con el consultorio encendido (lo que publica pages.yml) la app abre en la
+  // agenda: la historia está a un clic en el riel.
+  const riel = page
+    .getByRole('button', { name: 'Historia', exact: true })
+    .or(page.getByRole('tab', { name: 'Historia', exact: true }))
+    .or(page.locator('flt-semantics[flt-tappable][aria-label="Historia"]'))
+    .or(page.locator('flt-semantics[flt-tappable]').filter({ hasText: /^Historia$/ }))
+    .first();
+  await receta.or(riel).first().waitFor({ timeout: 30000 });
+  if (!(await receta.isVisible())) {
+    await riel.click();
+    await receta.waitFor({ timeout: 30000 });
+  }
   await page.waitForLoadState('networkidle');
 }
 

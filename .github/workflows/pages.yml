@@ -40,12 +40,20 @@ jobs:
       - name: Tests
         run: flutter test
 
+      - name: Tests con el consultorio encendido
+        run: flutter test --dart-define=CONSULTORIO_ENABLED=true test/consultorio/bandera_encendida_test.dart test/consultorio/interfaz_test.dart
+
       # base_path es "" con el dominio propio y "/historiasclinicas_net" sin él.
       # GitHub Pages no permite cabeceras: la CSP va dentro de index.html.
+      # El consultorio va encendido (docs/FASE5.md, decisión 2). Para
+      # apagarlo, quita el --dart-define: el sitio vuelve a ser el de antes.
       - name: Compilar
         run: |
-          ./tool/construir_web.sh --csp-en-html --base-href "${{ steps.pages.outputs.base_path }}/"
+          ./tool/construir_web.sh --csp-en-html --dart-define=CONSULTORIO_ENABLED=true --base-href "${{ steps.pages.outputs.base_path }}/"
           rm -f build/web/_headers build/web/.htaccess
+
+      - name: La publicación incluye el consultorio
+        run: dart run tool/consultorio/verificar_compilacion.dart build/web --con-modulo
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -109,7 +109,15 @@ void main() {
   test('la compilación de producción (pages.yml) no enciende el módulo', () {
     final flujo = File('.github/workflows/pages.yml').readAsStringSync();
     expect(flujo, isNot(contains('IHCE_ENABLED')));
-    expect(flujo, isNot(contains('dart-define')));
+    // Solo se enciende el consultorio; nada de archivos de definiciones,
+    // que podrían encender el módulo sin nombrarlo aquí.
+    expect(flujo, isNot(contains('dart-define-from-file')));
+    expect(
+      RegExp(
+        r'--dart-define=(\w+)',
+      ).allMatches(flujo).map((m) => m.group(1)).toSet(),
+      {'CONSULTORIO_ENABLED'},
+    );
   });
 
   test('construir_web.sh quita los datos antes de generar el service '

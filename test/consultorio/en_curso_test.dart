@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/core/consultorio/almacen/almacen.dart';
 import 'package:historiasclinicas_net/core/receta/receta.dart';
+import 'package:historiasclinicas_net/core/storage/borrador_store.dart';
 import 'package:historiasclinicas_net/core/storage/preferencias.dart';
+import 'package:historiasclinicas_net/core/storage/receta_store.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/consultorio_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/integracion/en_curso_cifrado.dart';
 import 'package:historiasclinicas_net/features/historia/estado/borrador_provider.dart';
@@ -96,6 +98,62 @@ void main() {
       expect(_hayRegistro(b, 'borrador'), isFalse);
       expect(e.borrador, isNull);
     });
+  });
+
+  group('Sin consultorio creado en este navegador (sitio público)', () {
+    late BancoConsultorio b;
+    late SharedPreferences prefs;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      b = BancoConsultorio();
+    });
+
+    test(
+      'guarda en claro, como sin la bandera, y vuelve al recargar',
+      () async {
+        final e = EnCursoCifrado(b.servicio, prefs);
+        await e.guardarBorrador({'motivo': 'Cefalea'});
+        await e.guardarReceta(
+          Receta(id: 'r1', historiaId: 'h1', fecha: DateTime(2026, 11, 21)),
+        );
+        // El mismo formato que lee el sitio sin la bandera.
+        expect(BorradorStore(prefs).leer()!.contenido['motivo'], 'Cefalea');
+        expect(RecetaStore(prefs).leer()!.id, 'r1');
+        expect(b.almacen.datos[Deposito.registros], isEmpty);
+
+        final recargada = EnCursoCifrado(b.servicio, prefs);
+        expect(recargada.borrador!.contenido['motivo'], 'Cefalea');
+        expect(recargada.receta!.id, 'r1');
+
+        await recargada.borrarReceta();
+        expect(prefs.containsKey(Claves.receta), isFalse);
+        expect(prefs.containsKey(Claves.borrador), isTrue);
+        await recargada.borrarTodo();
+        expect(prefs.containsKey(Claves.borrador), isFalse);
+      },
+    );
+
+    test(
+      'al crear el consultorio se cifra y se borra lo que estaba en claro',
+      () async {
+        final e = EnCursoCifrado(b.servicio, prefs);
+        await e.guardarBorrador({'motivo': 'Dolor torácico'});
+        expect(prefs.containsKey(Claves.borrador), isTrue);
+        await b.servicio.crear(fraseDePrueba);
+        await e.alAbrir();
+        await b.servicio.repositorio.esperarEscrituras();
+        expect(prefs.containsKey(Claves.borrador), isFalse);
+        expect(_hayRegistro(b, 'borrador'), isTrue);
+        expect(contieneTexto(b.todosLosBytes, 'torácico'), isFalse);
+
+        // Creado y bloqueado: ya no vuelve a quedar en claro.
+        await b.servicio.bloquear();
+        await e.guardarBorrador({'motivo': 'Otra'});
+        expect(prefs.containsKey(Claves.borrador), isFalse);
+      },
+    );
   });
 
   test('la historia escrita vuelve tras recargar y desbloquear', () async {

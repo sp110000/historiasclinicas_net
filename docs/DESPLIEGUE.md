@@ -35,7 +35,7 @@ flutter build web --release --no-web-resources-cdn
 dart run tool/pwa/generar_service_worker.dart build/web
 ```
 
-**Sin compilar en tu equipo:** cada push a GitHub compila el sitio (ver la sección 6). Descárgalo en *Actions* → la ejecución → *Artifacts* → `sitio-web`.
+**Sin compilar en tu equipo:** cada push a GitHub compila el sitio (ver la sección 6). Descárgalo en *Actions* → la ejecución → *Artifacts*: `sitio-consultorio` es lo que se publica en `historiasclinicas.net` (con el consultorio, la CSP dentro de `index.html`); `sitio-web` es el sitio sin el consultorio, con `_headers` y `.htaccess` para otros hostings.
 
 ## 2. Probarlo en tu equipo
 
@@ -124,9 +124,9 @@ server {
 ```
 
 ### GitHub Pages con el dominio de Namecheap (el elegido)
-GitHub Pages es gratis para repositorios públicos, como `sp110000/historiasclinicas_net`. El sitio se publica solo: cada vez que algo llega a `main`, `.github/workflows/pages.yml` corre los tests, compila y publica.
+GitHub Pages es gratis para repositorios públicos, como `sp110000/historiasclinicas_net`. El sitio se publica solo: cada vez que algo llega a `main`, `.github/workflows/pages.yml` corre los tests, compila y publica. Desde el 25/11/2026 compila con el consultorio encendido (`--dart-define=CONSULTORIO_ENABLED=true`; ver [fase5/PUBLICAR_CONSULTORIO.md](fase5/PUBLICAR_CONSULTORIO.md)).
 
-GitHub Pages no permite cabeceras propias. Por eso la compilación para Pages (`--csp-en-html`) pone la Content-Security-Policy dentro de `index.html`, que el navegador aplica igual. Las demás cabeceras (HSTS, `nosniff`…) no se pueden enviar, pero "Enforce HTTPS" obliga a usar HTTPS. Las dos pruebas en Chromium pasan así, sin cabeceras y con la CSP en el HTML.
+GitHub Pages no permite cabeceras propias. Por eso la compilación para Pages (`--csp-en-html`) pone la Content-Security-Policy dentro de `index.html`, que el navegador aplica igual. Las demás cabeceras (HSTS, `nosniff`…) no se pueden enviar, pero "Enforce HTTPS" obliga a usar HTTPS. Las pruebas en Chromium (historia, app instalada y consultorio) pasan así, sin cabeceras y con la CSP en el HTML: la CI las corre sobre esa misma compilación.
 
 **A. DNS en Namecheap** (se hace una vez; tarda de minutos a unas horas en propagarse)
 1. Entra en namecheap.com → *Domain List* → **Manage**, junto a `historiasclinicas.net`.
@@ -197,8 +197,8 @@ El HTTPS se activa solo cuando los DNS ya apuntan bien. Puede tardar desde minut
 
 **Integración continua:** `.github/workflows/ci.yml` corre en cada push y pull request:
 - formato, análisis y tests;
-- compila el sitio y lo guarda como artefacto `sitio-web`;
-- ejecuta las dos pruebas en Chromium con las cabeceras de producción.
+- compila el sitio sin el consultorio (artefacto `sitio-web`) y ejecuta las dos pruebas en Chromium con las cabeceras de `_headers`;
+- compila lo que publica `pages.yml`, con el consultorio y la CSP en el HTML (artefacto `sitio-consultorio`), y ejecuta sobre eso las tres pruebas en Chromium: consultorio, historia y app instalada.
 
 La publicación es otro flujo: `.github/workflows/pages.yml` publica en GitHub Pages cada vez que algo llega a `main` (sección 3, GitHub Pages).
 

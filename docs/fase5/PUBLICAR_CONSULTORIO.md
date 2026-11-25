@@ -1,52 +1,28 @@
-# Publicar la versión del consultorio
+# El consultorio en historiasclinicas.net
 
-La versión del consultorio es la misma app compilada con `CONSULTORIO_ENABLED=true`. Se publica en **otra dirección**, por ejemplo `consultorio.historiasclinicas.net` (pregunta 2 de [FASE5.md](../FASE5.md)). Así el sitio público `historiasclinicas.net` no cambia, y lo guardado en cada navegador queda separado.
+Desde el 25/11/2026 el consultorio se publica en la misma dirección del sitio, **`https://historiasclinicas.net`**. Así lo decidiste ese día, en lugar del subdominio que preveía la decisión 2 de [FASE5.md](../FASE5.md). No hace falta otro dominio, otra cuenta ni otro hosting.
 
-> Yo no publico nada: la cuenta y la publicación las haces tú. Los menús de Cloudflare y Netlify cambian con el tiempo, así que los nombres exactos son **VERIFICAR**.
+`.github/workflows/pages.yml` compila el sitio con `--dart-define=CONSULTORIO_ENABLED=true` en cada push a `main` y lo publica en GitHub Pages, como siempre. Antes de publicar corre las pruebas con la bandera apagada y encendida, y comprueba que el consultorio quedó dentro de `main.dart.js`.
 
-## 1. Obtener el sitio compilado
+> Los datos **no** van a GitHub ni a ningún servidor. Cada navegador guarda lo suyo, cifrado con la frase que creas en él. La página es pública, como antes; lo que hay en tu navegador, no.
 
-Elige una de estas dos formas:
+## 1. Qué ve quien abre la página
 
-- **Sin instalar nada (recomendado).** En GitHub, entra en *Actions* → *CI* y abre la última ejecución en verde de la rama que quieras publicar. Al final de la página, en *Artifacts*, descarga **`sitio-consultorio`** y descomprímelo. La carpeta resultante es el sitio.
-- **En tu Mac:**
-  ```bash
-  git pull
-  flutter clean && flutter pub get
-  ./tool/construir_web.sh --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio
-  dart run tool/consultorio/verificar_compilacion.dart build/web-consultorio --con-modulo
-  ```
-  El sitio queda en `build/web-consultorio/`.
+- **El menú del consultorio** (agenda, pacientes, caja, inventario, ajustes) y, a un clic, la **historia clínica**, la **receta** y los **datos del médico**, que funcionan igual que antes y sin frase.
+- Las pantallas del consultorio piden **crear una frase de acceso** la primera vez en ese navegador. Quien no la crea no guarda nada del consultorio.
+- **El borrador de la historia y la receta en curso:** si en ese navegador nadie ha creado el consultorio, se guardan como siempre, para no perder lo escrito al cerrar la pestaña. En cuanto se crea el consultorio, pasan al almacén cifrado y se borran de donde estaban en claro (pregunta 6).
 
-**Nunca** pongas `CONSULTORIO_ENABLED` en `.github/workflows/pages.yml`: ese flujo publica `historiasclinicas.net`. Una prueba (`test/tool/consultorio_compilacion_test.dart`) falla si alguien lo hace.
+## 2. La frase de acceso
 
-## 2. Publicarlo
+**No hay una clave de fábrica.** La frase la inventas tú la primera vez, en tu navegador, y nadie más la conoce: ni yo, ni GitHub. Las frases que aparecen en las pruebas automáticas son de ejemplo.
 
-### Cloudflare Pages (recomendado)
-
-1. Crea una cuenta gratuita en Cloudflare.
-2. *Workers & Pages* → *Create* → *Pages* → **Upload assets** (subida directa, sin conectar GitHub).
-3. Ponle un nombre al proyecto, por ejemplo `consultorio-hc`, y arrastra la **carpeta** del sitio. Debe incluir `_headers`, que trae la misma CSP y las mismas cabeceras del sitio público.
-4. En el proyecto: *Custom domains* → *Set up a custom domain* → `consultorio.historiasclinicas.net`.
-5. En Namecheap (DNS de `historiasclinicas.net`), crea el registro que pide Cloudflare: normalmente un `CNAME` con host `consultorio` que apunta a `consultorio-hc.pages.dev`.
-6. Espera a que el certificado HTTPS esté activo. **El consultorio solo funciona con HTTPS**, porque el cifrado del navegador lo exige.
-
-### Netlify (alternativa)
-
-1. Entra en *app.netlify.com/drop* y arrastra la carpeta del sitio. También usa `_headers`.
-2. *Domain management* → *Add a domain* → `consultorio.historiasclinicas.net`, y crea en Namecheap el `CNAME` que indique Netlify.
-
-### Restringir quién entra (opcional)
-
-Los datos no están en el servidor: cada navegador guarda los suyos, cifrados con su frase. Aun así, puedes impedir que otros abran la página con **Cloudflare Access** (*Zero Trust* → *Access* → *Applications* → *Self-hosted*).
-
-- Dominio: `consultorio.historiasclinicas.net`.
-- Regla: solo tu correo, con un código que llega por correo.
-- **VERIFICAR**: el plan gratuito y cuánto dura la sesión. Con conexión, Access pide iniciar sesión cuando la sesión vence. Sin conexión, la app instalada abre igual desde lo guardado en el navegador.
+- 12 caracteres o más. Mejor varias palabras que solo tú relaciones, por ejemplo cuatro palabras sueltas.
+- Si la olvidas, entras con el **código de recuperación** de la hoja que imprimes al crearla.
+- Sin la frase y sin el código, los datos cifrados no se pueden abrir. Por eso el respaldo es obligatorio.
 
 ## 3. Primera vez en cada equipo
 
-1. Abre `https://consultorio.historiasclinicas.net` en Chrome o Edge (o Safari en iPhone/iPad) y espera el aviso **«ya funciona sin conexión»**.
+1. Abre **`https://historiasclinicas.net`** en Chrome o Edge (o Safari en iPhone/iPad) y espera el aviso **«ya funciona sin conexión»**.
 2. Instálala:
    - Chrome o Edge: menú → *Instalar*.
    - Safari: *Compartir* → *Agregar a pantalla de inicio*. Así es menos probable que Safari borre lo guardado.
@@ -54,17 +30,32 @@ Los datos no están en el servidor: cada navegador guarda los suyos, cifrados co
 4. **Ajustes → Respaldo → Respaldar ahora.** Guarda el archivo `.hcrespaldo` en dos lugares distintos, por ejemplo una memoria USB y tu nube.
 5. **Ajustes → Seguridad → Medir la derivación.** Envíame los dos tiempos (PBKDF2 y Argon2id) de tu Mac y de tu celular.
 
-**En un segundo equipo** (por ejemplo, el celular): abre la misma dirección, elige *«Tengo un respaldo: restaurarlo»* y usa el respaldo del equipo principal. Así los dos comparten la llave. El paso de datos entre equipos llega en la 5.2.
+**En un segundo equipo** (por ejemplo, el celular): abre la misma dirección, elige *«Tengo un respaldo: restaurarlo»* y usa el respaldo del equipo principal. Así los dos comparten la llave. Luego, en **Ajustes → Equipo secundario**, marca el celular como secundario: lo que hagas allí vuelve al principal en un paquete cifrado (*«Exportar paquete de este equipo»* en el celular y *«Combinar un paquete»* en el portátil).
 
 ## 4. Actualizar
 
-Cada versión nueva se publica igual: sube la carpeta nueva al mismo proyecto. La app instalada muestra **«Hay una versión nueva de la app»**, con el botón *Actualizar*, y los datos del consultorio se conservan.
+No tienes que hacer nada: cada cambio que llega a `main` se publica solo. La app instalada muestra **«Hay una versión nueva de la app»**, con el botón *Actualizar*, y los datos del consultorio se conservan.
 
-## 5. No cambies de dirección
+## 5. Usa siempre la misma dirección
 
-Lo guardado en el navegador está atado a la dirección exacta. `consultorio.historiasclinicas.net` y `www.consultorio.historiasclinicas.net` cuentan como sitios distintos.
+Lo guardado en el navegador está atado a la dirección exacta. Usa siempre `https://historiasclinicas.net`, sin `www` (`www.historiasclinicas.net` redirige ahí). La página debe abrir con `https://`: el cifrado del navegador lo exige, y GitHub Pages lo obliga con *Enforce HTTPS* ([DESPLIEGUE.md](../DESPLIEGUE.md), paso E).
 
 Si alguna vez cambias de dirección:
 
 1. Haz un respaldo en la dirección vieja.
 2. Restáuralo en la nueva.
+
+## 6. Volver a apagarlo
+
+Quita `--dart-define=CONSULTORIO_ENABLED=true` de la línea *Compilar* de `pages.yml` y ajusta la prueba `test/tool/consultorio_compilacion_test.dart`, que exige que esté. El sitio vuelve a ser el de antes y el código del consultorio sale de `main.dart.js`.
+
+Lo guardado en los navegadores no se borra, pero deja de verse hasta que lo vuelvas a encender. Haz un respaldo antes.
+
+## 7. Si algún día lo quieres en otra dirección (opcional)
+
+También puedes publicarlo aparte, por ejemplo en `consultorio.historiasclinicas.net`. **Tampoco es comprar otro dominio:** es un registro DNS gratuito en Namecheap y un proyecto gratuito en Cloudflare Pages. Los menús de Cloudflare cambian con el tiempo, así que los nombres exactos son **VERIFICAR**.
+
+1. En GitHub, *Actions* → *CI* → la última ejecución en verde de `main` → *Artifacts* → descarga **`sitio-consultorio`** y descomprímelo.
+2. Cloudflare: *Workers & Pages* → *Create* → *Pages* → **Upload assets**, y arrastra la carpeta.
+3. En el proyecto: *Custom domains* → `consultorio.historiasclinicas.net`, y crea en Namecheap el `CNAME` que pida Cloudflare.
+4. Restaura allí un respaldo de `historiasclinicas.net`: son direcciones distintas y no comparten lo guardado.
