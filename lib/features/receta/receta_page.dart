@@ -9,11 +9,15 @@ import 'package:printing/printing.dart';
 
 import '../../app/tema.dart';
 import '../../core/archivos/archivos.dart' as archivos;
+import '../../core/consultorio/config.dart';
+import '../../core/consultorio/documentos/receta_json.dart';
+import '../../core/pdf/adjuntos_pdf.dart';
 import '../../core/pdf/receta_pdf.dart';
 import '../../core/receta/alertas.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/campos.dart';
 import '../../core/widgets/titulo_dialogo.dart';
+import '../consultorio/integracion/enganche_receta.dart';
 import '../historia/estado/historia_controller.dart';
 import '../historia/widgets/dialogos.dart';
 import '../medico/medico_provider.dart';
@@ -22,6 +26,7 @@ import 'widgets/editor_items.dart';
 import 'widgets/mis_medicamentos.dart';
 import 'widgets/paciente_y_alertas.dart';
 import 'widgets/vista_previa.dart';
+import '../../core/widgets/texto_verificar.dart';
 
 /// Receta de media hoja (A5 vertical): editor y vista previa real.
 class RecetaPage extends ConsumerStatefulWidget {
@@ -191,7 +196,25 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
 
   Future<Uint8List> _generar() async {
     await _ctrl.prepararParaImprimir();
-    return generarPdfReceta(ref.read(documentoRecetaProvider));
+    final documento = ref.read(documentoRecetaProvider);
+    var adjuntos = const <AdjuntoPdf>[];
+    // Consultorio: la receta lleva receta.json y queda en la ficha.
+    if (consultorioHabilitado) {
+      adjuntos = adjuntosReceta(documento);
+    }
+    final bytes = await generarPdfReceta(documento, adjuntos: adjuntos);
+    if (consultorioHabilitado && mounted) {
+      unawaited(
+        registrarRecetaEmitida(
+          context,
+          ref,
+          documento: documento,
+          bytes: bytes,
+          nombreArchivo: _nombreArchivo,
+        ),
+      );
+    }
+    return bytes;
   }
 
   Future<void> _imprimir() async {
@@ -628,11 +651,13 @@ class _OpcionesHoja extends ConsumerWidget {
               initialValue: titulosReceta.contains(opciones.titulo)
                   ? opciones.titulo
                   : titulosReceta.first,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Título de la hoja',
-                helperText:
-                    'En España, VERIFICAR si debe ser "Hoja de '
-                    'tratamiento"',
+                helperText: ayudaConVerificar(
+                  ref,
+                  'En España, VERIFICAR si debe ser "Hoja de '
+                  'tratamiento"',
+                ),
               ),
               items: [
                 for (final t in titulosReceta)
@@ -679,7 +704,7 @@ class _OpcionesHoja extends ConsumerWidget {
           onChanged: (v) =>
               ref.read(opcionesRecetaProvider.notifier).cambiarNumerar(v),
         ),
-        const Text(
+        textoConVerificar(
           'La firma y el sello son imágenes, no una firma digital certificada. '
           'Los medicamentos de control especial pueden requerir recetario '
           'oficial (VERIFICAR).',

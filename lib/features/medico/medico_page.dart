@@ -21,6 +21,7 @@ import '../historia/estado/historia_controller.dart';
 import '../historia/widgets/dialogos.dart';
 import '../ihce/campos_ihce.dart';
 import 'medico_provider.dart';
+import '../../core/widgets/texto_verificar.dart';
 
 /// Panel "Datos del médico": se configura una vez y se guarda solo en este
 /// navegador.
@@ -128,7 +129,7 @@ class MedicoPage extends ConsumerWidget {
                       },
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    textoConVerificar(
                       'Define los tipos de documento y las etiquetas de las historias '
                       'nuevas (VERIFICAR la norma de cada país).',
                       style: TextStyle(
@@ -261,13 +262,13 @@ class MedicoPage extends ConsumerWidget {
                     color: ColoresMarca.aviso.withValues(alpha: 0.35),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.gavel_outlined, color: ColoresMarca.aviso),
-                    SizedBox(width: 12),
+                    const Icon(Icons.gavel_outlined, color: ColoresMarca.aviso),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
+                      child: textoConVerificar(
                         'La firma y el sello son imágenes: no equivalen a una firma '
                         'digital certificada. VERIFICAR su validez legal en tu país. '
                         'Cualquiera con acceso a este navegador podría usarlas: '

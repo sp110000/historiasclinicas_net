@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/clinica/rangos.dart';
+import '../../../core/consultorio/config.dart';
 import '../../../core/integridad/cadena_hash.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/presentacion/datos_historia.dart';
@@ -168,6 +169,13 @@ class _EvolucionSellada extends StatelessWidget {
                 fontSize: 13,
                 color: ColoresMarca.textoSuave,
               ),
+            ),
+          ],
+          if (ev.proximoControl != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Próximo control: ${formatoFecha(ev.proximoControl!)}',
+              style: const TextStyle(fontSize: 13),
             ),
           ],
           if (ev.avisoIntegridad != null) ...[
@@ -496,6 +504,22 @@ class _EditorEvolucionState extends ConsumerState<_EditorEvolucion> {
                   Rangos.glucemia,
                   (s, v) => s.copyWith(glucemia: v),
                 ),
+              ],
+            ),
+          ],
+          // Solo en el consultorio: el sitio público no lo muestra.
+          if (consultorioHabilitado) ...[
+            const SizedBox(height: 10),
+            FilaCampos(
+              children: [
+                CampoFecha(
+                  etiqueta: 'Próximo control',
+                  valor: ev.proximoControl,
+                  primera: DateTime(ev.fechaHora.year - 1),
+                  alCambiar: (f) =>
+                      _editar((e) => e.copyWith(proximoControl: f)),
+                ),
+                const SizedBox.shrink(),
               ],
             ),
           ],

@@ -7,14 +7,17 @@ import 'package:printing/printing.dart';
 
 import '../../app/tema.dart';
 import '../../core/archivos/archivos.dart' as archivos;
+import '../../core/consultorio/config.dart';
 import '../../core/pais/pais_provider.dart';
 import '../../core/pais/perfil_pais.dart';
+import '../../core/pdf/adjunto_historia.dart';
 import '../../core/pdf/historia_pdf.dart';
 import '../../core/pdf/lector_adjunto.dart';
 import '../../core/presentacion/datos_historia.dart';
 import '../../core/utils/nombres_archivo.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
 import '../../core/widgets/titulo_dialogo.dart';
+import '../consultorio/integracion/enganche_historia.dart';
 import '../medico/medico_provider.dart';
 import '../ihce/campos_ihce.dart';
 import 'estado/archivo_provider.dart';
@@ -176,6 +179,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       return;
     }
     String? error;
+    PaqueteHistoria? abierto;
     try {
       final paquete = leerHistoriaDePdf(archivo.bytes);
       _ctrl.abrir(
@@ -183,6 +187,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
         revision: paquete.revision,
         nombreArchivo: archivo.nombre,
       );
+      abierto = paquete;
     } on LecturaHistoriaException catch (e) {
       error = e.mensaje;
     } on FormatException {
@@ -216,6 +221,15 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
           : 'Atención: ${integridad.descripcion}',
       error: !integridad.correcta,
     );
+    if (consultorioHabilitado && abierto != null && mounted) {
+      await alAbrirHistoria(
+        context,
+        ref,
+        datos: abierto.datos,
+        revision: abierto.revision,
+        archivo: archivo,
+      );
+    }
   }
 
   Future<void> _empezarDeCero({required bool preguntar}) async {
@@ -382,6 +396,18 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       );
       await archivos.escribirArchivo(destino, bytes);
       _ctrl.guardado(datos, nombreArchivo: destino.nombre);
+      if (consultorioHabilitado && mounted) {
+        unawaited(
+          registrarHistoriaGuardada(
+            context,
+            ref,
+            datos: datos.datos,
+            revision: datos.revision,
+            nombreArchivo: destino.nombre,
+            bytesPdf: bytes,
+          ),
+        );
+      }
       if (!destino.esDescarga) {
         ref
             .read(archivoActualProvider.notifier)

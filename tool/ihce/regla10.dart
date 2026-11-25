@@ -1,7 +1,10 @@
 // Comprobación automática de la regla 10 (interfaz mínima) frente al commit
 // base de la rama: sin dependencias de UI nuevas, sin cambios en archivos de
 // tema o estilos, y todo archivo de presentación tocado figura en
-// docs/ihce/CAMBIOS_UI.md. Solo dart:io.
+// docs/ihce/CAMBIOS_UI.md o, desde la Fase 5, en el inventario de
+// docs/FASE5.md («Archivos existentes que cambia la Fase 5»). La carpeta
+// nueva del consultorio (lib/features/consultorio/) cambia a propósito y no
+// necesita inventario archivo por archivo. Solo dart:io.
 //
 //   dart tool/ihce/regla10.dart [commit-base]
 import 'dart:io';
@@ -23,8 +26,14 @@ const _estilos = [
   'assets/fonts/',
 ];
 
-/// Archivos de presentación: si se tocan, van en CAMBIOS_UI.md.
+/// Archivos de presentación: si se tocan, van en un inventario.
 const _presentacion = ['lib/features/', 'lib/core/widgets/', 'lib/app/'];
+
+/// Inventarios de cambios de interfaz: el de IHCE y el de la Fase 5.
+const _inventarios = ['docs/ihce/CAMBIOS_UI.md', 'docs/FASE5.md'];
+
+/// Carpetas nuevas de la Fase 5 (pregunta 8 de docs/FASE5.md).
+const _carpetasNuevas = ['lib/features/consultorio/'];
 
 void main(List<String> args) {
   final base = args.isNotEmpty ? args.first : _base();
@@ -49,15 +58,23 @@ void main(List<String> args) {
   stdout.writeln('Archivos de tema/estilo modificados: ${estilos.length}');
 
   // 3. Inventario de cambios de interfaz.
-  final inventario = File('docs/ihce/CAMBIOS_UI.md');
-  final texto = inventario.existsSync() ? inventario.readAsStringSync() : '';
+  final texto = [
+    for (final i in _inventarios)
+      if (File(i).existsSync()) File(i).readAsStringSync(),
+  ].join('\n');
   final presentacion = _cambiados(base, _presentacion);
-  for (final f in presentacion) {
-    if (!texto.contains(f)) fallos.add('$f no figura en CAMBIOS_UI.md');
+  final aInventariar = presentacion.where(
+    (f) => !_carpetasNuevas.any(f.startsWith),
+  );
+  for (final f in aInventariar) {
+    if (!texto.contains(f)) {
+      fallos.add('$f no figura en ${_inventarios.join(' ni en ')}');
+    }
   }
   stdout.writeln(
     'Archivos de presentación tocados: ${presentacion.length} '
-    '(todos deben figurar en docs/ihce/CAMBIOS_UI.md)',
+    '(${presentacion.length - aInventariar.length} en carpetas nuevas de la '
+    'Fase 5; los demás deben figurar en ${_inventarios.join(' o ')})',
   );
 
   if (fallos.isEmpty) {

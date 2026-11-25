@@ -80,6 +80,13 @@ Future<ArchivoAbierto?> elegirCatalogo() => _elegirConInput(
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 );
 
+/// Pide un respaldo del consultorio (`.hcrespaldo`).
+Future<ArchivoAbierto?> elegirRespaldo() =>
+    _elegirConInput('.hcrespaldo,application/octet-stream,application/zip');
+
+Future<ArchivoAbierto?> elegirPaquete() =>
+    _elegirConInput('.hcpaquete,application/octet-stream,application/zip');
+
 Future<ArchivoAbierto?> _elegirConInput(String acepta) {
   final completer = Completer<ArchivoAbierto?>();
   final input = web.HTMLInputElement()
@@ -258,4 +265,142 @@ void Function() escucharArchivosSoltados({
       ..removeEventListener('dragleave', sale)
       ..removeEventListener('drop', suelta);
   };
+}
+
+/// Pide varios PDF a la vez (importación del consultorio). Devuelve una
+/// lista vacía si el usuario cancela.
+Future<List<ArchivoAbierto>> elegirPdfs() {
+  final completer = Completer<List<ArchivoAbierto>>();
+  final input = web.HTMLInputElement()
+    ..type = 'file'
+    ..accept = '.pdf,application/pdf'
+    ..multiple = true
+    ..style.display = 'none';
+
+  void terminar(List<ArchivoAbierto> resultado) {
+    input.remove();
+    if (!completer.isCompleted) completer.complete(resultado);
+  }
+
+  input.addEventListener(
+    'change',
+    (web.Event _) {
+      final lista = input.files;
+      if (lista == null || lista.length == 0) {
+        terminar(const []);
+        return;
+      }
+      _leerVarios(lista).then(
+        terminar,
+        onError: (Object e, StackTrace s) {
+          input.remove();
+          if (!completer.isCompleted) completer.completeError(e, s);
+        },
+      );
+    }.toJS,
+  );
+  input.addEventListener('cancel', ((web.Event _) => terminar(const [])).toJS);
+  web.document.body!.append(input);
+  input.click();
+  return completer.future;
+}
+
+Future<List<ArchivoAbierto>> _leerVarios(web.FileList lista) async => [
+  for (var i = 0; i < lista.length; i++)
+    ArchivoAbierto(
+      nombre: lista.item(i)!.name,
+      bytes: await _leer(lista.item(i)!),
+    ),
+];
+
+/// Escucha varios archivos arrastrados sobre la ventana (sin manejadores:
+/// se importan, no se sobrescriben). Devuelve la función que deja de
+/// escuchar.
+void Function() escucharVariosSoltados({
+  required void Function(List<ArchivoAbierto> archivos) alSoltar,
+  required void Function(bool arrastrando) alArrastrar,
+}) {
+  var profundidad = 0;
+  bool conArchivos(web.DragEvent e) =>
+      e.dataTransfer?.types.toDart.any((t) => t.toDart == 'Files') ?? false;
+
+  final sobre = (web.DragEvent e) {
+    if (!conArchivos(e)) return;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'copy';
+  }.toJS;
+  final entra = (web.DragEvent e) {
+    if (!conArchivos(e)) return;
+    profundidad++;
+    alArrastrar(true);
+  }.toJS;
+  final sale = (web.DragEvent e) {
+    if (!conArchivos(e)) return;
+    profundidad--;
+    if (profundidad <= 0) {
+      profundidad = 0;
+      alArrastrar(false);
+    }
+  }.toJS;
+  final suelta = (web.DragEvent e) {
+    if (!conArchivos(e)) return;
+    e.preventDefault();
+    profundidad = 0;
+    alArrastrar(false);
+    final lista = e.dataTransfer!.files;
+    if (lista.length == 0) return;
+    _leerVarios(lista).then(alSoltar);
+  }.toJS;
+
+  web.window
+    ..addEventListener('dragover', sobre)
+    ..addEventListener('dragenter', entra)
+    ..addEventListener('dragleave', sale)
+    ..addEventListener('drop', suelta);
+  return () {
+    web.window
+      ..removeEventListener('dragover', sobre)
+      ..removeEventListener('dragenter', entra)
+      ..removeEventListener('dragleave', sale)
+      ..removeEventListener('drop', suelta);
+  };
+}
+
+/// Pide una foto. Con [camara], en celulares y tabletas abre la cámara del
+/// sistema (`capture`); en un computador abre el selector de archivos.
+/// Devuelve `null` si el usuario cancela.
+Future<ArchivoAbierto?> elegirFoto({bool camara = true}) {
+  final completer = Completer<ArchivoAbierto?>();
+  final input = web.HTMLInputElement()
+    ..type = 'file'
+    ..accept = 'image/*'
+    ..style.display = 'none';
+  if (camara) input.setAttribute('capture', 'environment');
+
+  void terminar(ArchivoAbierto? resultado) {
+    input.remove();
+    if (!completer.isCompleted) completer.complete(resultado);
+  }
+
+  input.addEventListener(
+    'change',
+    (web.Event _) {
+      final archivo = input.files?.item(0);
+      if (archivo == null) {
+        terminar(null);
+        return;
+      }
+      _leer(archivo).then(
+        (bytes) => terminar(ArchivoAbierto(nombre: archivo.name, bytes: bytes)),
+        onError: (Object e, StackTrace s) {
+          input.remove();
+          if (!completer.isCompleted) completer.completeError(e, s);
+        },
+      );
+    }.toJS,
+  );
+  input.addEventListener('cancel', ((web.Event _) => terminar(null)).toJS);
+  web.document.body!.append(input);
+  input.click();
+  return completer.future;
 }

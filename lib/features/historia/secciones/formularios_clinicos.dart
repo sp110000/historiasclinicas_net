@@ -13,6 +13,7 @@ import '../../ihce/campos_ihce.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/historia_controller.dart';
 import 'edicion.dart';
+import '../../../core/widgets/texto_verificar.dart';
 
 // ─────────────────────────── Motivo ───────────────────────────
 
@@ -703,7 +704,7 @@ class FormularioFirma extends ConsumerWidget {
             ),
           ],
         ),
-        const Text(
+        textoConVerificar(
           'La firma y el sello son imágenes: no equivalen a una firma digital '
           'certificada. VERIFICAR su validez legal.',
           style: TextStyle(fontSize: 12.5, color: ColoresMarca.textoSuave),

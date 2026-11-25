@@ -733,6 +733,14 @@ let medicoGuardado;
   await texto(page, 'Vista previa de la receta, hoja 1 de 1').waitFor();
   await captura(page, 'r6_receta_movil_vista_previa.png');
   paso('Móvil: receta con pestañas Editar y Vista previa');
+
+  // Fase 5: sin CONSULTORIO_ENABLED (lo que se publica), el consultorio no
+  // existe: ninguna pantalla lo abre y su base de IndexedDB no se crea.
+  const bases = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
+  if (bases.includes('historiasclinicas_consultorio')) {
+    throw new Error(`Sin la bandera se creó la base del consultorio: ${bases}`);
+  }
+  paso(`Sin la bandera del consultorio no se crea su base (bases: ${bases.length ? bases.join(', ') : 'ninguna'})`);
   await context.close();
 }
 

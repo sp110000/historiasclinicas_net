@@ -2,13 +2,19 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/consultorio/config.dart';
 import '../../../core/storage/borrador_store.dart';
 import '../../../core/storage/preferencias.dart';
+import '../../consultorio/integracion/en_curso_cifrado.dart';
 import 'estado_historia.dart';
 
-final borradorStoreProvider = Provider<BorradorStore>(
-  (ref) => BorradorStore(ref.watch(preferenciasProvider)),
-);
+final borradorStoreProvider = Provider<BorradorStore>((ref) {
+  // Consultorio: el borrador va cifrado (en memoria mientras está bloqueado).
+  if (consultorioHabilitado) {
+    return crearBorradorStoreConsultorio(ref);
+  }
+  return BorradorStore(ref.watch(preferenciasProvider));
+});
 
 class EstadoBorrador {
   const EstadoBorrador({this.guardadoEn, this.desactivado = false});

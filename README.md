@@ -4,6 +4,8 @@ Historia clínica y receta en el navegador. Sin servidor, sin base de datos y si
 
 **Estado:** las cuatro fases están completadas: historia clínica, datos del médico con firma y sello, receta A5, CIE-10 de SISPRO incluido, PDF final, app instalable sin conexión y guía de despliegue. Diseño visual 2b «Clínico sobrio» en [docs/DISENO.md](docs/DISENO.md). Ver [docs/FASE4.md](docs/FASE4.md), [docs/FASE3.md](docs/FASE3.md), [docs/FASE2.md](docs/FASE2.md), [docs/FASE1.md](docs/FASE1.md), [docs/FASE0.md](docs/FASE0.md) y el plan en [docs/PLAN.md](docs/PLAN.md). **Para publicar: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).**
 
+**Fase 5, el consultorio (terminada y aprobada el 25/11/2026; PR sin fusionar):** el sistema del consultorio en el navegador, sin servidor y sin conexión, detrás de la bandera `CONSULTORIO_ENABLED` (apagada por defecto; con ella apagada, el sitio público se comporta como siempre). Almacén local cifrado con frase y código de recuperación, y respaldo cifrado (5.0); pacientes con ficha longitudinal e importación de PDF (5.1); seguimiento y fotos cifradas (5.2); programa de peso con GLP-1, valoración, consentimiento y sesión de hidrolipoclasia (5.3); certificados, incapacidad, órdenes y remisión (5.4); agenda (5.5); caja, recibos y paquetes (5.6); inventario con lotes (5.7); y notas «VERIFICAR» con su registro y modo presentación (5.8). Plan, avance y cierre en [docs/FASE5.md](docs/FASE5.md); para publicar la versión del consultorio: [docs/fase5/PUBLICAR_CONSULTORIO.md](docs/fase5/PUBLICAR_CONSULTORIO.md).
+
 ## Requisitos
 - Flutter **3.38.10** (stable), Dart 3.10.9.
 
@@ -19,7 +21,7 @@ flutter test
 ```bash
 ./tool/construir_web.sh
 ```
-El resultado queda en `build/web/` y es lo que se publica (ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)). El script compila con `--no-web-resources-cdn` y genera `sw.js`, el service worker que guarda la app en el navegador para usarla sin conexión. CanvasKit, las fuentes, el CIE-10 y pdf.js (vista previa de la receta, en `web/pdfjs/`) se sirven desde el propio sitio, sin peticiones a terceros.
+Con `--salida DIR` compila en otra carpeta; la versión del consultorio se compila con `./tool/construir_web.sh --dart-define=CONSULTORIO_ENABLED=true --salida build/web-consultorio`. El resultado queda en `build/web/` y es lo que se publica (ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)). El script compila con `--no-web-resources-cdn` y genera `sw.js`, el service worker que guarda la app en el navegador para usarla sin conexión. CanvasKit, las fuentes, el CIE-10 y pdf.js (vista previa de la receta, en `web/pdfjs/`) se sirven desde el propio sitio, sin peticiones a terceros.
 
 ## Pruebas de extremo a extremo (Chromium, sin conexión)
 ```bash
@@ -27,17 +29,28 @@ cd tool/e2e && npm install && npx playwright install chromium && cd ../..
 node tool/e2e/servidor.mjs &       # build/web con las cabeceras de producción (CSP)
 node tool/e2e/historia_offline.mjs # historia, receta y PDF; pide pikepdf (pip) y poppler-utils (pdfinfo, pdftotext)
 node tool/e2e/pwa_offline.mjs      # app instalada: recargar sin conexión, actualizar, integridad
+# Consultorio (bandera encendida):
+node tool/e2e/servidor.mjs 8766 build/web-consultorio &
+node tool/e2e/consultorio_offline.mjs  # frase, bloqueo, respaldo y restauración; pacientes, ficha, autorización y receta; mediciones, fotos e informe; programa de peso, valoración, consentimiento y sesión; certificado, incapacidad, orden y remisión, y su reimportación; agenda, WhatsApp interceptado y «Atender»; caja con abono, paquete, recibos y cierre; inventario con lotes; notas verificadas y modo presentación (sin conexión)
 ```
 GitHub Actions: `.github/workflows/ci.yml` ejecuta formato, análisis, tests, compilación y las dos pruebas en cada push, y `.github/workflows/pages.yml` publica el sitio en GitHub Pages (`historiasclinicas.net`) en cada push a `main`. Pasos en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
 ## Estructura
 ```
 lib/
-  app/              tema, rutas (go_router: /, /receta y /medico), MaterialApp
+  app/              tema, rutas (go_router: /, /receta y /medico; con la bandera, las del consultorio), MaterialApp
   core/
     archivos/       abrir PDF, imágenes, JSON y catálogos; guardar, descargar y soltar (web)
     cie10/          catálogo CIE-10: el incluido (SISPRO) y el importado (Excel, CSV, JSON; IndexedDB)
     clinica/        edad, IMC, gestación, rangos de signos vitales
+    consultorio/    Fase 5 (bandera CONSULTORIO_ENABLED): almacén cifrado en IndexedDB, llavero y
+                    AES-256-GCM, repositorio, migraciones, respaldo .hcrespaldo, hoja de recuperación;
+                    índice de pacientes (fichas, historias, recetas), plantillas y documentos firmados;
+                    mediciones, fotos (sin EXIF), informe de seguimiento y paquete .hcpaquete;
+                    programa de peso y GLP-1, plantillas de procedimiento, valoración,
+                    consentimiento informado, sesión y certificaciones; agenda y festivos;
+                    caja (catálogo, cobros, recibos, paquetes, créditos, cierre); inventario
+                    (insumos, lotes, movimientos); registro de verificaciones; reglas puras (reglas/)
     imagenes/       firma, sello y logo: quitar fondo, recortar, reducir
     integridad/     JSON canónico y cadena SHA-256
     models/         historia, paciente, antecedentes, revisión por sistemas, signos, diagnósticos, evoluciones, médico
@@ -47,8 +60,14 @@ lib/
     pwa/            avisos del service worker (sin conexión, versión nueva)
     receta/         ítems, número en letras, cantidad sugerida, alertas, "Mis medicamentos"
     storage/        preferencias, borrador, médico, receta y "Mis medicamentos" (localStorage)
-    widgets/        campos de formulario (con sugerencias), tarjeta de sección, lienzo de firma
+    widgets/        campos de formulario (con sugerencias), tarjeta de sección, lienzo de firma;
+                    texto_verificar: las notas «VERIFICAR» de siempre (con la bandera, con chip)
   features/
+    consultorio/    Fase 5: contenedor (riel y menú), desbloqueo, Ajustes, respaldo, pacientes y ficha,
+                    documentos (plantillas, autorización, consentimiento de imagen), seguimiento,
+                    fotos, equipo secundario, peso, estética (valoración, consentimiento, sesión),
+                    agenda, caja, inventario, notas «VERIFICAR» y modo presentación,
+                    enganches con la historia y la receta
     historia/       pantalla, estado (Riverpod), formularios, evoluciones
     cie10/          estado del catálogo e importación
     medico/         datos del médico, firma (dibujada o subida), sello y logo
@@ -58,10 +77,12 @@ assets/cie10/       tabla de referencia CIE-10 de SISPRO (12.634 códigos)
 test/               unitarios, PDF, widgets, service worker y configuraciones de despliegue
 web/                index.html, manifest, iconos, cabeceras (_headers, .htaccess) y pdfjs/
 web/pdfjs/          pdf.js 3.2.146 (Mozilla, Apache 2.0) para la vista previa, sin CDN ni eval
-tool/construir_web.sh  compila el sitio y genera el service worker
+tool/construir_web.sh  compila el sitio y genera el service worker (--salida para otra carpeta)
+tool/consultorio/   comprueba si el módulo del consultorio quedó en main.dart.js
 tool/pwa/           plantilla y generador del service worker; CSP dentro del HTML (GitHub Pages)
 tool/cie10/         genera el catálogo incluido desde el Excel de SISPRO
-tool/e2e/           servidor con cabeceras, pruebas en Chromium, inspección y alteración de PDF
+tool/e2e/           servidor con cabeceras, pruebas en Chromium (también la del consultorio), inspección y alteración de PDF
+tool/e2e/fixtures/  PDF y fotos sintéticos para la e2e del consultorio (ver su LEEME.md)
 firebase.json, vercel.json, .vercelignore   configuración de esos proveedores
 .github/workflows/  CI (análisis, tests, compilación, pruebas en Chromium) y publicación en GitHub Pages
 ```

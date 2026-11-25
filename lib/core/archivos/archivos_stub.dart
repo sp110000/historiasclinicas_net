@@ -12,6 +12,10 @@ Future<ArchivoAbierto?> elegirJson() async => null;
 
 Future<ArchivoAbierto?> elegirCatalogo() async => null;
 
+Future<ArchivoAbierto?> elegirRespaldo() async => null;
+
+Future<ArchivoAbierto?> elegirPaquete() async => null;
+
 Future<DestinoGuardado?> prepararGuardado({
   required String nombreSugerido,
   ArchivoAbierto? sobrescribir,
@@ -30,3 +34,12 @@ void Function() escucharArchivosSoltados({
   required void Function(ArchivoAbierto archivo) alSoltar,
   required void Function(bool arrastrando) alArrastrar,
 }) => () {};
+
+Future<List<ArchivoAbierto>> elegirPdfs() async => const [];
+
+void Function() escucharVariosSoltados({
+  required void Function(List<ArchivoAbierto> archivos) alSoltar,
+  required void Function(bool arrastrando) alArrastrar,
+}) => () {};
+
+Future<ArchivoAbierto?> elegirFoto({bool camara = true}) async => null;
