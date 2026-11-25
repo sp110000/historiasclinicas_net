@@ -240,6 +240,12 @@ void main() {
   testWidgets('modo presentación: ningún «VERIFICAR» ni chip, sin notas '
       'internas, motivo ni montos, en cada pantalla', (t) async {
     final (b, id) = await _preparar();
+    // Con una nota verificada (Ajustes → Verificaciones la lista).
+    await b.servicio.verificaciones.marcar(
+      'Festivo: Inmaculada Concepción (VERIFICAR)',
+      fecha: DateTime(2026, 12, 8),
+      fuente: 'Ley 51 de 1983',
+    );
     for (final (nombre, ruta) in rutas) {
       await _montar(t, b, ruta(id), presentacion: true);
       expect(

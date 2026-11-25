@@ -6,6 +6,7 @@ import '../../../core/consultorio/verificar/verificar.dart';
 import '../../../core/utils/fechas.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../estado/presentacion_provider.dart';
 import '../widgets/comunes.dart';
 import '../widgets/texto_normativo.dart';
 
@@ -18,6 +19,8 @@ class TarjetaVerificaciones extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(versionIndiceProvider);
     final todas = ref.read(servicioConsultorioProvider).verificaciones.todas;
+    // En el modo presentación, solo cuántas: las notas llevan la marca.
+    final presentacion = ref.watch(modoPresentacionProvider);
     return TarjetaConsultorio(
       icono: Icons.verified_outlined,
       titulo: 'Verificaciones',
@@ -27,15 +30,16 @@ class TarjetaVerificaciones extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Lo que falta revisar con la norma, tu abogado o tu contador sale '
-            'en cada pantalla con un chip «Por verificar». Tócalo para leer '
-            'la nota completa y, cuando la verifiques, registrar la fecha y '
-            'la fuente. El modo presentación oculta los chips, y los PDF '
-            'nunca los imprimen.',
-            style: TextStyle(color: ColoresMarca.textoSuave),
-          ),
-          for (final v in todas)
+          if (!presentacion)
+            const Text(
+              'Lo que falta revisar con la norma, tu abogado o tu contador sale '
+              'en cada pantalla con un chip «Por verificar». Tócalo para leer '
+              'la nota completa y, cuando la verifiques, registrar la fecha y '
+              'la fuente. El modo presentación oculta los chips, y los PDF '
+              'nunca los imprimen.',
+              style: TextStyle(color: ColoresMarca.textoSuave),
+            ),
+          for (final v in presentacion ? const <Verificacion>[] : todas)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: const BoxDecoration(
