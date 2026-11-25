@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,13 +34,36 @@ String servicioDeCita(TipoCita t) => switch (t) {
 
 String nombreArchivoRecibo(Recibo r) => 'Recibo_${r.numero}.pdf';
 
-/// Descarga el PDF guardado del recibo [r].
+/// Descarga el PDF guardado del recibo [r]. Lee los proveedores antes de
+/// esperar: la fila que lo pide puede desaparecer mientras tanto.
 Future<void> descargarRecibo(WidgetRef ref, Recibo r) async {
+  final descargar = ref.read(descargarPdfProvider);
   final pdf = await ref.read(servicioConsultorioProvider).caja.pdfRecibo(r.id);
-  if (pdf != null) ref.read(descargarPdfProvider)(pdf, nombreArchivoRecibo(r));
+  if (pdf != null) descargar(pdf, nombreArchivoRecibo(r));
 }
 
 typedef _Resultado = ({ResultadoCobro? cobro, Paquete? paquete});
+
+/// Lo que se necesita después de un diálogo, leído antes de abrirlo: al
+/// registrar, la tarjeta o la fila que lo abrió puede desaparecer (un saldo
+/// pagado deja la lista) y su `ref` y su `context` ya no sirven.
+typedef _Despues = ({
+  void Function() notificar,
+  void Function(Uint8List, String) descargar,
+  CajaConsultorio caja,
+  ScaffoldMessengerState? mensajero,
+});
+
+_Despues _antes(BuildContext context, WidgetRef ref) => (
+  notificar: ref.read(versionIndiceProvider.notifier).cambio,
+  descargar: ref.read(descargarPdfProvider),
+  caja: ref.read(servicioConsultorioProvider).caja,
+  mensajero: ScaffoldMessenger.maybeOf(context),
+);
+
+void _mensaje(_Despues d, String texto) => d.mensajero
+  ?..hideCurrentSnackBar()
+  ..showSnackBar(SnackBar(content: Text(texto)));
 
 /// Cobra a [pacienteId] (o al de la [cita]): servicios, descuentos, crédito
 /// de la valoración y pagos. Con pago, descarga el recibo.
@@ -48,33 +73,33 @@ Future<void> abrirCobro(
   String? pacienteId,
   Cita? cita,
 }) async {
+  final d = _antes(context, ref);
   final r = await showDialog<_Resultado>(
     context: context,
     builder: (_) =>
         _DialogoCobro(pacienteId: pacienteId ?? cita?.pacienteId, cita: cita),
   );
-  if (r == null || !context.mounted) return;
-  ref.read(versionIndiceProvider.notifier).cambio();
-  final caja = ref.read(servicioConsultorioProvider).caja;
+  if (r == null) return;
+  d.notificar();
   if (r.paquete case final p?) {
-    mostrarMensaje(
-      context,
+    _mensaje(
+      d,
       '${p.nombre}: sesión ${p.usadas} de ${p.sesiones} usada (sin recibo).',
     );
     return;
   }
   final c = r.cobro!;
-  final saldo = caja.saldo(c.cobro);
+  final saldo = d.caja.saldo(c.cobro);
   if (c.recibo case final recibo?) {
-    ref.read(descargarPdfProvider)(c.pdf!, nombreArchivoRecibo(recibo));
-    mostrarMensaje(
-      context,
+    d.descargar(c.pdf!, nombreArchivoRecibo(recibo));
+    _mensaje(
+      d,
       'Recibo ${recibo.numero} descargado'
       '${saldo > 0 ? '. Queda un saldo de ${formatoPesos(saldo)}.' : '.'}',
     );
   } else {
-    mostrarMensaje(
-      context,
+    _mensaje(
+      d,
       'Cobro registrado sin pago: queda el saldo de ${formatoPesos(saldo)}.',
     );
   }
@@ -86,18 +111,18 @@ Future<void> abrirAbono(
   WidgetRef ref,
   Cobro cobro,
 ) async {
-  final r = await showDialog<(Recibo, List<int>)>(
+  final d = _antes(context, ref);
+  final r = await showDialog<(Recibo, Uint8List)>(
     context: context,
     builder: (_) => _DialogoAbono(cobro: cobro),
   );
-  if (r == null || !context.mounted) return;
-  ref.read(versionIndiceProvider.notifier).cambio();
-  final (recibo, _) = r;
-  await descargarRecibo(ref, recibo);
-  if (!context.mounted) return;
-  final saldo = ref.read(servicioConsultorioProvider).caja.saldo(cobro);
-  mostrarMensaje(
-    context,
+  if (r == null) return;
+  d.notificar();
+  final (recibo, pdf) = r;
+  d.descargar(pdf, nombreArchivoRecibo(recibo));
+  final saldo = d.caja.saldo(cobro);
+  _mensaje(
+    d,
     'Recibo ${recibo.numero} descargado'
     '${saldo > 0 ? '. Queda un saldo de ${formatoPesos(saldo)}.' : '.'}',
   );
@@ -109,22 +134,20 @@ Future<void> anularReciboConMotivo(
   WidgetRef ref,
   Recibo r,
 ) async {
+  final d = _antes(context, ref);
   final motivo = await pedirTexto(
     context,
     titulo: 'Anular el recibo ${r.numero}',
     etiqueta: 'Motivo de la anulación',
     aceptar: 'Anular',
   );
-  if (motivo == null || !context.mounted) return;
+  if (motivo == null) return;
   try {
-    await ref
-        .read(servicioConsultorioProvider)
-        .caja
-        .anularRecibo(r.id, motivo: motivo);
-    ref.read(versionIndiceProvider.notifier).cambio();
-    if (context.mounted) mostrarMensaje(context, 'Recibo ${r.numero} anulado.');
+    await d.caja.anularRecibo(r.id, motivo: motivo);
+    d.notificar();
+    _mensaje(d, 'Recibo ${r.numero} anulado.');
   } catch (e) {
-    if (context.mounted) mostrarMensaje(context, mensajeDeError(e));
+    _mensaje(d, mensajeDeError(e));
   }
 }
 
@@ -134,22 +157,20 @@ Future<void> anularCobroConMotivo(
   WidgetRef ref,
   Cobro c,
 ) async {
+  final d = _antes(context, ref);
   final motivo = await pedirTexto(
     context,
     titulo: 'Anular el cobro',
     etiqueta: 'Motivo de la anulación',
     aceptar: 'Anular',
   );
-  if (motivo == null || !context.mounted) return;
+  if (motivo == null) return;
   try {
-    await ref
-        .read(servicioConsultorioProvider)
-        .caja
-        .anularCobro(c.id, motivo: motivo);
-    ref.read(versionIndiceProvider.notifier).cambio();
-    if (context.mounted) mostrarMensaje(context, 'Cobro anulado.');
+    await d.caja.anularCobro(c.id, motivo: motivo);
+    d.notificar();
+    _mensaje(d, 'Cobro anulado.');
   } catch (e) {
-    if (context.mounted) mostrarMensaje(context, mensajeDeError(e));
+    _mensaje(d, mensajeDeError(e));
   }
 }
 
