@@ -10,9 +10,11 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
 import 'ajustes_procedimientos.dart';
+import 'consentimientos_procedimientos.dart';
 
 /// Procedimientos (en el menú, debajo de la historia): las plantillas de
-/// cada procedimiento con sus versiones, y agregar uno nuevo.
+/// cada procedimiento con sus versiones, agregar uno nuevo, imprimirlos, y
+/// el consentimiento informado (su texto y los firmados).
 class ProcedimientosPage extends ConsumerWidget {
   const ProcedimientosPage({super.key});
 
@@ -41,7 +43,15 @@ class ProcedimientosPage extends ConsumerWidget {
           const SizedBox(width: 12),
         ],
       ),
-      body: const CuerpoConsultorio(children: [TarjetaProcedimientos()]),
+      body: const CuerpoConsultorio(
+        children: [
+          TarjetaProcedimientos(),
+          SizedBox(height: 16),
+          TarjetaConsentimientoInformado(),
+          SizedBox(height: 16),
+          TarjetaConsentimientosFirmados(),
+        ],
+      ),
     );
   }
 }

@@ -109,13 +109,18 @@ void main() {
     await b.servicio.crear(fraseDePrueba);
     await _montar(t, banco: b, ruta: '/ajustes');
     expect(find.text('Plantillas de documentos'), findsOneWidget);
-    // Solo las de documentos (Ajustes tiene otras plantillas más abajo).
+    // Solo las de documentos (Ajustes tiene otras plantillas más abajo);
+    // el consentimiento informado está en Procedimientos.
     expect(
       find.descendant(
         of: find.byType(TarjetaPlantillas),
         matching: find.text('v1 en borrador (sin aprobar)'),
       ),
-      findsNWidgets(4),
+      findsNWidgets(3),
+    );
+    expect(
+      find.text('Consentimiento informado de procedimiento'),
+      findsNothing,
     );
     expect(find.text('Descargar PDF para exhibir'), findsNothing);
 

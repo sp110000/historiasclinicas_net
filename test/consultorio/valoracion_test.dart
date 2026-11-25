@@ -514,7 +514,7 @@ void main() {
         reason: 'la de fábrica trae la familia',
       );
       expect(find.textContaining('Falta: los componentes'), findsOneWidget);
-      await pulsar(t, find.text('Aprobar v1').last);
+      await pulsar(t, find.text('Aprobar v1').first);
       await pulsar(t, find.widgetWithText(FilledButton, 'Aprobar'));
       expect(find.textContaining('Para aprobarla falta'), findsOneWidget);
       expect(
@@ -564,6 +564,68 @@ void main() {
       final nuevo = b.servicio.procedimientos.plantillas.last;
       expect(nuevo.ultima.definicion.usaAnestesico, isFalse);
       expect(nuevo.ultima.definicion.usaSolucion, isFalse);
+      await t.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('Procedimientos: imprimir el protocolo, la lista y la '
+        'muestra; el texto del consentimiento y los firmados', (t) async {
+      final (b, id) = await _paciente();
+      await valorarAptoDePrueba(b, id);
+      await consentimientoDePrueba(b, id);
+      final descargas = <(String, int)>[];
+      await montar(t, b, '/procedimientos', descargas: descargas);
+      // El texto del consentimiento está aquí (ya no en Ajustes).
+      expect(find.text('Consentimiento informado'), findsOneWidget);
+      expect(
+        find.text('Consentimiento informado de procedimiento'),
+        findsOneWidget,
+      );
+      // Imprimir: el protocolo vigente, la lista y la muestra.
+      for (final (opcion, archivo) in [
+        ('Protocolo v1 (vigente)', 'Protocolo_Hidrolipoclasia_v1.pdf'),
+        (
+          'Lista de verificación v1',
+          'Lista_verificacion_Hidrolipoclasia_v1.pdf',
+        ),
+        (
+          'Consentimiento de muestra',
+          'Consentimiento_muestra_Hidrolipoclasia.pdf',
+        ),
+      ]) {
+        await pulsar(t, find.bySemanticsLabel('Imprimir Hidrolipoclasia'));
+        await pulsar(t, find.text(opcion));
+        expect(descargas.last.$1, archivo);
+        expect(descargas.last.$2, greaterThan(1000));
+        expect(find.text('$archivo descargado.'), findsOneWidget);
+        await t.pump(const Duration(seconds: 5));
+        await t.pumpAndSettle();
+      }
+      // Los firmados: número, paciente, plan y estado; su PDF.
+      expect(find.text('Consentimientos firmados'), findsOneWidget);
+      expect(find.text('HIDROLIPOCLASIA · 1'), findsOneWidget);
+      expect(find.textContaining('CI-000001 · PEÑA'), findsOneWidget);
+      expect(
+        find.textContaining('Abdomen inferior, Flancos · 4 sesiones'),
+        findsOneWidget,
+      );
+      expect(find.text('Vigente'), findsOneWidget);
+      await pulsar(t, find.text('PDF CI-000001'));
+      expect(descargas.last.$1, startsWith('Consentimiento_informado_'));
+      await t.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('Ajustes ya no tiene el consentimiento informado', (t) async {
+      final (b, _) = await _paciente(aprobar: false);
+      await montar(t, b, '/ajustes');
+      await t.scrollUntilVisible(
+        find.text('Plantillas de documentos'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.text('Consentimiento informado de procedimiento'),
+        findsNothing,
+      );
       await t.pump(const Duration(seconds: 5));
     });
 

@@ -115,6 +115,20 @@ Pediste poder agregar procedimientos y tenerlos en el menú, debajo de Historia 
 
 ---
 
+## Imprimir procedimientos y consentimientos en Procedimientos (25/11/2026)
+
+Pediste un botón para imprimir, y tener los consentimientos informados en Procedimientos.
+
+- **«Imprimir» en cada procedimiento** (PDF, para guardar o imprimir):
+  - **protocolo:** el vigente, el borrador (marcado «BORRADOR – sin aprobar») o una versión anterior. Lleva versión, fecha de aprobación, familia, qué usa, la valoración, la sesión, la lista de verificación, las indicaciones, los riesgos y las alternativas, y tu firma y sello;
+  - **lista de verificación:** una hoja con casillas para marcar a mano, espacio para paciente, documento, fecha, hora y sesión, y firmas de quien verificó y del médico;
+  - **consentimiento de muestra:** el texto del consentimiento con el nombre del procedimiento, sus riesgos y alternativas. Lo del paciente va en blanco. Está marcado «MUESTRA» y no lleva tu firma ni número; sirve para leerlo o dárselo al paciente antes, y se sigue firmando en la ficha.
+- **El texto del consentimiento informado** se edita y aprueba ahora en Procedimientos, ya no en Ajustes → Plantillas de documentos.
+- **Consentimientos firmados:** todos los de todos los pacientes, por procedimiento. Cada uno muestra número, paciente, fecha, zonas y sesiones; su estado (vigente, revocado o anulado, con fecha y motivo); su PDF, y un enlace a la ficha. Se ven los cinco más recientes de cada procedimiento, con «Ver los N».
+- **En el modo presentación la lista de firmados no se ve**, porque lleva nombres de pacientes.
+
+---
+
 ## Avance
 
 ### 5.8 Presentación y cierre ✅ (aprobada el 25/11/2026)

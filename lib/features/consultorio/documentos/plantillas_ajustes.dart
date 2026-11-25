@@ -35,17 +35,20 @@ class TarjetaPlantillas extends ConsumerWidget {
             style: TextStyle(color: ColoresMarca.textoSuave),
           ),
           const SizedBox(height: 8),
+          // El consentimiento informado está en Procedimientos.
           for (final tipo in TipoPlantilla.values)
-            if (!tipo.clinico)
-              _FilaPlantilla(plantilla: documentos.plantilla(tipo)),
+            if (!tipo.clinico && tipo != TipoPlantilla.consentimientoInformado)
+              FilaPlantilla(plantilla: documentos.plantilla(tipo)),
         ],
       ),
     );
   }
 }
 
-class _FilaPlantilla extends ConsumerWidget {
-  const _FilaPlantilla({required this.plantilla});
+/// Una plantilla de documento con sus versiones: editar, aprobar y, la
+/// política, su PDF.
+class FilaPlantilla extends ConsumerWidget {
+  const FilaPlantilla({super.key, required this.plantilla});
 
   final Plantilla plantilla;
 

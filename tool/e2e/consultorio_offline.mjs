@@ -882,20 +882,26 @@ await context.close();
     await p.waitForTimeout(700);
   }
 
-  // Ajustes: consentimiento informado, política, plan, protocolo y prestador.
+  // Ajustes: política, plan y prestador. El consentimiento informado y el
+  // protocolo, en Procedimientos.
   await pulsar(p, 'Ajustes');
   await texto(p, 'Plantillas de documentos').waitFor();
-  await pulsar(p, 'Aprobar v1'); // La primera pendiente: el consentimiento informado.
-  await texto(p, 'Consentimiento informado de procedimiento').waitFor();
-  await aprobarConfirmando();
-  await pulsar(p, 'Aprobar v1'); // La política.
+  if (await p.getByText('Consentimiento informado de procedimiento').count()) {
+    throw new Error('El consentimiento informado sigue en Ajustes');
+  }
+  await pulsar(p, 'Aprobar v1'); // La primera pendiente: la política.
   await aprobarConfirmando();
   await hacerClic(p.getByRole('button', { name: 'Aprobar v1' })); // «Déficit moderado».
   await texto(p, 'Déficit moderado').waitFor();
   await aprobarConfirmando();
-  // El protocolo está en Procedimientos (en el menú, debajo de Historia).
+  // Procedimientos (en el menú, debajo de Historia): el texto del
+  // consentimiento informado (abajo) y el protocolo.
   await pulsar(p, 'Procedimientos');
   await texto(p, 'Agregar un procedimiento').waitFor();
+  await texto(p, 'Consentimiento informado de procedimiento').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Aprobar v1' }).last());
+  await aprobarConfirmando();
+  await texto(p, 'Todavía no hay consentimientos firmados').waitFor();
   await hacerClic(p.getByRole('button', { name: 'Editar borrador' }).last());
   await texto(p, 'Hidrolipoclasia · borrador v1').waitFor({ timeout: 15000 });
   // Protocolo sintético de prueba (no es una recomendación clínica).
@@ -935,9 +941,45 @@ await context.close();
   await tocarAbajo('Guardar borrador');
   await texto(p, 'Borrador v1 guardado').waitFor();
   await texto(p, 'Falta: la familia de técnicas').waitFor();
+  await texto(p, 'Borrador v1 guardado').desaparece({ timeout: 20000 });
+  // Imprimir: el protocolo vigente, la hoja de verificación y el
+  // consentimiento de muestra, en PDF.
+  for (const [opcion, archivo, esperados, imagen] of [
+    [
+      'Protocolo v1 (vigente)',
+      'Protocolo_Hidrolipoclasia_v1.pdf',
+      ['PROTOCOLO DE HIDROLIPOCLASIA', 'aprobada el', 'Componente A de prueba', 'Anestésico de prueba, 20 mg/mL, máximo 7 mg/kg'],
+      'pdf_protocolo',
+    ],
+    [
+      'Lista de verificación v1',
+      'Lista_verificacion_Hidrolipoclasia_v1.pdf',
+      ['LISTA DE VERIFICACIÓN PREVIA', 'Hidrolipoclasia · protocolo v1', 'Embarazo descartado', 'Verificó (nombre y firma)'],
+      'pdf_lista_verificacion',
+    ],
+    [
+      'Consentimiento de muestra',
+      'Consentimiento_muestra_Hidrolipoclasia.pdf',
+      ['MUESTRA', 'Procedimiento y plan de tratamiento: Hidrolipoclasia', 'Riesgos de prueba.'],
+      'pdf_consentimiento_muestra',
+    ],
+  ]) {
+    const ruta = await descargar(p, async () => {
+      await hacerClic(p.getByRole('button', { name: 'Imprimir Hidrolipoclasia', exact: true }));
+      await p.waitForTimeout(400);
+      await p
+        .getByRole('menuitem', { name: opcion })
+        .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: opcion }))
+        .first()
+        .click();
+    });
+    if (path.basename(ruta) !== archivo) throw new Error(`Imprimir: ${path.basename(ruta)}`);
+    leerDocumento(ruta, esperados, imagen);
+    await texto(p, `${archivo} descargado.`).desaparece({ timeout: 20000 });
+  }
   await alInicio();
   await captura(p, 'p0_procedimientos.png');
-  paso('Procedimientos en el menú (debajo de Historia): protocolo de hidrolipoclasia aprobado y un procedimiento nuevo sin anestésico ni solución, en borrador');
+  paso('Procedimientos en el menú (debajo de Historia): consentimiento informado y protocolo aprobados; protocolo, lista de verificación y consentimiento de muestra impresos en PDF; un procedimiento nuevo sin anestésico ni solución, en borrador');
   await pulsar(p, 'Ajustes');
   await texto(p, 'Plantillas de documentos').waitFor();
   await escribirAbajo('Código de prestador (REPS)', '00000-PRUEBA');
@@ -1819,6 +1861,17 @@ await context.close();
   await p.waitForTimeout(900);
   paso('Inventario en móvil (390 px) y 320 px');
 
+  // Procedimientos → Consentimientos firmados: el de Muñoz, vigente, con
+  // su PDF.
+  await pulsarExacto('Procedimientos');
+  await texto(p, 'Consentimientos firmados').waitFor();
+  await texto(p, 'CI-000001 · MUÑOZ').waitFor();
+  await aLaVista(conTexto('CI-000001 · MUÑOZ'));
+  await captura(p, 'p1_consentimientos_firmados.png');
+  const ci = await descargar(p, () => hacerClic(p.getByRole('button', { name: 'PDF CI-000001', exact: true })));
+  if (!path.basename(ci).startsWith('Consentimiento_informado_')) throw new Error(`Firmado: ${path.basename(ci)}`);
+  paso(`Procedimientos: consentimientos firmados de todos los pacientes, con estado y PDF (${path.basename(ci)})`);
+
   // ─────────────── 9. Notas «VERIFICAR» y modo presentación (5.8) ───────────────
   // Lo que se ve de la pantalla (texto y etiquetas de accesibilidad).
   const cuantas = (t) =>
@@ -1863,6 +1916,7 @@ await context.close();
     ['/pacientes', 'Pacientes'],
     ['/caja', 'Totales del día'],
     ['/inventario', 'Anestésico de prueba'],
+    ['/procedimientos', 'Consentimientos firmados'],
     ['/ajustes', 'Servicios y tarifas'],
     ['/medico', 'Datos del médico'],
     ['/receta', 'Receta'],
@@ -1874,6 +1928,10 @@ await context.close();
       const n = await cuantas(t);
       if (n) throw new Error(`Modo presentación: «${t}» en ${ruta} (${n})`);
     }
+  }
+  await ir('/procedimientos', 'Consentimientos firmados');
+  if (await cuantas('CI-000001') || !(await cuantas('Oculto en el modo presentación'))) {
+    throw new Error('Modo presentación: Procedimientos muestra los consentimientos firmados');
   }
   await ir('/agenda', 'lunes 30/11/2026');
   if (await cuantas('Saldo $') || await cuantas('Control de tiroides')) {
@@ -1887,7 +1945,7 @@ await context.close();
   await ir('/ajustes', 'Servicios y tarifas');
   await alInicio();
   await captura(p, 'j3_presentacion_ajustes.png');
-  paso('Modo presentación: ningún «VERIFICAR» ni chip en agenda, pacientes, caja, inventario, ajustes, datos del médico, receta e historia; sin montos ni el motivo de la cita; la ficha sin la sección Caja');
+  paso('Modo presentación: ningún «VERIFICAR» ni chip en agenda, pacientes, caja, inventario, procedimientos, ajustes, datos del médico, receta e historia; sin montos ni el motivo de la cita; la ficha sin la sección Caja; sin los consentimientos firmados');
 
   // Se apaga al bloquear.
   await p.getByRole('button', { name: 'Bloquear el consultorio', exact: true }).click();

@@ -278,6 +278,15 @@ void main() {
     await _montar(t, b, '/caja', presentacion: true);
     await _pulsar(t, find.text('Informe del mes'));
     _sinNotas('caja · informe');
+    // Procedimientos: los consentimientos firmados llevan nombres de
+    // pacientes y no se muestran.
+    await _montar(t, b, '/procedimientos', presentacion: true);
+    expect(
+      find.text('Oculto en el modo presentación: lleva nombres de pacientes.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('CI-000001'), findsNothing);
+    expect(find.textContaining('PEÑA'), findsNothing);
     await t.pump(const Duration(seconds: 5));
   });
 
