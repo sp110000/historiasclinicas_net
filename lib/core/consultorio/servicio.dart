@@ -5,6 +5,7 @@ import '../ihce/reloj.dart';
 import 'agenda/agenda.dart';
 import 'caja/caja.dart';
 import 'inventario/inventario.dart';
+import 'verificar/verificar.dart';
 import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
@@ -107,6 +108,7 @@ class ServicioConsultorio {
     );
     peso = ProgramasPeso(repositorio, indice, reloj: reloj);
     inventario = InventarioConsultorio(repositorio, reloj: reloj);
+    verificaciones = VerificacionesConsultorio(repositorio, reloj: reloj);
     procedimientos = ProcedimientosConsultorio(
       repositorio,
       indice,
@@ -164,6 +166,9 @@ class ServicioConsultorio {
   /// Insumos, lotes y movimientos (5.7).
   late final InventarioConsultorio inventario;
 
+  /// Notas «VERIFICAR» marcadas como verificadas (5.8, pregunta 50).
+  late final VerificacionesConsultorio verificaciones;
+
   final _pendientes = <HistoriaPendiente>[];
   final _recetasPendientes = <RecetaPendiente>[];
 
@@ -203,6 +208,7 @@ class ServicioConsultorio {
       await agenda.cargar();
       await caja.cargar();
       await inventario.cargar();
+      await verificaciones.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -288,6 +294,7 @@ class ServicioConsultorio {
     agenda.olvidar();
     caja.olvidar();
     inventario.olvidar();
+    verificaciones.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();
@@ -516,6 +523,7 @@ class ServicioConsultorio {
     await agenda.cargar();
     await caja.cargar();
     await inventario.cargar();
+    await verificaciones.cargar();
     await registrarEnBitacora(
       repositorio,
       AccionBitacora.combinarPaquete,

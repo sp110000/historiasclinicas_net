@@ -12,6 +12,7 @@ import '../../../core/consultorio/seguridad/motor_aes.dart';
 import '../../../core/consultorio/servicio.dart';
 import '../integracion/en_curso_cifrado.dart';
 import 'pacientes_provider.dart';
+import 'presentacion_provider.dart';
 
 /// El servicio del consultorio. Solo se crea si una pantalla del
 /// consultorio lo pide, y esas pantallas solo existen con la bandera
@@ -138,6 +139,7 @@ class ControladorConsultorio extends Notifier<EstadoConsultorio> {
       fase: FaseConsultorio.bloqueado,
       respaldo: state.respaldo,
     );
+    ref.read(modoPresentacionProvider.notifier).apagar();
     ref.read(versionIndiceProvider.notifier).cambio();
   }
 
