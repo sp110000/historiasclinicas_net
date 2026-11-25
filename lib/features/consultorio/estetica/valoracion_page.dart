@@ -466,7 +466,7 @@ class _Tamizajes extends StatelessWidget {
         if (!t.instrumento.textosCargados)
           const Text(
             'Los textos de los ítems no se incluyen sin licencia confirmada: '
-            'cárgalos en Ajustes → Procedimientos (pregunta 30).',
+            'cárgalos en Procedimientos (pregunta 30).',
             style: TextStyle(color: ColoresMarca.textoSuave, fontSize: 13),
           ),
         const SizedBox(height: 6),

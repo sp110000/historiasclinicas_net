@@ -9,6 +9,7 @@ import 'ajustes/ajustes_page.dart';
 import 'caja/caja_page.dart';
 import 'documentos/documento_clinico_page.dart';
 import 'estetica/editor_procedimiento_page.dart';
+import 'estetica/procedimientos_page.dart';
 import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
 import 'inventario/inventario_page.dart';
@@ -89,16 +90,20 @@ GoRouter crearRouterConsultorio({
           ],
         ),
         GoRoute(
-          path: '/ajustes',
-          builder: (context, state) => const AjustesConsultorioPage(),
+          path: '/procedimientos',
+          builder: (context, state) => const ProcedimientosPage(),
           routes: [
             GoRoute(
-              path: 'procedimientos/:id',
+              path: ':id',
               builder: (context, state) => EditorProcedimientoPage(
                 plantillaId: state.pathParameters['id']!,
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: '/ajustes',
+          builder: (context, state) => const AjustesConsultorioPage(),
         ),
       ],
     ),

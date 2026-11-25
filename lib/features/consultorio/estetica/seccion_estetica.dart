@@ -210,7 +210,7 @@ class _Procedimiento extends ConsumerWidget {
           if (!usable)
             const Text(
               'La plantilla no está aprobada: escribe tu protocolo y '
-              'apruébala en Ajustes → Procedimientos.',
+              'apruébala en Procedimientos.',
               style: TextStyle(color: ColoresMarca.textoSuave),
             ),
           Wrap(

@@ -1,5 +1,6 @@
 import '../../ihce/reloj.dart';
 import '../../utils/ids.dart';
+import '../caja/movimientos.dart';
 import '../procedimientos/sesion.dart';
 import '../reglas/inventario.dart';
 import '../reglas/inventario.dart' as reglas show evaluarEntrada;
@@ -226,6 +227,7 @@ class InventarioConsultorio {
     double cantidad, {
     String motivo = '',
     String? sesionId,
+    String? cobroId,
   }) async {
     final m = Movimiento(
       id: nuevoUuid(),
@@ -235,6 +237,7 @@ class InventarioConsultorio {
       cantidad: cantidad,
       fecha: reloj.ahora(),
       sesionId: sesionId,
+      cobroId: cobroId,
       motivo: motivo.trim(),
     );
     await _repo.guardar(Movimiento.coleccion, m.id, m.aMapa());
@@ -354,6 +357,94 @@ class InventarioConsultorio {
         AccionBitacora.salidaInventario,
         fecha: reloj.ahora(),
         resumen: s.titulo,
+      );
+    }
+  }
+
+  // ─────────────────────────── Cobro ───────────────────────────
+
+  /// Insumos activos con algún lote que se puede usar hoy.
+  List<Insumo> get usables => [
+    for (final i in insumos)
+      if (i.activo && disponibles(i.id).isNotEmpty) i,
+  ];
+
+  /// La línea del cobro para [cantidad] unidades del lote [l].
+  InsumoCobro insumoCobro(Lote l, double cantidad) {
+    final i = _insumos[l.insumoId];
+    return InsumoCobro(
+      insumoId: l.insumoId,
+      loteId: l.id,
+      nombre: i?.nombre ?? '',
+      lote: l.numero,
+      unidad: i?.unidad ?? '',
+      cantidad: cantidad,
+    );
+  }
+
+  EvaluacionInventario evaluarCobro(List<InsumoCobro> lineas) =>
+      evaluarInsumosCobro(
+        lineas: lineas,
+        lotes: _lotes,
+        insumos: _insumos,
+        existencias: _existencias,
+        hoy: _hoy,
+      );
+
+  /// Descuenta de sus lotes los insumos usados en el cobro [c].
+  Future<void> descontarCobro(Cobro c) async {
+    if (c.insumos.isEmpty) return;
+    final e = evaluarCobro(c.insumos);
+    if (!e.permite) throw StateError(e.bloqueos.first);
+    for (final i in c.insumos) {
+      await _mover(
+        _lotes[i.loteId]!,
+        TipoMovimiento.salida,
+        -i.cantidad,
+        motivo: 'Cobro: ${c.descripcion}',
+        cobroId: c.id,
+      );
+    }
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.salidaInventarioCobro,
+      fecha: reloj.ahora(),
+      resumen: c.insumos.length == 1
+          ? '1 insumo'
+          : '${c.insumos.length} insumos',
+    );
+  }
+
+  /// Los movimientos del cobro [cobroId] (lo descontado y lo devuelto).
+  List<Movimiento> movimientosDeCobro(String cobroId) =>
+      _movimientos.values.where((m) => m.cobroId == cobroId).toList()
+        ..sort((a, b) => a.fecha.compareTo(b.fecha));
+
+  /// Al anular el cobro [c]: devuelve a cada lote lo que el cobro descontó
+  /// y todavía no se había devuelto.
+  Future<void> devolverCobro(Cobro c) async {
+    final neto = <String, double>{};
+    for (final m in movimientosDeCobro(c.id)) {
+      neto[m.loteId] = (neto[m.loteId] ?? 0) + m.cantidad;
+    }
+    var hubo = false;
+    for (final e in neto.entries) {
+      final l = _lotes[e.key];
+      if (l == null || e.value >= 0) continue;
+      await _mover(
+        l,
+        TipoMovimiento.ajuste,
+        -e.value,
+        motivo: 'Cobro anulado: ${c.descripcion}',
+        cobroId: c.id,
+      );
+      hubo = true;
+    }
+    if (hubo) {
+      await registrarEnBitacora(
+        _repo,
+        AccionBitacora.devolverInventario,
+        fecha: reloj.ahora(),
       );
     }
   }

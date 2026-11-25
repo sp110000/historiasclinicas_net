@@ -605,6 +605,7 @@ class FilaRecibo extends ConsumerWidget {
       lineas: [
         paciente,
         cobro?.descripcion ?? '',
+        if (cobro != null) ?textoInsumos(cobro),
         _pagosTexto(r),
         if (r.anulado) 'Motivo: ${r.motivoAnulacion}',
       ],
@@ -649,6 +650,7 @@ class FilaSaldo extends ConsumerWidget {
       titulo: conFicha ? paciente : c.descripcion,
       lineas: [
         if (conFicha) c.descripcion,
+        ?textoInsumos(c),
         '${formatoFecha(c.fecha)} · total ${formatoPesos(c.total)} · pagado '
             '${formatoPesos(caja.pagado(c.id))}',
       ],

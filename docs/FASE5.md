@@ -38,7 +38,7 @@
 | 5.0 Cimientos | Almacén cifrado (AES-256-GCM, frase y código de recuperación), bloqueo, respaldo `.hcrespaldo` verificado y Ajustes |
 | 5.1 Pacientes | Índice de pacientes con búsqueda e importación de PDF, ficha longitudinal, autorización de datos firmada, `receta.json` y borrador cifrado |
 | 5.2 Seguimiento y fotos | Mediciones con gráficas, consentimiento de imagen, fotos cifradas sin EXIF, comparación, informe en PDF y equipo secundario |
-| 5.3 Peso y estética | Programa de peso con GLP-1, plantilla de hidrolipoclasia con tu protocolo, valoración, consentimiento por plan y sesión sellada con reglas de bloqueo |
+| 5.3 Peso y estética | Programa de peso con GLP-1, plantilla de hidrolipoclasia con tu protocolo (y, desde el 25/11/2026, procedimientos nuevos desde el menú), valoración, consentimiento por plan y sesión sellada con reglas de bloqueo |
 | 5.4 Documentos | Certificado, incapacidad, orden y remisión con plantillas versionadas, vista previa real e importación verificada |
 | 5.5 Agenda | Inicio de la app: citas, día y semana, horas libres, festivos, recordatorio por WhatsApp sin datos de salud y «Atender» |
 | 5.6 Caja y paquetes | Cobro con abonos por medio de pago, recibo RC- (no es factura), paquetes, crédito de la valoración, cierre del día e informe con CSV |
@@ -74,6 +74,44 @@ Pediste el consultorio en la misma página, sin otro dominio. Cambia la decisió
 **Qué ve quien abre la página:** la agenda, que pide crear una frase la primera vez. La historia, la receta y los datos del médico siguen a un clic en el riel, y funcionan sin frase. Los datos del consultorio quedan cifrados en cada navegador; no van a GitHub ni a ningún servidor.
 
 **Para apagarlo:** quitar el `--dart-define` de la línea *Compilar* de `pages.yml` y ajustar la prueba. Lo guardado en los navegadores no se borra, pero deja de verse hasta volver a encenderlo.
+
+---
+
+## Caja e inventario conectados (25/11/2026)
+
+Pediste que al cobrar se puedan agregar los insumos usados y que se descuenten del inventario.
+
+- **En el cobro**, la sección **«Insumos usados»** (aparece si el inventario tiene insumos): «Agregar un insumo» propone el lote que vence primero, con lo que queda. Se puede cambiar el insumo, el lote y la cantidad (admite decimales, en la unidad del insumo).
+- **Las mismas reglas del inventario:** un lote vencido o sin existencias suficientes no deja registrar el cobro. Las líneas del mismo lote se suman. Un insumo sin registro Invima avisa.
+- **Al registrar el cobro**, cada insumo sale de su lote, con el movimiento «Cobro: …» enlazado al cobro. El mensaje dice cuántos se descontaron, y la caja muestra la línea «Insumos: …» en la fila del recibo y en la del saldo.
+- **Los insumos no cambian el valor del cobro** ni salen en el recibo PDF: el precio está en el servicio.
+- **Al anular el cobro**, sus insumos vuelven al inventario (un ajuste «Cobro anulado: …»), y el diálogo lo avisa. Si sí se usaron, se registran en el cobro que lo reemplace.
+- **Para no descontar dos veces:** lo de una sesión de procedimiento ya se descuenta al sellarla. El cobro lo recuerda y no repite esos insumos.
+- **Bitácora:** «Descontó del inventario (cobro)» y «Devolvió al inventario (cobro anulado)», sin datos del paciente.
+
+---
+
+## Procedimientos en el menú y procedimientos nuevos (25/11/2026)
+
+Pediste poder agregar procedimientos y tenerlos en el menú, debajo de Historia y encima de Caja.
+
+- **«Procedimientos» está en el menú** (riel y menú lateral), entre Historia y Caja. Ya no está en Ajustes. El editor del protocolo abre en `/procedimientos/<id>` y vuelve ahí al guardar.
+- **«Agregar un procedimiento»** pide:
+  - el nombre (sin repetir);
+  - la familia de técnicas, para las certificaciones;
+  - de dónde partir: en blanco o como copia de otro procedimiento (sin su aprobación);
+  - dos interruptores: **«Usa anestésico local»** y **«Se infiltra una solución por zona»**.
+
+  Queda en borrador, v1, y se abre su editor. Como siempre, sin aprobarlo no se usa.
+- **Los procedimientos ya no tienen que ser como la hidrolipoclasia.** Antes, aprobar uno exigía anestésico, componentes y volúmenes, y la sesión no se sellaba sin ellos. Ahora:
+  - **sin anestésico:** no se piden su concentración ni su máximo en mg/kg, la sesión no tiene la sección de anestésico, no pide el peso y no calcula la dosis;
+  - **sin solución:** no se piden componentes ni volúmenes máximos, y la sesión registra solo las zonas, sin volumen. El texto sellado dice «Zonas: Abdomen.».
+
+  Los dos interruptores también están en el editor. La hidrolipoclasia y todo lo guardado antes siguen con los dos encendidos.
+- **Consentimiento:** sin solución, el plan no trae el producto. El campo se llama ahora **«Producto, solución o equipo (con su registro Invima)»**, porque sigue siendo obligatorio.
+- **El resto ya servía para varios:** la ficha (sección Estética) muestra un bloque por procedimiento, con su valoración, consentimiento y sesiones.
+- **Bitácora:** «Agregó un procedimiento».
+- **Para cobrarlo**, agrega su servicio en Ajustes → Caja.
 
 ---
 
@@ -374,7 +412,7 @@ Pediste el consultorio en la misma página, sin otro dominio. Cambia la decisió
   - ningún esquema trae dosis: el esquema de titulación lo escribes y **lo apruebas** en Ajustes; aprobado, el cambio de dosis lo sugiere;
   - inicio, cambios de dosis, tolerancia, **eventos adversos** (con «reportado a Invima») y suspensión. El inicio, los cambios, los eventos y la suspensión se agregan a la evolución en curso.
 - **Contraindicaciones del GLP-1** (pregunta 25): una absoluta en «sí» **o sin aclarar** impide iniciar; una precaución en «sí» o «no sabe» pide nota; embarazo, lactancia y anticoncepción solo se preguntan a mujeres (o si no hay sexo registrado). Todo VERIFICAR contra la ficha técnica.
-- **Plantilla declarativa de procedimiento** (Ajustes → Procedimientos; hidrolipoclasia de fábrica, en borrador):
+- **Plantilla declarativa de procedimiento** (Ajustes → Procedimientos; desde el 25/11/2026, en el menú Procedimientos; hidrolipoclasia de fábrica, en borrador):
   - valoración: zonas, IMC desde el que avisa (30), vigencia del «apto» (90 días), contraindicaciones que dan «no apto» o «diferir», precauciones con nota, tamizajes y recomendaciones;
   - **tamizajes SCOFF y DCQ solo con su estructura** (número de ítems, escala y corte, VERIFICAR); el texto de los ítems lo cargas tú (pregunta 30);
   - **protocolo de la sesión vacío** (componentes, volumen máximo por zona y por sesión, intervalo, número de sesiones, anestésicos con concentración y máximo en mg/kg, lista de verificación, indicaciones y días hasta el control) y los riesgos y alternativas del consentimiento (pregunta 31). **Sin el protocolo completo la plantilla no se aprueba, y sin aprobar no se usa**. Agregar toxina o rellenos es agregar otra definición.
@@ -1027,13 +1065,13 @@ Paciente ─┬─< Historia (índice + copia de trabajo) ──< Evolución (de
 | **Cita** | → paciente (o nombre y teléfono provisionales para una primera vez), tipo (primera vez, control, valoración estética, sesión de procedimiento o programa de peso), inicio, duración (la del tipo, editable), estado (agendada, confirmada, atendida, no asistió o cancelada) e historial {estado, fecha}, motivo, notas, recordatorio {enviado en}, → plantilla (si es sesión), → cobro, → atención (historia o evolución) | Una cita de sesión o valoración estética exige mayor de edad. La de sesión exige además valoración «apto» vigente |
 | **Horario** | Días y franjas, duración por tipo, bloqueos {inicio, fin, motivo}, festivos calculados | |
 | **Servicio** | Nombre, línea, tarifa, IVA (opcional, apagado), abonable, sesiones del paquete, → plantilla, activo | Las tarifas iniciales son las de tu tabla (pregunta 44), editables |
-| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio, descripción, cantidad, valor unitario, descuento y motivo}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta |
+| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio, descripción, cantidad, valor unitario, descuento y motivo}, insumos usados[] {→ insumo, → lote, cantidad}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta. Los insumos usados se descuentan al registrar el cobro y vuelven si se anula |
 | **Paquete** | → paciente, → servicio, sesiones compradas, usos[] {→ sesión, fecha}, → cobro, estado | No se puede usar más sesiones de las compradas |
 | **Crédito** | → paciente, valor, → cobro de origen, vence, aplicado en | |
 | **CierreDiario** | Fecha, totales por medio de pago, efectivo contado, diferencia, notas, cerrado en | Un día cerrado no se modifica: una anulación posterior cuenta en el día en que se hace |
 | **Insumo** | Nombre, categoría, presentación, unidad, concentración (mg/mL), registro Invima, inyectable, stock mínimo, activo | Sin registro Invima: aviso (más visible en los inyectables) |
 | **Lote** | → insumo, número de lote, vencimiento, proveedor, factura, fecha de ingreso | Su existencia es la suma de sus movimientos |
-| **Movimiento** | → lote, tipo (entrada, salida por sesión, ajuste o baja por vencimiento), cantidad, fecha, → sesión, motivo | Solo se agregan, nunca se editan |
+| **Movimiento** | → lote, tipo (entrada, salida por sesión o por cobro, ajuste o baja por vencimiento), cantidad, fecha, → sesión, → cobro, motivo | Solo se agregan, nunca se editan |
 | **Configuración** | Datos del prestador (nombre del consultorio, código REPS, NIT, habilitación por servicio), certificaciones[] {técnica o familia, entidad, fecha, vigencia, → soporte}, póliza, minutos de bloqueo, días de respaldo, consecutivos, plantillas, horario, notas verificadas, modo presentación | |
 | **Bitácora** | Fecha, acción (crear, anular, unir, exportar, importar, respaldar, restaurar, desbloquear), colección, id, resumen **sin datos del paciente** | Solo se agrega. Sirve para auditoría |
 

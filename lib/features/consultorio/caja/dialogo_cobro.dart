@@ -8,8 +8,10 @@ import '../../../core/consultorio/agenda/cita.dart';
 import '../../../core/consultorio/caja/caja.dart';
 import '../../../core/consultorio/caja/catalogo.dart';
 import '../../../core/consultorio/caja/movimientos.dart';
+import '../../../core/consultorio/inventario/inventario.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/consultorio/reglas/caja.dart';
+import '../../../core/consultorio/reglas/inventario.dart' show cantidadTexto;
 import '../../../core/pais/pais_provider.dart';
 import '../../../core/pais/perfil_pais.dart' show Opcion;
 import '../../../core/utils/fechas.dart';
@@ -34,6 +36,18 @@ String servicioDeCita(TipoCita t) => switch (t) {
 };
 
 String nombreArchivoRecibo(Recibo r) => 'Recibo_${r.numero}.pdf';
+
+/// «Insumos: Jeringa, 2 unidades (lote J-1) · …», o `null` si el cobro no
+/// lleva insumos.
+String? textoInsumos(Cobro c) => c.insumos.isEmpty
+    ? null
+    : 'Insumos: ${[for (final i in c.insumos) '${i.nombre}, ${cantidadTexto(i.cantidad, i.unidad)} (lote ${i.lote})'].join(' · ')}';
+
+String _descontados(Cobro c) => switch (c.insumos.length) {
+  0 => '',
+  1 => ' Se descontó 1 insumo del inventario.',
+  final n => ' Se descontaron $n insumos del inventario.',
+};
 
 /// Descarga el PDF guardado del recibo [r]. Lee los proveedores antes de
 /// esperar: la fila que lo pide puede desaparecer mientras tanto.
@@ -96,12 +110,14 @@ Future<void> abrirCobro(
     _mensaje(
       d,
       'Recibo ${recibo.numero} descargado'
-      '${saldo > 0 ? '. Queda un saldo de ${formatoPesos(saldo)}.' : '.'}',
+      '${saldo > 0 ? '. Queda un saldo de ${formatoPesos(saldo)}.' : '.'}'
+      '${_descontados(c.cobro)}',
     );
   } else {
     _mensaje(
       d,
-      'Cobro registrado sin pago: queda el saldo de ${formatoPesos(saldo)}.',
+      'Cobro registrado sin pago: queda el saldo de ${formatoPesos(saldo)}.'
+      '${_descontados(c.cobro)}',
     );
   }
 }
@@ -152,7 +168,8 @@ Future<void> anularReciboConMotivo(
   }
 }
 
-/// Anula un cobro sin recibos vigentes (libera el crédito y el paquete).
+/// Anula un cobro sin recibos vigentes (libera el crédito y el paquete, y
+/// devuelve sus insumos al inventario).
 Future<void> anularCobroConMotivo(
   BuildContext context,
   WidgetRef ref,
@@ -164,12 +181,21 @@ Future<void> anularCobroConMotivo(
     titulo: 'Anular el cobro',
     etiqueta: 'Motivo de la anulación',
     aceptar: 'Anular',
+    texto: c.insumos.isEmpty
+        ? null
+        : 'Sus insumos vuelven al inventario. Si sí se usaron, regístralos '
+              'de nuevo en el cobro que lo reemplace.',
   );
   if (motivo == null) return;
   try {
     await d.caja.anularCobro(c.id, motivo: motivo);
     d.notificar();
-    _mensaje(d, 'Cobro anulado.');
+    _mensaje(
+      d,
+      c.insumos.isEmpty
+          ? 'Cobro anulado.'
+          : 'Cobro anulado: sus insumos volvieron al inventario.',
+    );
   } catch (e) {
     _mensaje(d, mensajeDeError(e));
   }
@@ -411,6 +437,13 @@ class _Item {
   ItemCobro item;
 }
 
+class _Insumo {
+  _Insumo(this.clave, this.linea);
+
+  final int clave;
+  InsumoCobro linea;
+}
+
 class _DialogoCobro extends ConsumerStatefulWidget {
   const _DialogoCobro({this.pacienteId, this.cita});
 
@@ -427,11 +460,14 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
   late String _pacienteId = widget.pacienteId ?? '';
   final _items = <_Item>[];
   var _claveItem = 0;
+  final _insumos = <_Insumo>[];
   bool? _aplicarCredito;
   var _guardando = false;
   String? _error;
 
   CajaConsultorio get _caja => ref.read(servicioConsultorioProvider).caja;
+  InventarioConsultorio get _inv =>
+      ref.read(servicioConsultorioProvider).inventario;
 
   List<Servicio> get _activos => [
     for (final s in _caja.servicios)
@@ -482,6 +518,15 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
   });
 
   List<ItemCobro> get _lista => [for (final i in _items) i.item];
+  List<InsumoCobro> get _listaInsumos => [for (final i in _insumos) i.linea];
+
+  /// Una línea con el primer insumo usable, del lote que vence primero.
+  void _agregarInsumo() {
+    final i = _inv.usables.firstOrNull;
+    final l = i == null ? null : _inv.sugerido(i.id);
+    if (l == null) return;
+    _insumos.add(_Insumo(_claveItem++, _inv.insumoCobro(l, 1)));
+  }
 
   bool get _tratamientoEstetico => _items.any((i) {
     final s = _caja.serviciosPorId[i.item.servicioId];
@@ -533,6 +578,7 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
         pagos: pagos,
         credito: _credito,
         citaId: widget.cita?.id,
+        insumos: _listaInsumos,
         medico: ref.read(medicoProvider),
         pais: ref.read(paisProvider),
       );
@@ -645,6 +691,123 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
     );
   }
 
+  Widget _editorInsumo(_Insumo x) {
+    final l = x.linea;
+    final insumo = _inv.insumo(l.insumoId);
+    final unidad = insumo?.unidad ?? l.unidad;
+    final insumos = [
+      for (final i in _inv.usables) Opcion(i.id, i.nombre),
+      if (!_inv.usables.any((i) => i.id == l.insumoId))
+        Opcion(l.insumoId, l.nombre),
+    ];
+    final disponibles = _inv.disponibles(l.insumoId);
+    final lotes = [
+      for (final lote in disponibles)
+        Opcion(lote.id, '${lote.numero} · vence ${formatoFecha(lote.vence)}'),
+      if (!disponibles.any((lote) => lote.id == l.loteId))
+        Opcion(l.loteId, l.lote),
+    ];
+    return Container(
+      key: ValueKey('insumo-${x.clave}'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+      decoration: BoxDecoration(
+        borderRadius: RadiosMarca.tarjeta,
+        border: Border.all(color: ColoresMarca.borde),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CampoDesplegable(
+                  etiqueta: 'Insumo',
+                  opciones: insumos,
+                  valor: l.insumoId,
+                  alCambiar: (v) => _cambio(() {
+                    final lote = _inv.sugerido(v);
+                    if (lote != null) {
+                      x.linea = _inv.insumoCobro(lote, l.cantidad);
+                    }
+                  }),
+                ),
+                const SizedBox(height: 8),
+                RejillaCampos(
+                  anchoMinimo: 150,
+                  maxColumnas: 2,
+                  children: [
+                    CampoDesplegable(
+                      etiqueta: 'Lote',
+                      opciones: lotes,
+                      valor: l.loteId,
+                      alCambiar: (v) => _cambio(() {
+                        final lote = _inv.lote(v);
+                        if (lote != null) {
+                          x.linea = _inv.insumoCobro(lote, l.cantidad);
+                        }
+                      }),
+                    ),
+                    CampoNumero(
+                      key: ValueKey('cantidad-insumo-${x.clave}'),
+                      etiqueta: 'Cantidad',
+                      unidad: unidad,
+                      valor: l.cantidad,
+                      alCambiar: (v) =>
+                          _cambio(() => x.linea = x.linea.conCantidad(v ?? 0)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'En el lote ${l.lote} quedan '
+                  '${cantidadTexto(_inv.existencia(l.loteId), unidad)}.',
+                  style: const TextStyle(color: ColoresMarca.textoSuave),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Quitar «${l.nombre}»',
+            onPressed: () => _cambio(() => _insumos.remove(x)),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Insumos usados: se descuentan del inventario al registrar el cobro.
+  List<Widget> _seccionInsumos() {
+    if (_inv.vacio) return const [];
+    final usables = _inv.usables;
+    return [
+      const SizedBox(height: 14),
+      const Text('INSUMOS USADOS', style: EstilosMarca.rotulo),
+      const SizedBox(height: 4),
+      const Text(
+        'Se descuentan del inventario al registrar el cobro y no cambian su '
+        'valor. Los de una sesión sellada ya se descontaron: no los repitas.',
+        style: TextStyle(color: ColoresMarca.textoSuave),
+      ),
+      const SizedBox(height: 8),
+      for (final x in _insumos) _editorInsumo(x),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: usables.isEmpty ? null : () => _cambio(_agregarInsumo),
+          icon: const Icon(Icons.add),
+          label: Text(
+            usables.isEmpty
+                ? 'Ningún insumo tiene existencias vigentes'
+                : 'Agregar un insumo',
+          ),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = ref.read(servicioConsultorioProvider);
@@ -658,6 +821,7 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
       items: lista,
       pagos: pagos,
       credito: credito,
+      insumos: _listaInsumos,
     );
     final bruto = lista.fold(0, (s, i) => s + i.bruto);
     final descuentos = lista.fold(0, (s, i) => s + i.descuento);
@@ -781,6 +945,7 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
                     '${formatoFecha(disponible.vence)}',
                   ),
                 ),
+              ..._seccionInsumos(),
               const Divider(),
               FilaValor('Subtotal', bruto),
               if (descuentos > 0) FilaValor('Descuentos', -descuentos),

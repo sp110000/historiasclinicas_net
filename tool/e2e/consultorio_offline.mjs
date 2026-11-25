@@ -18,12 +18,14 @@
 // firmar la autorización de datos, evolución y receta desde la ficha; luego
 // (5.2) mediciones, consentimiento de imagen, fotos de antes y después
 // (con el reloj del navegador fijado), comparación y cortina, informe de
-// seguimiento y fotos en PDF; (5.3) protocolo, programa de peso con GLP-1,
+// seguimiento y fotos en PDF; (5.3) protocolo en Procedimientos (y uno nuevo
+// sin anestésico ni solución), programa de peso con GLP-1,
 // valoración, consentimiento informado y sesión (bloqueada sin
 // consentimiento y con un lote vencido, luego sellada); (5.4) documentos;
 // (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
 // valoración, recibos en PDF, informe y cierre del día; (5.7) inventario:
 // entrada de lotes, sesión que los descuenta y bloqueo con un lote vencido;
+// un cobro con un insumo usado que se descuenta y vuelve al anularlo;
 // (5.8) notas «VERIFICAR» con su registro y modo presentación; y comprobar que
 // nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
@@ -891,6 +893,9 @@ await context.close();
   await hacerClic(p.getByRole('button', { name: 'Aprobar v1' })); // «Déficit moderado».
   await texto(p, 'Déficit moderado').waitFor();
   await aprobarConfirmando();
+  // El protocolo está en Procedimientos (en el menú, debajo de Historia).
+  await pulsar(p, 'Procedimientos');
+  await texto(p, 'Agregar un procedimiento').waitFor();
   await hacerClic(p.getByRole('button', { name: 'Editar borrador' }).last());
   await texto(p, 'Hidrolipoclasia · borrador v1').waitFor({ timeout: 15000 });
   // Protocolo sintético de prueba (no es una recomendación clínica).
@@ -916,13 +921,32 @@ await context.close();
   if (await p.getByText(/Para aprobarla falta/).count()) {
     throw new Error('La plantilla del procedimiento no se aprobó');
   }
+  // Un procedimiento nuevo, sin anestésico ni solución: queda en borrador
+  // y el editor no pide anestésicos ni volúmenes.
+  // Está en la barra de arriba: se pulsa directo, sin desplazar la página.
+  await p.getByRole('button', { name: 'Agregar un procedimiento', exact: true }).click();
+  await texto(p, 'Procedimiento nuevo').waitFor();
+  await escribir(p, 'Nombre', 'Radiofrecuencia de prueba');
+  await hacerClic(p.getByRole('button', { name: 'Crear y editar', exact: true }));
+  await texto(p, 'Radiofrecuencia de prueba · borrador v1').waitFor({ timeout: 15000 });
+  if ((await p.getByText('ANESTÉSICOS').count()) || (await p.getByText('Volumen máximo por zona').count())) {
+    throw new Error('Sin anestésico ni solución, el editor los pide');
+  }
+  await tocarAbajo('Guardar borrador');
+  await texto(p, 'Borrador v1 guardado').waitFor();
+  await texto(p, 'Falta: la familia de técnicas').waitFor();
+  await alInicio();
+  await captura(p, 'p0_procedimientos.png');
+  paso('Procedimientos en el menú (debajo de Historia): protocolo de hidrolipoclasia aprobado y un procedimiento nuevo sin anestésico ni solución, en borrador');
+  await pulsar(p, 'Ajustes');
+  await texto(p, 'Plantillas de documentos').waitFor();
   await escribirAbajo('Código de prestador (REPS)', '00000-PRUEBA');
   await escribirAbajo('Habilitación del servicio', 'Servicio de prueba');
   await escribirAbajo('Aseguradora de la póliza', 'Aseguradora de prueba');
   await escribirAbajo('Número de la póliza', 'P-0001');
   await hacerClic(p.getByRole('button', { name: 'Guardar datos del prestador' }));
   await texto(p, 'Datos del prestador guardados').waitFor();
-  paso('Ajustes: consentimiento informado y plan aprobados; protocolo de hidrolipoclasia escrito y aprobado; prestador y póliza');
+  paso('Ajustes: consentimiento informado y plan aprobados; prestador y póliza');
 
   // Programa de peso (Peña): meta, plan, contraindicaciones y GLP-1.
   await abrirFicha('1032456789');
@@ -1750,6 +1774,40 @@ await context.close();
   await alInicio();
   await captura(p, 'i4_inventario_despues.png');
   paso('El inventario descontó 2 ampollas y 1 frasco (queda bajo el mínimo, con la salida de la sesión); el lote vencido se da de baja');
+
+  // Caja ↔ inventario: un cobro con una ampolla usada (sin pago: la caja de
+  // hoy ya se cerró). Se descuenta del lote que vence primero y, al anular
+  // el cobro, vuelve.
+  await pulsarExacto('Caja');
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
+  await texto(p, 'INSUMOS USADOS').waitFor();
+  await elegirPacienteCobro('munoz maria');
+  await hacerClic(p.getByRole('button', { name: 'Quitar el pago 1', exact: true }));
+  await hacerClic(p.getByRole('button', { name: 'Agregar un insumo', exact: true }));
+  await texto(p, 'L7788 · vence 15/12/2026').waitFor();
+  await texto(p, 'En el lote L7788 quedan 4 ampollas.').waitFor();
+  await aLaVista(conTexto('INSUMOS USADOS'));
+  await captura(p, 'i7_cobro_con_insumo.png');
+  await p.getByRole('button', { name: 'Registrar sin pago', exact: true }).click();
+  await texto(p, 'Se descontó 1 insumo del inventario.').waitFor();
+  await texto(p, 'Insumos: Anestésico de prueba, 1 ampolla (lote L7788)').waitFor();
+  await texto(p, 'Se descontó 1 insumo del inventario.').desaparece({ timeout: 20000 });
+  await pulsarExacto('Inventario');
+  await texto(p, 'Existencia: 3 ampollas (mínimo 5)').waitFor();
+  await hacerClic(p.getByRole('button', { name: /^Movimientos \(/ }).first());
+  await texto(p, 'Salida · lote L7788 · -1 · Cobro: ').waitFor();
+  paso('Cobro con un insumo usado: sugiere el lote que vence primero y lo descuenta del inventario (1 ampolla de L7788)');
+
+  await pulsarExacto('Caja');
+  await hacerClic(p.getByRole('button', { name: 'Anular el cobro', exact: true }));
+  await texto(p, 'Sus insumos vuelven al inventario').waitFor();
+  await escribir(p, 'Motivo de la anulación', 'Prueba de anulación');
+  await p.getByRole('button', { name: 'Anular', exact: true }).click();
+  await texto(p, 'Cobro anulado: sus insumos volvieron al inventario.').waitFor();
+  await texto(p, 'Cobro anulado: sus insumos volvieron al inventario.').desaparece({ timeout: 20000 });
+  await pulsarExacto('Inventario');
+  await texto(p, 'Existencia: 4 ampollas (mínimo 5)').waitFor();
+  paso('Al anular el cobro, la ampolla vuelve al inventario');
 
   await p.setViewportSize({ width: 390, height: 844 });
   await p.waitForTimeout(900);

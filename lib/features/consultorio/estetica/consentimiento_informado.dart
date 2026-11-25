@@ -134,7 +134,8 @@ class _DialogoPlanState extends ConsumerState<_DialogoPlan> {
               ),
               const SizedBox(height: 12),
               CampoTexto(
-                etiqueta: 'Producto o solución (con su registro Invima)',
+                etiqueta:
+                    'Producto, solución o equipo (con su registro Invima)',
                 valorInicial: _plan.producto,
                 lineas: 2,
                 alCambiar: (v) => _plan = _plan.copyWith(producto: v.trim()),
