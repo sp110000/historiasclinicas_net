@@ -104,13 +104,16 @@ class _AgendaPageState extends ConsumerState<AgendaPage> {
         ],
       ),
       body: GestureDetector(
-        // En móvil se desliza entre días.
-        onHorizontalDragEnd: movil
-            ? (d) {
-                final v = d.primaryVelocity ?? 0;
-                if (v.abs() > 300) _mover(v < 0 ? 1 : -1);
-              }
-            : null,
+        // En móvil se desliza entre días. El gesto no cambia al cruzar el
+        // corte y queda fuera del árbol de accesibilidad (los lectores usan
+        // «‹» y «›»): si cambiara, el motor web convertía el área en
+        // desplazable con la semántica activa y lanzaba «Null check…».
+        excludeFromSemantics: true,
+        onHorizontalDragEnd: (d) {
+          if (MediaQuery.sizeOf(context).width >= 700) return;
+          final v = d.primaryVelocity ?? 0;
+          if (v.abs() > 300) _mover(v < 0 ? 1 : -1);
+        },
         child: CuerpoConsultorio(
           children: [
             Wrap(
