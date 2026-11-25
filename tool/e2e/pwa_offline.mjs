@@ -140,18 +140,15 @@ async function esperarValor(page, etiqueta, cumple) {
 /**
  * Espera a que la app esté lista (con o sin conexión), activa la semántica y
  * deja abierta la historia. Con el consultorio encendido (lo que publica
- * pages.yml) la app abre en la agenda: la historia está a un clic en el riel.
+ * pages.yml) la app abre en la agenda: la historia está a un clic.
  */
 async function esperarApp(page) {
   await page.waitForSelector('flt-semantics-placeholder', { state: 'attached', timeout: 60000 });
   await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
   const receta = page.getByRole('button', { name: /receta/i }).first();
-  const riel = page
-    .getByRole('button', { name: 'Historia', exact: true })
-    .or(page.getByRole('tab', { name: 'Historia', exact: true }))
-    .or(page.locator('flt-semantics[flt-tappable][aria-label="Historia"]'))
-    .or(page.locator('flt-semantics[flt-tappable]').filter({ hasText: /^Historia$/ }))
-    .first();
+  // «Historia» en el riel (seguido de «Pestaña 3 de 6»); en el celular, sin
+  // riel, la agenda ofrece «Ir a la historia».
+  const riel = page.getByRole('button', { name: /^Historia(\s|$)|^Ir a la historia$/ }).first();
   await receta.or(riel).first().waitFor({ timeout: 30000 });
   if (!(await receta.isVisible())) {
     await riel.click();
