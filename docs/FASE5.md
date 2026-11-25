@@ -31,7 +31,63 @@
 
 ## Avance
 
-### 5.5 Agenda ✅ (pendiente de tu visto bueno)
+### 5.6 Caja y paquetes ✅ (pendiente de tu visto bueno)
+
+**Qué incluye**
+- **Catálogo** con tus tarifas iniciales (pregunta 44), en **Ajustes → Caja**: cambiar una tarifa no toca lo ya cobrado; se agregan servicios (simples, valoración abonable o paquete de N sesiones de un procedimiento) y se desactivan los que no uses. El control del programa de peso usa la tarifa del control; si quieres otra, agrégala como servicio.
+- **Caja** (en el riel, después de la historia: Agenda, Pacientes, Historia, Caja y Ajustes; el inventario llega en la 5.7):
+  - el **día**, con los recibos (también los anulados, con su motivo), las sesiones de paquete usadas (sin recibo), las anulaciones de días cerrados que restan ese día y los **totales por medio de pago**;
+  - los **saldos por cobrar** de todos los días, con «Abonar»;
+  - el **informe del mes**: por servicio y por línea (lo cobrado neto, en el mes del cobro), el recaudo por medio (en el día de cada recibo), los créditos de valoración aplicados y el **volumen por técnica** (valoraciones y sesiones selladas). Todo baja en **CSV** con `;`, UTF-8 con BOM y CRLF (pregunta 47), igual que el día.
+- **Cobrar** (desde la caja, la cita o la ficha):
+  - paciente (o «Paciente nuevo»), servicios con cantidad, **descuento con motivo** obligatorio y el valor del catálogo;
+  - desde la cita, el servicio sale de su tipo (primera vez, control, valoración o sesión), y la tarjeta de la cita queda «Cobrada» o con su saldo;
+  - el **crédito de la valoración** se aplica solo cuando hay un tratamiento estético (se puede quitar), y si no se aplica, avisa;
+  - si el paciente tiene un **paquete con sesiones**, el cobro lo ofrece primero: «Usar una sesión (sin cobro)»;
+  - **pagos por medio** (efectivo, transferencia, Nequi, Daviplata y tarjeta) con referencia; el primero toma lo que falta, y se pueden combinar. Sin pago, el cobro queda con saldo y **no hay recibo** (pregunta 46).
+- **Recibo RC-000001** en PDF A5 (en el equipo secundario, RC-S000001): tus datos, el paciente, lo cobrado con descuentos y crédito, este pago por medio, lo pagado a la fecha, el saldo, la firma y el aviso **«Este documento no es una factura electrónica de venta.»** (DIAN, VERIFICAR con tu contador). Queda cifrado y se vuelve a descargar desde la caja o la ficha.
+- **Paquete:** cobrarlo crea el paquete de 4 sesiones (sin vencimiento, pregunta 45). Usar una sesión **no genera recibo**; agotado, no deja usar más y pide cobrar la sesión.
+- **Crédito de la valoración abonable:** pagada del todo, deja su valor como crédito por **30 días**, que se descuenta del tratamiento.
+- **Anular** con motivo:
+  - un recibo: sale de los totales y el saldo vuelve. Si el crédito de esa valoración ya se usó, primero hay que anular el tratamiento;
+  - un cobro sin recibos vigentes: libera el crédito que tenía aplicado y anula el paquete si no tiene sesiones usadas.
+- **Cierre del día:** totales por medio, efectivo esperado, **efectivo contado** y la diferencia (sobra o falta), con notas. **No se reabre:** ese día no se registran más pagos ni se anulan recibos. Un recibo de un día cerrado se anula después y **resta en el día en que se anula**, con referencia al original. Al cerrar se ofrece **descargar el respaldo** (decisión 7).
+- **En la ficha:** «Cobrar» entre las acciones y la sección **Caja** con el saldo, los cobros con saldo («Abonar»), los paquetes (quedan N de 4, «Usar una sesión»), el crédito vigente y los recibos.
+- Todo queda en la **bitácora** (cobro, pago, anulaciones, sesión de paquete, cierre, catálogo y exportación).
+
+**Verificación**
+
+| Comprobación | Resultado |
+|---|---|
+| `dart format`, `flutter analyze` | Sin problemas |
+| `flutter test` | **686 en verde** (644 en la 5.5). Por tabla: totales y saldos (5 casos) y 9 bloqueos del cobro; además, el crédito sin aplicar, los totales del día con la anulación de un día cerrado (resta el día en que se anula), el CSV (BOM, `;`, CRLF y comillas) y el informe del mes. En el servicio, cifrado y al reabrir: **consecutivo sin saltos ni repetidos** (un cobro sin pago no gasta número; un anulado lo conserva), serie S, **paquete agotado**, crédito de 30 días aplicado y liberado, **anulación** (también la de un día cerrado), **día cerrado inmutable**, el recibo PDF leído con `pdftotext` y la bitácora. 8 pruebas de interfaz, también a 390 y 320 px |
+| Bandera apagada | La 5.6 no tocó ningún archivo compartido: el `main.dart.js` público **pesa lo mismo desde la 5.1** (5.333.404 bytes) y no lleva el módulo |
+| Bandera encendida | El `main.dart.js` del consultorio pesa **6.172 KB** (6.077 KB en la 5.5) |
+| Contraste | Textos con los colores del tema (≥ 4,5:1); lo que falta o sobra va en el color de aviso del tema |
+| 320 px | Caja, cobro, cierre y la sección de la ficha sin desbordes, con prueba |
+| e2e del consultorio en Chromium, **sin conexión y con la CSP** | **57 de 57 pasos** (50 de antes y 7 nuevos). Con el reloj fijado al lunes 30/11/2026, 9:15: **cobro desde la cita con abono** de $ 20.000 (recibo leído con `pdftotext`: saldo $ 25.000 y «no es una factura electrónica de venta»); valoración por transferencia con referencia; **paquete de 4 sesiones con el crédito de $ 70.000** aplicado, con tarjeta; **sesión del paquete sin recibo**; abono del saldo desde «Saldos por cobrar»; totales por medio ($ 925.000); **informe del mes y su CSV** (BOM, `;` y CRLF); **cierre del día** sin diferencia, con el respaldo ofrecido y descargado y sin «Anular» después; CSV del día; móvil y 320 px. Nada en claro (tampoco la referencia del pago ni el número de recibo). 0 peticiones externas, 0 fallidas, 0 errores de consola, 0 excepciones de Flutter |
+
+**Problemas encontrados y corregidos en la 5.6**
+1. **Con la caja de hoy cerrada, cada recibo seguía ofreciendo «Anular»**, que el servicio rechazaba al final. Ahora no se ofrece hasta el día siguiente, con prueba.
+2. **Un día cerrado podía cambiar** si se anulaba ese mismo día uno de sus recibos (sumaba y restaba en el mismo día, distinto del cierre guardado). Por eso, con la caja de hoy cerrada no se anula nada hasta mañana.
+3. Las capturas de la caja salían con el aviso «Recibo … descargado» encima. La e2e espera a que se vaya.
+4. En la e2e, los valores en pesos se reescriben con el separador de miles mientras se escriben («20000» queda «20.000»). La e2e compara el valor ya formateado.
+5. En una prueba, dos cobros hechos en el mismo minuto salían en cualquier orden. La prueba busca el del paquete por su servicio.
+
+**Desviaciones del plan**
+- **El valor de cada servicio sale del catálogo**; lo que cambie en un cobro va como descuento con motivo, para que el informe muestre los descuentos.
+- **Un paquete se cobra de una vez** (con abonos si hace falta); no hay devolución parcial: se anula el recibo (y, sin sesiones usadas, el cobro). Una devolución por sesiones no usadas queda para cuando la definas (pregunta 45).
+- **El día cerrado tampoco anula recibos de ese día:** la anulación se hace al día siguiente y resta allí (así el cierre guardado no cambia).
+- **La caja no viaja en el paquete del equipo secundario:** sus recibos llevan la serie S para no chocar, y la caja lo avisa. Se lleva en el principal.
+- «Registrar y ver recibo» del boceto es **«Registrar y descargar el recibo»**, como los demás documentos.
+
+**Evidencias (`docs/fase5/`)**
+- **Escritorio (1440 px):** [cobro con abono](fase5/escritorio_caja_cobro.png) · [caja del día](fase5/escritorio_caja_dia.png) · [informe del mes](fase5/escritorio_caja_informe.png) · [caja cerrada](fase5/escritorio_caja_cierre.png)
+- **Móvil (390 px):** [caja](fase5/movil_caja.png)
+- **320 px:** [caja](fase5/320_caja.png)
+- **PDF:** [recibo con abono](fase5/pdf_recibo.png) · [recibo del paquete con el crédito](fase5/pdf_recibo_paquete.png)
+
+### 5.5 Agenda ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
 - **La agenda es el inicio** con la bandera encendida y la primera del riel (pregunta 51). La historia sigue a un clic.
@@ -84,7 +140,7 @@
 - **Una cita siempre es de una ficha.** Para una primera vez, «Paciente nuevo» crea la ficha con lo mínimo, en lugar de guardar en la cita un nombre y un teléfono provisionales.
 - **Fuera del horario, festivo y bloqueo avisan, no bloquean.** El plan lo decía solo de los cruces.
 - **WhatsApp solo se ofrece a celulares colombianos** (10 dígitos que empiezan por 3) o a números con «+indicativo». Un fijo no.
-- **«Cobrar» llega con la caja (5.6).** «Atender» marca la cita atendida al abrir la historia; ligar la cita con la evolución guardada queda para cuando el cobro lo necesite.
+- **«Cobrar» llegó con la caja (5.6).** «Atender» marca la cita atendida al abrir la historia.
 - **El aviso de recordatorios de mañana se ve siempre en la agenda**, no solo en la mañana.
 - **El paquete del equipo secundario no lleva citas:** se agendan en el principal.
 

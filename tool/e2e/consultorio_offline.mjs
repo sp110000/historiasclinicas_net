@@ -1,4 +1,4 @@
-// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.3) en Chromium, SIN
+// Prueba de extremo a extremo del consultorio (Fase 5.0 a 5.6) en Chromium, SIN
 // CONEXIÓN y con la CSP de producción.
 //
 // Uso:
@@ -20,7 +20,9 @@
 // (con el reloj del navegador fijado), comparación y cortina, informe de
 // seguimiento y fotos en PDF; (5.3) protocolo, programa de peso con GLP-1,
 // valoración, consentimiento informado y sesión (bloqueada sin
-// consentimiento y con un lote vencido, luego sellada); y comprobar que
+// consentimiento y con un lote vencido, luego sellada); (5.4) documentos;
+// (5.5) agenda; (5.6) caja: cobro con abono, paquete con el crédito de la
+// valoración, recibos en PDF, informe y cierre del día; y comprobar que
 // nada de los pacientes queda en claro. Falla si hay
 // peticiones fuera del sitio, peticiones fallidas o errores de consola
 // (incluida la CSP).
@@ -1401,6 +1403,190 @@ await context.close();
   await p.setViewportSize({ width: 1440, height: 1000 });
   await p.waitForTimeout(900);
   paso('Agenda en móvil (390 px) y 320 px: solo la vista de día');
+
+  // ─────────────── 7. Caja (5.6) ───────────────
+  // Los valores en pesos llevan separador de miles al escribirlos.
+  async function escribirPesos(etiqueta, valor) {
+    const esperado = Number(valor).toLocaleString('de-DE');
+    const c = campo(p, etiqueta);
+    for (let intento = 0; intento < 4; intento++) {
+      await c.scrollIntoViewIfNeeded();
+      await p.waitForTimeout(150 + intento * 300);
+      await c.click();
+      await p.waitForTimeout(150 + intento * 300);
+      await p.keyboard.press('Control+A');
+      await p.keyboard.press('Delete');
+      await c.fill(valor);
+      await p.waitForTimeout(300);
+      if (await c.evaluate((el, v) => el.value === v, esperado)) return;
+    }
+    throw new Error(`No se pudo escribir ${valor} en "${etiqueta}"`);
+  }
+  // Una opción de una lista desplegable (se llama «Etiqueta Valor»).
+  async function elegirOpcion(lista, opcion) {
+    await p.getByRole('button', { name: new RegExp(`^${lista}`) }).last().dispatchEvent('click');
+    await p.waitForTimeout(400);
+    await p
+      .getByRole('menuitem', { name: opcion, exact: true })
+      .or(p.getByRole('option', { name: opcion, exact: true }))
+      .or(p.locator(`flt-semantics[aria-label="${opcion}"]`))
+      .or(p.locator('flt-semantics[flt-tappable]').filter({ hasText: new RegExp(`^${opcion}$`) }))
+      .last()
+      .dispatchEvent('click');
+    await p.waitForTimeout(400);
+  }
+  const registrarRecibo = (nombre) =>
+    descargar(p, async () => {
+      await p.getByRole('button', { name: 'Registrar y descargar el recibo', exact: true }).click();
+    }).then((ruta) => {
+      if (path.basename(ruta) !== nombre) throw new Error(`Recibo: ${path.basename(ruta)}`);
+      return ruta;
+    });
+  async function elegirPacienteCobro(busqueda) {
+    await escribir(p, 'Paciente', busqueda);
+    await p.waitForTimeout(500);
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(400);
+    await texto(p, 'Elige el paciente.').desaparece({ timeout: 10000 });
+  }
+
+  // Desde la cita atendida de Peña: «Cobrar» sugiere el control; abona
+  // 20.000 en efectivo y queda el saldo.
+  await alInicio();
+  await texto(p, 'lunes 30/11/2026').waitFor();
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
+  await texto(p, 'SERVICIOS').waitFor();
+  await texto(p, 'Control').waitFor();
+  await escribirPesos('Valor', '20000');
+  await texto(p, 'Es un abono: queda un saldo de $ 25.000.').waitFor();
+  await captura(p, 'h1_cobro.png');
+  const rc1 = await registrarRecibo('Recibo_RC-000001.pdf');
+  await texto(p, 'Saldo $ 25.000').waitFor();
+  const leidoRc1 = leerDocumento(
+    rc1,
+    [
+      'RECIBO DE CAJA',
+      'RC-000001',
+      'PEÑA MUÑOZ, José Ángel',
+      'Control',
+      'Efectivo',
+      '$ 20.000',
+      'Saldo $ 25.000',
+      'Este documento no es una factura electrónica de venta.',
+    ],
+    'pdf_recibo',
+  );
+  paso(
+    `Cobro desde la cita con abono de $ 20.000 → ${path.basename(rc1)}` +
+      (leidoRc1 ? ' (pdftotext: saldo $ 25.000 y «no es una factura electrónica de venta»)' : ''),
+  );
+
+  // La valoración de Muñoz, por transferencia con referencia: deja el
+  // crédito de 30 días.
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).nth(1).click();
+  await texto(p, 'Valoración estética (abonable al tratamiento)').waitFor();
+  await elegirOpcion('Medio de pago 1', 'Transferencia');
+  await escribir(p, 'Referencia', 'TR-0042');
+  const rc2 = await registrarRecibo('Recibo_RC-000002.pdf');
+  await texto(p, 'Cobrada').waitFor();
+
+  // En la caja: el paquete de 4 sesiones con el crédito aplicado, con tarjeta.
+  await pulsarExacto('Caja');
+  await texto(p, 'Caja abierta').waitFor();
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
+  await texto(p, 'SERVICIOS').waitFor();
+  await elegirPacienteCobro('munoz maria');
+  await elegirOpcion('Servicio', 'Paquete de 4 sesiones');
+  await texto(p, 'Aplicar el crédito de la valoración').waitFor();
+  await texto(p, '$ 810.000').waitFor();
+  await elegirOpcion('Medio de pago 1', 'Tarjeta');
+  const rc3 = await registrarRecibo('Recibo_RC-000003.pdf');
+  leerDocumento(rc3, ['RC-000003', 'Paquete de 4 sesiones', 'Crédito de la valoración', '$ 810.000', 'Tarjeta'], 'pdf_recibo_paquete');
+  paso(`Valoración por transferencia (${path.basename(rc2)}) y paquete de 4 sesiones con su crédito de $ 70.000 → ${path.basename(rc3)}`);
+
+  // Usar una sesión del paquete: sin cobro ni recibo.
+  await p.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
+  await texto(p, 'SERVICIOS').waitFor();
+  await elegirPacienteCobro('munoz maria');
+  await texto(p, 'Paquete de 4 sesiones: quedan 4 de 4.').waitFor();
+  await p.getByRole('button', { name: 'Usar una sesión (sin cobro)', exact: true }).click();
+  await p.getByRole('button', { name: 'Usar la sesión', exact: true }).click();
+  await texto(p, 'sesión 1 de 4 usada (sin recibo)').waitFor();
+  await texto(p, 'Sesiones de paquete').waitFor();
+  paso('Sesión 1 de 4 del paquete usada desde el cobro: sin recibo; la caja la lista aparte');
+
+  // Saldos por cobrar → Abonar: el pago toma el saldo de Peña.
+  await hacerClic(p.getByRole('button', { name: 'Abonar', exact: true }));
+  await texto(p, 'Saldo').waitFor();
+  const rc4 = await registrarRecibo('Recibo_RC-000004.pdf');
+  await texto(p, 'Nadie debe nada.').waitFor();
+  await alInicio();
+  await texto(p, 'Totales del día').waitFor();
+  await texto(p, '$ 925.000').waitFor();
+  await texto(p, 'Recibo RC-000004 descargado').desaparece({ timeout: 20000 });
+  await captura(p, 'h2_caja_dia.png');
+  paso(`Abono del saldo de Peña → ${path.basename(rc4)}; totales por medio: efectivo $ 45.000, transferencia $ 70.000, tarjeta $ 810.000`);
+
+  // Informe del mes y su CSV (Excel en español).
+  await pulsarExacto('Informe del mes');
+  await texto(p, 'Noviembre de 2026').waitFor();
+  await texto(p, 'Volumen por técnica').waitFor();
+  await captura(p, 'h3_informe.png');
+  const csvMes = await descargar(p, () => hacerClic(p.getByRole('button', { name: 'CSV del mes', exact: true })));
+  const bytesCsv = fs.readFileSync(csvMes);
+  const textoCsv = bytesCsv.toString('utf8');
+  if (
+    path.basename(csvMes) !== 'Informe_caja_2026-11.csv' ||
+    bytesCsv[0] !== 0xef ||
+    bytesCsv[1] !== 0xbb ||
+    bytesCsv[2] !== 0xbf ||
+    !textoCsv.includes('Mes;Sección;Concepto;Línea;Cantidad;Bruto;Descuentos;Neto\r\n') ||
+    !textoCsv.includes('2026-11;Servicio;Paquete de 4 sesiones;Estética;1;880000;0;880000') ||
+    !textoCsv.includes('2026-11;Créditos aplicados;Valoraciones abonadas;;;;70000;-70000') ||
+    !textoCsv.includes('2026-11;Recaudo;Tarjeta;;;;;810000')
+  ) {
+    throw new Error(`CSV del mes: ${path.basename(csvMes)}\n${textoCsv}`);
+  }
+  paso(`Informe del mes por servicio, línea, recaudo y volumen por técnica → ${path.basename(csvMes)} (UTF-8 con BOM, «;»)`);
+
+  // Cierre del día: efectivo contado, sin diferencia; se ofrece el respaldo.
+  await pulsarExacto('Día');
+  await texto(p, 'Totales del día').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Cerrar la caja', exact: true }));
+  await texto(p, 'Cerrar la caja de hoy').waitFor();
+  await escribirPesos('Efectivo contado', '45000');
+  await texto(p, 'Sin diferencia').waitFor();
+  await p.getByRole('button', { name: 'Cerrar la caja', exact: true }).last().click();
+  await texto(p, '¿Descargas ahora un respaldo').waitFor();
+  const respaldoCierre = await descargar(p, () =>
+    p.getByRole('button', { name: 'Descargar el respaldo', exact: true }).click(),
+  );
+  if (!respaldoCierre.endsWith('.hcrespaldo')) throw new Error(`Respaldo: ${respaldoCierre}`);
+  await texto(p, 'Caja cerrada a las 09:15').waitFor();
+  await texto(p, 'Respaldo descargado').desaparece({ timeout: 20000 });
+  if (await p.getByRole('button', { name: 'Anular RC-000001', exact: true }).count()) {
+    throw new Error('Con la caja cerrada no se ofrece anular');
+  }
+  await alInicio();
+  await captura(p, 'h4_cierre.png');
+  const csvDia = fs.readFileSync(
+    await descargar(p, () => hacerClic(p.getByRole('button', { name: 'CSV del día', exact: true }))),
+    'utf8',
+  );
+  if (!csvDia.includes(';Efectivo contado;Efectivo;45000;Cierre') || !csvDia.includes('RC-000004')) {
+    throw new Error(`CSV del día:\n${csvDia}`);
+  }
+  paso(`Cierre del día con el efectivo contado (sin diferencia), respaldo ofrecido y descargado (${path.basename(respaldoCierre)}) y CSV del día`);
+
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(900);
+  await captura(p, 'h5_caja_movil.png');
+  await p.setViewportSize({ width: 320, height: 640 });
+  await p.waitForTimeout(900);
+  await captura(p, 'h6_caja_320.png');
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  await p.waitForTimeout(900);
+  paso('Caja en móvil (390 px) y 320 px');
   await abrirFicha('1032456789');
 
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.
@@ -1427,7 +1613,7 @@ await context.close();
             bd.close();
             const todo = textos.join('\n') + '\n' + Object.values(localStorage).join('\n');
             listo(
-              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog', 'tiroides'].filter((t) =>
+              ['1032456789', 'Metformina', 'PEÑA', 'Penicilina', 'JFIF', 'Exif', 'Empresa de prueba', 'Endocrinolog', 'tiroides', 'TR-0042', 'RC-000001'].filter((t) =>
                 todo.includes(t),
               ),
             );
