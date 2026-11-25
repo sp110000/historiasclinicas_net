@@ -34,9 +34,12 @@ void main() {
         '/',
         '/receta',
         '/medico',
+        '/agenda',
         '/pacientes',
         '/ajustes',
       ]);
+      // Abre en la agenda de hoy (pregunta 51).
+      expect(router.routeInformationProvider.value.uri.path, '/agenda');
       final pacientes = shell.routes.cast<GoRoute>().singleWhere(
         (r) => r.path == '/pacientes',
       );
@@ -73,6 +76,11 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byType(ContenedorConsultorio), findsOneWidget);
       expect(find.byType(NavigationRail), findsOneWidget);
+      // La agenda es la primera del riel y la que abre.
+      expect(
+        t.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
+        0,
+      );
       await t.tap(find.text('Ajustes'));
       await t.pumpAndSettle();
       expect(find.text('Crea tu frase de acceso'), findsOneWidget);

@@ -18,6 +18,8 @@ import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../integracion/enganche_historia.dart';
 import '../widgets/comunes.dart';
+import '../agenda/agenda_page.dart' show TarjetaCita;
+import '../agenda/dialogo_cita.dart';
 import '../documentos/firma_autorizacion.dart';
 import '../documentos/linea_tiempo_documentos.dart';
 import '../fotos/seccion_fotos.dart';
@@ -103,6 +105,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
         (d.fechaHora, TarjetaDocumento(documento: d)),
       for (final r in indice.recetasDe(f.id))
         (r.fecha, TarjetaReceta(receta: r)),
+      for (final c in s.agenda.citasDe(f.id))
+        (c.inicio, TarjetaCita(cita: c, conFecha: true)),
     ]..sort((a, b) => b.$1.compareTo(a.$1));
     final resumen = indice.resumen(f);
     return Scaffold(
@@ -184,6 +188,9 @@ class _Encabezado extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final f = ficha;
     final indice = ref.read(servicioConsultorioProvider).indice;
+    final agenda = ref.read(servicioConsultorioProvider).agenda;
+    final cita = agenda.proximaCita(f.id);
+    final inasistencias = agenda.inasistencias(f.id);
     final edad = f.edadAnios(ahora);
     final sexo = opcionesSexo
         .where((o) => o.codigo == f.sexo)
@@ -252,6 +259,21 @@ class _Encabezado extends ConsumerWidget {
                   color: resumen.controlVencido(ahora)
                       ? ColoresMarca.aviso
                       : ColoresMarca.primario,
+                ),
+              if (cita != null)
+                EtiquetaEstado(
+                  icono: Icons.event_outlined,
+                  texto:
+                      'Próxima cita ${formatoFechaHora(cita.inicio)} · '
+                      '${cita.tipo.etiqueta}',
+                  color: ColoresMarca.primario,
+                ),
+              if (inasistencias > 0)
+                EtiquetaEstado(
+                  icono: Icons.person_off_outlined,
+                  texto:
+                      '$inasistencias ${inasistencias == 1 ? 'inasistencia' : 'inasistencias'}',
+                  color: ColoresMarca.aviso,
                 ),
               for (final l in LineaAtencion.values)
                 if (f.lineas.contains(l))
@@ -389,6 +411,14 @@ class _Acciones extends ConsumerWidget {
       ),
       (Icons.medication_outlined, 'Receta', () => _receta(context, ref)),
       (
+        Icons.event_available_outlined,
+        'Agendar cita',
+        () async {
+          final c = await editarCita(context, pacienteId: ficha.id);
+          if (c != null) ref.read(versionIndiceProvider.notifier).cambio();
+        },
+      ),
+      (
         Icons.warning_amber_rounded,
         'Actualizar alergias',
         () => _alergias(context, ref),
@@ -438,9 +468,9 @@ class _Acciones extends ConsumerWidget {
         child: MenuAnchor(
           menuChildren: [
             for (final (icono, texto, accion) in [
-              ...acciones.take(3),
+              ...acciones.take(4),
               ...documentos,
-              ...acciones.skip(3),
+              ...acciones.skip(4),
             ])
               MenuItemButton(
                 leadingIcon: Icon(icono),
@@ -472,7 +502,7 @@ class _Acciones extends ConsumerWidget {
                   icon: Icon(icono),
                   label: Text(texto),
                 ),
-          if (i == 2)
+          if (i == 3)
             MenuAnchor(
               menuChildren: [
                 for (final (icono, texto, accion) in documentos)

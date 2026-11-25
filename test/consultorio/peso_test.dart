@@ -13,6 +13,7 @@ import 'package:historiasclinicas_net/core/consultorio/servicio.dart';
 import 'package:historiasclinicas_net/core/pais/perfil_pais.dart';
 import 'package:historiasclinicas_net/core/pdf/fuentes_pdf.dart';
 import 'package:historiasclinicas_net/core/storage/preferencias.dart';
+import 'package:historiasclinicas_net/features/consultorio/peso/ajustes_peso.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/consultorio_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/rutas_consultorio.dart';
 import 'package:historiasclinicas_net/features/historia/estado/historia_controller.dart';
@@ -540,7 +541,8 @@ void main() {
     ) async {
       final (b, _) = await _paciente();
       await montar(t, b, '/ajustes');
-      expect(find.text('Programa de peso'), findsOneWidget);
+      // «Programa de peso» también es un tipo de cita (tarjeta Agenda).
+      expect(find.byType(TarjetaProgramaPeso), findsOneWidget);
       expect(find.text('Registro Invima sin confirmar'), findsNWidgets(3));
       const tirzepatida =
           'Tirzepatida (GIP/GLP-1) (Mounjaro®) · Subcutánea semanal';

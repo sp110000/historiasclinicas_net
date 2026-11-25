@@ -20,7 +20,10 @@ import '../widgets/chip_seleccion.dart';
 
 /// Lista de pacientes con búsqueda y filtros.
 class PacientesPage extends ConsumerStatefulWidget {
-  const PacientesPage({super.key});
+  const PacientesPage({super.key, this.soloVencidos = false});
+
+  /// Abre con el filtro de controles vencidos (desde la agenda).
+  final bool soloVencidos;
 
   @override
   ConsumerState<PacientesPage> createState() => _PacientesPageState();
@@ -31,7 +34,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
   LineaAtencion? _linea;
   FiltroUltimaAtencion? _ultima;
   final _etiquetas = <String>{};
-  var _soloVencidos = false;
+  late var _soloVencidos = widget.soloVencidos;
   var _arrastrando = false;
   late final void Function() _dejarDeEscuchar;
 

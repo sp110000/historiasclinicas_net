@@ -33,21 +33,27 @@ class DestinoConsultorio {
   final bool requiereDesbloqueo;
 }
 
-/// Destinos construidos hasta la 5.1. Las subfases siguientes agregan
-/// Agenda, Caja e Inventario.
+/// Destinos construidos hasta la 5.5 (pregunta 51). Las subfases
+/// siguientes agregan Caja e Inventario.
 const destinosConsultorio = [
   DestinoConsultorio(
-    ruta: '/',
-    etiqueta: 'Historia',
-    icono: Icons.description_outlined,
-    iconoActivo: Icons.description,
-    requiereDesbloqueo: false,
+    ruta: '/agenda',
+    etiqueta: 'Agenda',
+    icono: Icons.calendar_month_outlined,
+    iconoActivo: Icons.calendar_month,
   ),
   DestinoConsultorio(
     ruta: '/pacientes',
     etiqueta: 'Pacientes',
     icono: Icons.people_outline,
     iconoActivo: Icons.people,
+  ),
+  DestinoConsultorio(
+    ruta: '/',
+    etiqueta: 'Historia',
+    icono: Icons.description_outlined,
+    iconoActivo: Icons.description,
+    requiereDesbloqueo: false,
   ),
   DestinoConsultorio(
     ruta: '/ajustes',
@@ -101,7 +107,8 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
       final r = destinosConsultorio[i].ruta;
       if (r != '/' && ubicacion.startsWith(r)) return i;
     }
-    return 0;
+    // La historia (y la receta y los datos del médico, que salen de ella).
+    return destinosConsultorio.indexWhere((d) => d.ruta == '/');
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:printing/printing.dart';
 
 import '../../../core/archivos/archivos.dart' as archivos;
 import '../../../core/archivos/archivos.dart' show ArchivoAbierto;
+import '../../../core/consultorio/plataforma/enlaces.dart';
 
 /// Sube cada vez que cambia el índice de pacientes (registro, importación,
 /// unir fichas, desbloqueo o bloqueo). Las pantallas lo miran y vuelven a
@@ -73,3 +74,9 @@ final descargarArchivoProvider =
             tipo: 'application/octet-stream',
           ),
     );
+
+/// Abre un enlace externo (WhatsApp) en otra pestaña. Las pruebas lo
+/// sustituyen.
+final abrirEnlaceProvider = Provider<void Function(String url)>(
+  (ref) => abrirEnlaceExterno,
+);
