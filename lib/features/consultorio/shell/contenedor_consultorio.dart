@@ -62,6 +62,12 @@ const destinosConsultorio = [
     iconoActivo: Icons.point_of_sale,
   ),
   DestinoConsultorio(
+    ruta: '/inventario',
+    etiqueta: 'Inventario',
+    icono: Icons.inventory_2_outlined,
+    iconoActivo: Icons.inventory_2,
+  ),
+  DestinoConsultorio(
     ruta: '/ajustes',
     etiqueta: 'Ajustes',
     icono: Icons.settings_outlined,

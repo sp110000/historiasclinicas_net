@@ -175,6 +175,7 @@ class _AgendaPageState extends ConsumerState<AgendaPage> {
               const SizedBox(height: 12),
               _Recordatorios(citas: pendientes),
             ],
+            const _AvisoInventario(),
             const SizedBox(height: 12),
             cuerpo,
           ],
@@ -186,6 +187,54 @@ class _AgendaPageState extends ConsumerState<AgendaPage> {
 
 /// «viernes 20/11/2026»
 String diaYFecha(DateTime d) => '${nombreDia(d)} ${formatoFecha(d)}';
+
+/// Lo del inventario que pide atención hoy: lotes vencidos con existencias,
+/// bajo el mínimo y por vencer (pregunta 49).
+class _AvisoInventario extends ConsumerWidget {
+  const _AvisoInventario();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final a = ref.read(servicioConsultorioProvider).inventario.alertas();
+    final partes = [
+      if (a.vencidos.isNotEmpty)
+        '${a.vencidos.length} ${a.vencidos.length == 1 ? 'lote vencido' : 'lotes vencidos'}',
+      if (a.bajoMinimo.isNotEmpty) '${a.bajoMinimo.length} bajo el mínimo',
+      if (a.porVencer.isNotEmpty) '${a.porVencer.length} por vencer',
+    ];
+    if (partes.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: RadiosMarca.tarjeta,
+          border: Border.all(color: ColoresMarca.borde),
+        ),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          children: [
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 18,
+              color: ColoresMarca.aviso,
+            ),
+            Text(
+              'Inventario: ${partes.join(' · ')}',
+              style: const TextStyle(color: ColoresMarca.aviso),
+            ),
+            TextButton(
+              onPressed: () => context.go('/inventario'),
+              child: const Text('Ver el inventario'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _Recordatorios extends ConsumerWidget {
   const _Recordatorios({required this.citas});

@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
 import '../../../core/clinica/rangos.dart';
+import '../../../core/consultorio/inventario/insumo.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
 import '../../../core/consultorio/procedimientos/plantilla_procedimiento.dart';
 import '../../../core/consultorio/procedimientos/sesion.dart';
 import '../../../core/consultorio/reglas/estetica.dart';
+import '../../../core/consultorio/reglas/inventario.dart';
 import '../../../core/consultorio/reglas/sesion.dart';
 import '../../../core/pais/pais_provider.dart';
 import '../../../core/utils/fechas.dart';
@@ -16,6 +18,7 @@ import '../../../core/widgets/campos.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
 import '../integracion/sellado.dart';
+import '../inventario/dialogos_inventario.dart';
 import '../widgets/chip_seleccion.dart';
 import '../widgets/comunes.dart';
 import 'seccion_estetica.dart' show etiquetaValoracion;
@@ -264,6 +267,7 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                         _CampoLote(
                           nombre: c.nombre,
                           lote: c.lote,
+                          unidadesEditables: true,
                           alCambiar: (l) => _poner(
                             s.copyWith(
                               componentes: [...s.componentes]
@@ -283,6 +287,7 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                     _Anestesico(
                       s: s,
                       d: d,
+                      insumoDelLote: servicio.inventario.insumoDeLote,
                       pedirPeso: _pedirPeso,
                       alCambiar: _poner,
                       alPesarHoy: (p) {
@@ -398,8 +403,7 @@ class _SesionPageState extends ConsumerState<SesionPage> {
                       ),
                     ),
                     const Text(
-                      'El enlace con el inventario (descontar al sellar) llega '
-                      'en la 5.7.',
+                      'Lo elegido del inventario se descuenta al sellar.',
                       style: TextStyle(
                         color: ColoresMarca.textoSuave,
                         fontSize: 13,
@@ -571,43 +575,197 @@ class _Seccion extends StatelessWidget {
   }
 }
 
-class _CampoLote extends StatelessWidget {
+/// El lote de una línea: del inventario (con lo que se descuenta al sellar
+/// y «Cambiar lote») o escrito a mano (con «Elegir del inventario»).
+class _CampoLote extends ConsumerWidget {
   const _CampoLote({
     required this.nombre,
     required this.lote,
     required this.alCambiar,
+    this.unidadesEditables = false,
+    this.unidades,
+    this.conTitulo = true,
+    this.etiquetaLote,
+    this.etiquetaVence,
+    this.alElegir,
   });
 
   final String nombre;
   final LoteSesion lote;
   final ValueChanged<LoteSesion> alCambiar;
 
+  /// Las unidades se escriben aquí (componentes); si no, [unidades] dice
+  /// cuántas se descuentan (anestésico: por volumen; insumo: su cantidad).
+  final bool unidadesEditables;
+  final double? unidades;
+  final bool conTitulo;
+  final String? etiquetaLote;
+  final String? etiquetaVence;
+
+  /// Al elegir del inventario, con el insumo (para ponerle el nombre).
+  final void Function(LoteSesion, Insumo)? alElegir;
+
+  Future<void> _elegir(BuildContext context, WidgetRef ref) async {
+    final inv = ref.read(servicioConsultorioProvider).inventario;
+    final r = await elegirLoteInventario(
+      context,
+      nombre: nombre.trim().isEmpty ? 'insumo' : nombre,
+    );
+    switch (r) {
+      case LoteElegido(:final lote):
+        final nuevo = inv.loteSesion(
+          lote,
+          unidades: unidadesEditables ? this.lote.unidades : null,
+        );
+        final insumo = inv.insumo(lote.insumoId)!;
+        if (alElegir != null) {
+          alElegir!(nuevo, insumo);
+        } else {
+          alCambiar(nuevo);
+        }
+      case EscribirAMano():
+        alCambiar(const LoteSesion());
+      case null:
+        break;
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
-      const SizedBox(height: 6),
-      RejillaCampos(
-        anchoMinimo: 160,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inv = ref.read(servicioConsultorioProvider).inventario;
+    final titulo = conTitulo
+        ? Text(nombre, style: const TextStyle(fontWeight: FontWeight.w600))
+        : null;
+    if (lote.delInventario) {
+      final l = inv.lote(lote.loteId!);
+      final insumo = inv.insumoDeLote(lote.loteId);
+      final estado = l == null ? null : inv.estado(l);
+      final u = unidadesEditables ? (lote.unidades ?? 1) : (unidades ?? 1);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CampoTexto(
-            etiqueta: 'Lote ($nombre)',
-            valorInicial: lote.lote,
-            mayusculas: TextCapitalization.characters,
-            alCambiar: (v) => alCambiar(LoteSesion(lote: v, vence: lote.vence)),
-          ),
-          CampoFecha(
-            etiqueta: 'Vence ($nombre)',
-            valor: lote.vence,
-            primera: DateTime(2000),
-            ultima: DateTime(2100),
-            alCambiar: (f) => alCambiar(LoteSesion(lote: lote.lote, vence: f)),
+          ?titulo,
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            decoration: BoxDecoration(
+              color: ColoresMarca.fondo,
+              borderRadius: RadiosMarca.tarjeta,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      size: 18,
+                      color: ColoresMarca.primario,
+                    ),
+                    Text(
+                      'Del inventario: lote ${lote.lote}'
+                      '${lote.vence == null ? '' : ' · vence ${formatoFecha(lote.vence!)}'}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (estado != null && estado != EstadoLote.vigente)
+                      EtiquetaEstado(
+                        icono: iconoEstadoLote(estado),
+                        texto: estado.etiqueta,
+                        color: colorEstadoLote(estado),
+                      ),
+                  ],
+                ),
+                Text(
+                  l == null
+                      ? 'El lote ya no está en el inventario.'
+                      : '${insumo?.nombre ?? ''} · quedan '
+                            '${unidadesTexto(inv.existencia(l.id), insumo)}'
+                            '${unidadesEditables ? '' : ' · se descuentan ${unidadesTexto(u, insumo)} al sellar'}',
+                  style: const TextStyle(color: ColoresMarca.textoSuave),
+                ),
+                if (l != null && inv.existencia(l.id) < u)
+                  Text(
+                    'No alcanza: quedan '
+                    '${unidadesTexto(inv.existencia(l.id), insumo)}.',
+                    style: const TextStyle(
+                      color: ColoresMarca.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (estado == EstadoLote.vencido)
+                  const Text(
+                    'Vencido: con este lote no se sella la sesión.',
+                    style: TextStyle(
+                      color: ColoresMarca.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (unidadesEditables) ...[
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: CampoNumero(
+                      key: ValueKey('unidades-$nombre-${lote.loteId}'),
+                      etiqueta: 'Unidades ($nombre)',
+                      unidad: insumo?.unidad,
+                      valor: u,
+                      alCambiar: (v) => alCambiar(lote.conUnidades(v)),
+                    ),
+                  ),
+                ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _elegir(context, ref),
+                    icon: const Icon(Icons.swap_horiz),
+                    label: const Text('Cambiar lote'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-    ],
-  );
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (titulo != null) ...[titulo, const SizedBox(height: 6)],
+        RejillaCampos(
+          anchoMinimo: 160,
+          children: [
+            CampoTexto(
+              etiqueta: etiquetaLote ?? 'Lote ($nombre)',
+              valorInicial: lote.lote,
+              mayusculas: TextCapitalization.characters,
+              alCambiar: (v) =>
+                  alCambiar(LoteSesion(lote: v, vence: lote.vence)),
+            ),
+            CampoFecha(
+              etiqueta: etiquetaVence ?? 'Vence ($nombre)',
+              valor: lote.vence,
+              primera: DateTime(2000),
+              ultima: DateTime(2100),
+              alCambiar: (f) =>
+                  alCambiar(LoteSesion(lote: lote.lote, vence: f)),
+            ),
+          ],
+        ),
+        if (!inv.vacio)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _elegir(context, ref),
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: const Text('Elegir del inventario'),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _Anestesico extends StatelessWidget {
@@ -617,6 +775,7 @@ class _Anestesico extends StatelessWidget {
     required this.pedirPeso,
     required this.alCambiar,
     required this.alPesarHoy,
+    required this.insumoDelLote,
   });
 
   final Sesion s;
@@ -626,6 +785,9 @@ class _Anestesico extends StatelessWidget {
   final bool pedirPeso;
   final ValueChanged<Sesion> alCambiar;
   final ValueChanged<double?> alPesarHoy;
+
+  /// El insumo de un lote del inventario (para las ampollas por volumen).
+  final Insumo? Function(String? loteId) insumoDelLote;
 
   @override
   Widget build(BuildContext context) {
@@ -686,6 +848,7 @@ class _Anestesico extends StatelessWidget {
           _CampoLote(
             nombre: a.nombre,
             lote: a.lote,
+            unidades: unidadesAnestesico(a, insumoDelLote(a.lote.loteId)),
             alCambiar: (l) =>
                 alCambiar(s.copyWith(anestesico: a.copyWith(lote: l))),
           ),
@@ -739,49 +902,53 @@ class _Insumo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: RejillaCampos(
-            anchoMinimo: 150,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CampoTexto(
-                etiqueta: 'Insumo',
-                valorInicial: x.nombre,
-                alCambiar: (v) => alCambiar(
-                  InsumoSesion(nombre: v, cantidad: x.cantidad, lote: x.lote),
-                ),
-              ),
-              CampoNumero(
-                etiqueta: 'Cantidad',
-                valor: x.cantidad,
-                alCambiar: (v) => alCambiar(
-                  InsumoSesion(
-                    nombre: x.nombre,
-                    cantidad: v ?? 1,
-                    lote: x.lote,
+              RejillaCampos(
+                anchoMinimo: 150,
+                children: [
+                  CampoTexto(
+                    key: ValueKey('nombre-insumo-${x.lote.loteId}'),
+                    etiqueta: 'Insumo',
+                    valorInicial: x.nombre,
+                    alCambiar: (v) => alCambiar(
+                      InsumoSesion(
+                        nombre: v,
+                        cantidad: x.cantidad,
+                        lote: x.lote,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              CampoTexto(
-                etiqueta: 'Lote del insumo',
-                valorInicial: x.lote.lote,
-                mayusculas: TextCapitalization.characters,
-                alCambiar: (v) => alCambiar(
-                  InsumoSesion(
-                    nombre: x.nombre,
-                    cantidad: x.cantidad,
-                    lote: LoteSesion(lote: v, vence: x.lote.vence),
+                  CampoNumero(
+                    etiqueta: 'Cantidad',
+                    valor: x.cantidad,
+                    alCambiar: (v) => alCambiar(
+                      InsumoSesion(
+                        nombre: x.nombre,
+                        cantidad: v ?? 1,
+                        lote: x.lote,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              CampoFecha(
-                etiqueta: 'Vence el insumo',
-                valor: x.lote.vence,
-                primera: DateTime(2000),
-                ultima: DateTime(2100),
-                alCambiar: (f) => alCambiar(
+              const SizedBox(height: 8),
+              _CampoLote(
+                nombre: x.nombre,
+                lote: x.lote,
+                conTitulo: false,
+                unidades: x.cantidad,
+                etiquetaLote: 'Lote del insumo',
+                etiquetaVence: 'Vence el insumo',
+                alCambiar: (l) => alCambiar(
+                  InsumoSesion(nombre: x.nombre, cantidad: x.cantidad, lote: l),
+                ),
+                alElegir: (l, i) => alCambiar(
                   InsumoSesion(
-                    nombre: x.nombre,
+                    nombre: x.nombre.trim().isEmpty ? i.nombre : x.nombre,
                     cantidad: x.cantidad,
-                    lote: LoteSesion(lote: x.lote.lote, vence: f),
+                    lote: l,
                   ),
                 ),
               ),

@@ -11,6 +11,7 @@ import 'documentos/documento_clinico_page.dart';
 import 'estetica/editor_procedimiento_page.dart';
 import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
+import 'inventario/inventario_page.dart';
 import 'pacientes/ficha_page.dart';
 import 'pacientes/pacientes_page.dart';
 import 'shell/contenedor_consultorio.dart';
@@ -43,6 +44,10 @@ GoRouter crearRouterConsultorio({
           builder: (context, state) => const AgendaPage(),
         ),
         GoRoute(path: '/caja', builder: (context, state) => const CajaPage()),
+        GoRoute(
+          path: '/inventario',
+          builder: (context, state) => const InventarioPage(),
+        ),
         GoRoute(
           path: '/pacientes',
           builder: (context, state) => PacientesPage(
