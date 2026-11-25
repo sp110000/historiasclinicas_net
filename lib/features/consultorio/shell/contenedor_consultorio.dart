@@ -25,6 +25,7 @@ class DestinoConsultorio {
     required this.icono,
     required this.iconoActivo,
     this.requiereDesbloqueo = true,
+    this.etiquetaRiel,
   });
 
   final String ruta;
@@ -34,6 +35,9 @@ class DestinoConsultorio {
 
   /// La historia y la receta funcionan con el consultorio bloqueado.
   final bool requiereDesbloqueo;
+
+  /// En el riel, si [etiqueta] no cabe (partida con guion).
+  final String? etiquetaRiel;
 }
 
 /// Destinos del consultorio (pregunta 51); Procedimientos va debajo de la
@@ -61,6 +65,7 @@ const destinosConsultorio = [
   DestinoConsultorio(
     ruta: '/procedimientos',
     etiqueta: 'Procedimientos',
+    etiquetaRiel: 'Procedi-\nmientos',
     icono: Icons.spa_outlined,
     iconoActivo: Icons.spa,
   ),
@@ -403,11 +408,15 @@ class _Riel extends StatelessWidget {
             NavigationRailDestination(
               icon: Icon(d.icono),
               selectedIcon: Icon(d.iconoActivo),
-              // «Procedimientos» no cabe en el riel: se encoge en una línea
-              // en lugar de partirse.
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(d.etiqueta, maxLines: 1),
+              // «Procedimientos» no cabe en el riel: va partido con guion,
+              // del mismo tamaño que las demás; el lector dice la palabra.
+              label: Semantics(
+                label: d.etiqueta,
+                excludeSemantics: true,
+                child: Text(
+                  d.etiquetaRiel ?? d.etiqueta,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
         ],

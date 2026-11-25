@@ -91,7 +91,7 @@ void main() {
         t
             .widget<NavigationRail>(find.byType(NavigationRail))
             .destinations
-            .map((d) => ((d.label as FittedBox).child! as Text).data),
+            .map((d) => (d.label as Semantics).properties.label),
         [
           'Agenda',
           'Pacientes',
