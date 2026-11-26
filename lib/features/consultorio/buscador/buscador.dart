@@ -230,7 +230,7 @@ class _BuscadorState extends ConsumerState<_Buscador> {
                     hintText: 'Paciente, documento o pantalla',
                     prefixIcon: Icon(
                       Icons.search_rounded,
-                      color: ColoresMarca.marca,
+                      color: ColoresMarca.primario,
                     ),
                   ),
                 ),

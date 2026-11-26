@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Dirección visual «Naranja cálido» (noviembre de 2026): naranja de marca,
+/// Dirección visual «Naranja cálido» (noviembre de 2026), con el naranja
+/// «Mandarina» desde el 26/11/2026: naranja de marca,
 /// neutros cálidos y color solo con significado: verde = todo bien,
 /// ámbar = atención, carmesí = peligro. Ver docs/REDISENO.md.
 ///
 /// Los contrastes indicados son sobre blanco (WCAG AA pide 4,5:1 en texto).
 abstract final class ColoresMarca {
-  /// Naranja de marca (#F54927): logo, acentos y barras de avance. No se usa
-  /// para texto pequeño (3,6:1).
-  static const marca = Color(0xFFF54927);
+  /// Naranja de marca «Mandarina» (#FF6A13), el del logo: acentos y barras
+  /// de avance. No se usa para texto ni para bordes de foco (2,9:1).
+  static const marca = Color(0xFFFF6A13);
 
   /// Naranja de botones, enlaces y foco: el de marca un poco más hondo para
   /// que el texto blanco y el texto naranja se lean bien.
-  static const primario = Color(0xFFC93C1F); // 5,1:1 · 4,6:1 sobre tinte
+  static const primario = Color(0xFFB8470A); // 5,3:1 · 4,8:1 sobre tinte
   static const secundario = primario; // ℞ y números de la receta
   static const estadoOk = Color(0xFF1E6B3A); // «Completa», integridad · 6,5:1
   static const estadoOkFondo = Color(0xFFE7F3EA);
@@ -31,8 +32,8 @@ abstract final class ColoresMarca {
   static const tinta = Color(0xFF2B211D); // texto principal · 15,7:1
   static const tintaSuave = Color(0xFF574A44); // etiquetas · 8,5:1
   static const pista = Color(0xFF7A6B64); // textos de ayuda · 5,1:1
-  static const tinte = Color(0xFFFEF1ED); // selección y fondos tonales
-  static const tinteTexto = Color(0xFF9F2F19); // texto sobre tinte · 6,6:1
+  static const tinte = Color(0xFFFFF1E6); // selección y fondos tonales
+  static const tinteTexto = Color(0xFF9A3B07); // texto sobre tinte · 6,3:1
   static const neutroFondo = Color(0xFFF4EEEA); // chips y avatares neutros
   static const avisoFondo = Color(0xFFFFF6DD);
   static const avisoBorde = Color(0xFFF3DC97);
@@ -175,11 +176,11 @@ ThemeData temaClaro() {
         borderRadius: RadiosMarca.control,
         borderSide: BorderSide(color: ColoresMarca.bordeCampo),
       ),
-      // El foco en el naranja de marca (3,6:1, basta para un borde) para
-      // que no se confunda con el carmesí de los errores.
+      // El foco en el naranja de los botones (5,3:1; el de marca no llega a
+      // 3:1), que no se confunde con el carmesí de los errores.
       focusedBorder: OutlineInputBorder(
         borderRadius: RadiosMarca.control,
-        borderSide: BorderSide(color: ColoresMarca.marca, width: 2),
+        borderSide: BorderSide(color: ColoresMarca.primario, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: RadiosMarca.control,

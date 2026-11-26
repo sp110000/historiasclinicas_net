@@ -55,6 +55,7 @@ void main() {
       'Icon-192.png',
       'favicon.png',
       'favicon-16.png',
+      'logo-naranja-',
     ]) {
       expect(html.contains(viejo), isFalse, reason: viejo);
       expect(jsonEncode(manifest).contains(viejo), isFalse, reason: viejo);
