@@ -451,7 +451,7 @@ class _RecetaPageState extends ConsumerState<RecetaPage> {
 
     final editor = _Editor(mostrarErrores: _mostrarErrores);
     final vistaPrevia = Container(
-      color: const Color(0xFFE6EBEF),
+      color: ColoresMarca.deshabilitado,
       child: const VistaPreviaReceta(),
     );
 

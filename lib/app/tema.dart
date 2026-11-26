@@ -1,31 +1,42 @@
 import 'package:flutter/material.dart';
 
-/// Dirección visual 2b «Clínico sobrio»: azul petróleo, blancos fríos y
-/// verde solo para estados. Ver docs/PLAN.md, sección "Paleta y estilo".
+/// Dirección visual «Naranja cálido» (noviembre de 2026): naranja de marca,
+/// neutros cálidos y color solo con significado: verde = todo bien,
+/// ámbar = atención, carmesí = peligro. Ver docs/REDISENO.md.
 ///
 /// Los contrastes indicados son sobre blanco (WCAG AA pide 4,5:1 en texto).
 abstract final class ColoresMarca {
-  static const primario = Color(0xFF1E5A7A); // petróleo · 7,5:1
+  /// Naranja de marca (#F54927): logo, acentos y barras de avance. No se usa
+  /// para texto pequeño (3,6:1).
+  static const marca = Color(0xFFF54927);
+
+  /// Naranja de botones, enlaces y foco: el de marca un poco más hondo para
+  /// que el texto blanco y el texto naranja se lean bien.
+  static const primario = Color(0xFFC93C1F); // 5,1:1 · 4,6:1 sobre tinte
   static const secundario = primario; // ℞ y números de la receta
-  static const estadoOk = Color(0xFF2E7D5B); // «Completa», integridad · 5,0:1
+  static const estadoOk = Color(0xFF1E6B3A); // «Completa», integridad · 6,5:1
+  static const estadoOkFondo = Color(0xFFE7F3EA);
   static const aviso = Color(0xFF8A5A0B); // 5,9:1
-  static const error = Color(0xFFB3362F); // 6,0:1
-  static const fondo = Color(0xFFF3F6F8);
-  static const borde = Color(0xFFD8E1E7);
-  static const bordeCampo = Color(0xFFC9D4DC);
-  static const separador = Color(0xFFE6ECF0); // bajo la cabecera de tarjeta
-  static const bloqueado = Color(0xFFEDF2F5);
-  static const deshabilitado = Color(0xFFE1E7EC);
-  static const textoDeshabilitado = Color(0xFF8995A0);
-  static const interruptorApagado = Color(0xFFB9C4CC);
-  static const textoSuave = Color(0xFF556370); // 6,2:1
-  static const tinta = Color(0xFF13212C); // texto principal · 16:1
-  static const tintaSuave = Color(0xFF3B4853); // etiquetas · 9,4:1
-  static const pista = Color(0xFF6B7782); // textos de ayuda · 4,6:1
-  static const tinte = Color(0xFFE6EFF4); // selección y fondos tonales
-  static const avisoFondo = Color(0xFFFBF3E3);
-  static const avisoBorde = Color(0xFFE8D6AE);
-  static const avisoTexto = Color(0xFF5C3C06); // 9,1:1 sobre avisoFondo
+  static const error = Color(0xFF9B1C3A); // carmesí, lejos del naranja · 8:1
+  static const errorFondo = Color(0xFFFCE7EC);
+  static const fondo = Color(0xFFFAF6F3);
+  static const borde = Color(0xFFEADFD8);
+  static const bordeCampo = Color(0xFFD9C9BF);
+  static const separador = Color(0xFFF3ECE7); // bajo la cabecera de tarjeta
+  static const bloqueado = Color(0xFFF6F1ED);
+  static const deshabilitado = Color(0xFFEDE4DE);
+  static const textoDeshabilitado = Color(0xFF9C8E87);
+  static const interruptorApagado = Color(0xFFCFC3BB);
+  static const textoSuave = Color(0xFF6A5C55); // 6,4:1
+  static const tinta = Color(0xFF2B211D); // texto principal · 15,7:1
+  static const tintaSuave = Color(0xFF574A44); // etiquetas · 8,5:1
+  static const pista = Color(0xFF7A6B64); // textos de ayuda · 5,1:1
+  static const tinte = Color(0xFFFEF1ED); // selección y fondos tonales
+  static const tinteTexto = Color(0xFF9F2F19); // texto sobre tinte · 6,6:1
+  static const neutroFondo = Color(0xFFF4EEEA); // chips y avatares neutros
+  static const avisoFondo = Color(0xFFFFF6DD);
+  static const avisoBorde = Color(0xFFF3DC97);
+  static const avisoTexto = Color(0xFF5C3C06); // 9,3:1 sobre avisoFondo
 
   /// [c] mezclado sobre blanco: fondos de los recuadros de ícono y bordes
   /// suaves de los avisos.
@@ -33,25 +44,25 @@ abstract final class ColoresMarca {
       Color.alphaBlend(c.withValues(alpha: alfa), Colors.white);
 }
 
-/// Radios de esquina del sistema 2b.
+/// Radios de esquina: redondeados y suaves; los botones son píldoras.
 abstract final class RadiosMarca {
-  /// Campos, botones, chips, avisos flotantes e índice.
-  static const control = BorderRadius.all(Radius.circular(8));
+  /// Campos, avisos flotantes e índice.
+  static const control = BorderRadius.all(Radius.circular(12));
 
   /// Menús y recuadros de ícono.
-  static const recuadro = BorderRadius.all(Radius.circular(10));
+  static const recuadro = BorderRadius.all(Radius.circular(14));
 
   /// Tarjetas y avisos.
-  static const tarjeta = BorderRadius.all(Radius.circular(12));
+  static const tarjeta = BorderRadius.all(Radius.circular(20));
 
   /// Diálogos.
-  static const dialogo = BorderRadius.all(Radius.circular(14));
+  static const dialogo = BorderRadius.all(Radius.circular(24));
 
   /// Píldoras.
   static const pildora = BorderRadius.all(Radius.circular(999));
 }
 
-/// Estilos de texto propios del sistema 2b que no están en el TextTheme.
+/// Estilos de texto propios del sistema que no están en el TextTheme.
 abstract final class EstilosMarca {
   /// Rótulo en versalitas: «SECCIÓN 3», «ASÍ APARECERÁ EN TUS DOCUMENTOS».
   static const rotulo = TextStyle(
@@ -64,7 +75,7 @@ abstract final class EstilosMarca {
   /// Título de tarjeta y de diálogo.
   static const titulo = TextStyle(
     fontSize: 19,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: -0.3,
     color: ColoresMarca.tinta,
   );
@@ -77,7 +88,7 @@ ThemeData temaClaro() {
         onPrimary: Colors.white,
         secondary: ColoresMarca.secundario,
         secondaryContainer: ColoresMarca.tinte,
-        onSecondaryContainer: ColoresMarca.primario,
+        onSecondaryContainer: ColoresMarca.tinteTexto,
         error: ColoresMarca.error,
         surface: Colors.white,
         onSurface: ColoresMarca.tinta,
@@ -164,9 +175,11 @@ ThemeData temaClaro() {
         borderRadius: RadiosMarca.control,
         borderSide: BorderSide(color: ColoresMarca.bordeCampo),
       ),
+      // El foco en el naranja de marca (3,6:1, basta para un borde) para
+      // que no se confunda con el carmesí de los errores.
       focusedBorder: OutlineInputBorder(
         borderRadius: RadiosMarca.control,
-        borderSide: BorderSide(color: ColoresMarca.primario, width: 2),
+        borderSide: BorderSide(color: ColoresMarca.marca, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: RadiosMarca.control,
@@ -184,8 +197,8 @@ ThemeData temaClaro() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.control),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.pildora),
         textStyle: botonTexto,
         disabledBackgroundColor: ColoresMarca.deshabilitado,
         disabledForegroundColor: ColoresMarca.textoDeshabilitado,
@@ -194,8 +207,8 @@ ThemeData temaClaro() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.control),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.pildora),
         foregroundColor: ColoresMarca.tinta,
         side: const BorderSide(color: ColoresMarca.bordeCampo),
         textStyle: botonTexto,
@@ -205,7 +218,7 @@ ThemeData temaClaro() {
       style: TextButton.styleFrom(
         minimumSize: const Size(0, 40),
         foregroundColor: ColoresMarca.primario,
-        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.control),
+        shape: const RoundedRectangleBorder(borderRadius: RadiosMarca.pildora),
         textStyle: botonTexto,
       ),
     ),
@@ -216,7 +229,7 @@ ThemeData temaClaro() {
       ),
     ),
     chipTheme: const ChipThemeData(
-      shape: RoundedRectangleBorder(borderRadius: RadiosMarca.control),
+      shape: RoundedRectangleBorder(borderRadius: RadiosMarca.pildora),
       side: BorderSide(color: ColoresMarca.bordeCampo),
       backgroundColor: Colors.white,
       selectedColor: ColoresMarca.primario,
@@ -282,14 +295,14 @@ ThemeData temaClaro() {
     ),
     dividerTheme: const DividerThemeData(color: ColoresMarca.borde, space: 1),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: ColoresMarca.primario,
+      color: ColoresMarca.marca,
       linearTrackColor: ColoresMarca.tinte,
     ),
     switchTheme: SwitchThemeData(
       thumbColor: const WidgetStatePropertyAll(Colors.white),
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
-            ? ColoresMarca.primario
+            ? ColoresMarca.estadoOk
             : ColoresMarca.interruptorApagado,
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),

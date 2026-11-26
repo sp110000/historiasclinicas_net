@@ -144,12 +144,12 @@ class _BloqueAlergias extends ConsumerWidget {
       builder: (campo) => Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         decoration: BoxDecoration(
-          color: ColoresMarca.aviso.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
+          color: ColoresMarca.error.withValues(alpha: 0.04),
+          borderRadius: RadiosMarca.control,
           border: Border.all(
             color: campo.hasError
                 ? esquema.error
-                : ColoresMarca.aviso.withValues(alpha: 0.35),
+                : ColoresMarca.error.withValues(alpha: 0.22),
           ),
         ),
         child: Column(
@@ -162,7 +162,7 @@ class _BloqueAlergias extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    color: ColoresMarca.aviso,
+                    color: ColoresMarca.error,
                     size: 20,
                   ),
                   SizedBox(width: 8),
@@ -735,88 +735,111 @@ class _ResumenMedico extends StatelessWidget {
     final sello = conSello ? m.sello : null;
     const suave = TextStyle(fontSize: 13, color: ColoresMarca.textoSuave);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(18, 14, 14, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColoresMarca.borde),
+        color: ColoresMarca.fondo,
+        borderRadius: RadiosMarca.control,
+        border: Border.all(color: ColoresMarca.separador),
       ),
-      child: Wrap(
-        spacing: 20,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: WrapAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 240,
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 58,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (sello != null)
-                        Flexible(
-                          child: SizedBox(
-                            width: 64,
-                            height: 58,
-                            child: Image.memory(
-                              sello,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
-                        ),
-                      if (firma != null)
-                        Flexible(
-                          flex: 2,
-                          child: SizedBox(
-                            width: 150,
-                            height: 46,
-                            child: Image.memory(
-                              firma,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
-                        ),
-                      if (firma == null && sello == null)
-                        const Flexible(
-                          child: Text(
-                            '(sin firma ni sello)',
-                            style: suave,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 8, color: Colors.black87),
-                Text(
-                  m.nombre.trim(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '${etiquetaRegistro(pais)} ${m.registro.trim()}',
-                  textAlign: TextAlign.center,
-                  style: suave,
-                ),
-                if (m.especialidad.trim().isNotEmpty)
-                  Text(
-                    m.especialidad.trim(),
-                    textAlign: TextAlign.center,
-                    style: suave,
-                  ),
-              ],
-            ),
+          const Text(
+            'ASÍ APARECERÁ AL FINAL DEL PDF',
+            style: EstilosMarca.rotulo,
           ),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/medico'),
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Editar datos del médico'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 20,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 260,
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: ColoresMarca.borde),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x143C1E0F),
+                      blurRadius: 18,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 58,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (sello != null)
+                            Flexible(
+                              child: SizedBox(
+                                width: 64,
+                                height: 58,
+                                child: Image.memory(
+                                  sello,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.medium,
+                                ),
+                              ),
+                            ),
+                          if (firma != null)
+                            Flexible(
+                              flex: 2,
+                              child: SizedBox(
+                                width: 150,
+                                height: 46,
+                                child: Image.memory(
+                                  firma,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.medium,
+                                ),
+                              ),
+                            ),
+                          if (firma == null && sello == null)
+                            const Flexible(
+                              child: Text(
+                                '(sin firma ni sello)',
+                                style: suave,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 8, color: Colors.black87),
+                    Text(
+                      m.nombre.trim(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '${etiquetaRegistro(pais)} ${m.registro.trim()}',
+                      textAlign: TextAlign.center,
+                      style: suave,
+                    ),
+                    if (m.especialidad.trim().isNotEmpty)
+                      Text(
+                        m.especialidad.trim(),
+                        textAlign: TextAlign.center,
+                        style: suave,
+                      ),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => context.push('/medico'),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Editar datos del médico'),
+              ),
+            ],
           ),
         ],
       ),

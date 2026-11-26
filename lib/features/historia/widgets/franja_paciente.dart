@@ -4,8 +4,8 @@ import '../../../app/tema.dart';
 import '../../../core/models/historia.dart';
 import '../../../core/receta/receta.dart' show PacienteReceta;
 
-/// Franja de solo lectura bajo la barra superior (diseño 2b): paciente,
-/// documento, edad y alergias. Debajo lleva la barra de progreso de 3 px
+/// Franja de solo lectura bajo la barra superior: iniciales, paciente,
+/// documento, edad y alergias (en carmesí, siempre a la vista). Debajo lleva la barra de progreso de 3 px
 /// que se ve mientras se guarda o se abre un PDF.
 ///
 /// Devuelve `null` si no hay nombre de paciente ni nada en curso.
@@ -38,7 +38,7 @@ PreferredSizeWidget? franjaPaciente(
   );
 }
 
-const _alto = 40.0;
+const _alto = 52.0;
 
 class _Franja extends StatelessWidget {
   const _Franja({
@@ -76,11 +76,34 @@ class _Franja extends StatelessWidget {
       height: _alto,
       padding: EdgeInsets.symmetric(horizontal: movil ? 12 : 20),
       decoration: const BoxDecoration(
-        color: ColoresMarca.fondo,
-        border: Border(top: BorderSide(color: ColoresMarca.borde)),
+        color: Colors.white,
+        border: Border(top: BorderSide(color: ColoresMarca.separador)),
       ),
       child: Row(
         children: [
+          // En móvil el nombre tiene prioridad: sin iniciales.
+          if (!movil) ...[
+            ExcludeSemantics(
+              child: Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: ColoresMarca.neutroFondo,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  iniciales(paciente.nombre),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: ColoresMarca.tinta,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
           Flexible(
             child: Text.rich(
               TextSpan(
@@ -89,7 +112,8 @@ class _Franja extends StatelessWidget {
                   TextSpan(
                     text: paciente.nombre,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                       color: ColoresMarca.tinta,
                     ),
                   ),
@@ -122,7 +146,17 @@ class _Franja extends StatelessWidget {
   }
 }
 
-/// Alergias registradas en ámbar con ⚠; «Niega alergias», neutro.
+/// Hasta dos iniciales del nombre: «Sofía Vargas» → «SV».
+String iniciales(String nombre) {
+  final partes = nombre
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .toList();
+  return partes.take(2).map((p) => p.characters.first.toUpperCase()).join();
+}
+
+/// Alergias registradas en carmesí con ⚠; «Niega alergias», neutro.
 class _ChipAlergias extends StatelessWidget {
   const _ChipAlergias({required this.texto, required this.niega});
 
@@ -137,11 +171,8 @@ class _ChipAlergias extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: niega ? Colors.white : ColoresMarca.avisoFondo,
+          color: niega ? ColoresMarca.neutroFondo : ColoresMarca.errorFondo,
           borderRadius: RadiosMarca.pildora,
-          border: Border.all(
-            color: niega ? ColoresMarca.borde : ColoresMarca.avisoBorde,
-          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -150,7 +181,7 @@ class _ChipAlergias extends StatelessWidget {
               const Icon(
                 Icons.warning_amber_rounded,
                 size: 15,
-                color: ColoresMarca.aviso,
+                color: ColoresMarca.error,
               ),
               const SizedBox(width: 5),
             ],
@@ -160,11 +191,9 @@ class _ChipAlergias extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: niega ? FontWeight.w500 : FontWeight.w600,
-                  color: niega
-                      ? ColoresMarca.textoSuave
-                      : ColoresMarca.avisoTexto,
+                  fontSize: 13,
+                  fontWeight: niega ? FontWeight.w600 : FontWeight.w800,
+                  color: niega ? ColoresMarca.tintaSuave : ColoresMarca.error,
                 ),
               ),
             ),

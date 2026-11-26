@@ -82,15 +82,15 @@ class _FilaSistema extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final estado = hallazgo.estado;
-    Widget opcion(EstadoSistema e, Color color) => ChoiceChip(
+    Widget opcion(EstadoSistema e, Color fondo, Color color) => ChoiceChip(
       label: Text(e.etiqueta),
       selected: estado == e,
       showCheckmark: false,
-      selectedColor: color.withValues(alpha: 0.16),
-      side: BorderSide(color: estado == e ? color : ColoresMarca.borde),
+      selectedColor: fondo,
+      side: BorderSide(color: estado == e ? fondo : ColoresMarca.bordeCampo),
       labelStyle: TextStyle(
-        color: estado == e ? color : null,
-        fontWeight: estado == e ? FontWeight.w600 : FontWeight.w500,
+        color: estado == e ? color : ColoresMarca.tintaSuave,
+        fontWeight: estado == e ? FontWeight.w700 : FontWeight.w500,
       ),
       onSelected: (si) => alCambiar(
         HallazgoSistema(estado: si ? e : null, detalle: hallazgo.detalle),
@@ -99,8 +99,16 @@ class _FilaSistema extends StatelessWidget {
     final opciones = Wrap(
       spacing: 8,
       children: [
-        opcion(EstadoSistema.niega, ColoresMarca.secundario),
-        opcion(EstadoSistema.refiere, ColoresMarca.aviso),
+        opcion(
+          EstadoSistema.niega,
+          ColoresMarca.estadoOkFondo,
+          ColoresMarca.estadoOk,
+        ),
+        opcion(
+          EstadoSistema.refiere,
+          ColoresMarca.avisoBorde,
+          ColoresMarca.avisoTexto,
+        ),
       ],
     );
     final nombre = Column(
@@ -121,10 +129,16 @@ class _FilaSistema extends StatelessWidget {
       ],
     );
 
+    final refiere = estado == EstadoSistema.refiere;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: ColoresMarca.borde)),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: refiere ? ColoresMarca.avisoFondo : ColoresMarca.fondo,
+        borderRadius: RadiosMarca.control,
+        border: Border.all(
+          color: refiere ? ColoresMarca.avisoBorde : ColoresMarca.separador,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

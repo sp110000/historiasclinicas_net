@@ -22,30 +22,83 @@ class IndiceLateral extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final estado = ref.watch(historiaProvider);
     final h = estado.historia;
+    final conAvance = [
+      for (final s in SeccionHistoria.values)
+        if (s != SeccionHistoria.firma && s != SeccionHistoria.evoluciones) s,
+    ];
+    final completas = conAvance
+        .where((s) => avanceSeccion(s, h) == Avance.completa)
+        .length;
     return Container(
-      width: 264,
+      width: 276,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: ColoresMarca.fondo,
         border: Border(right: BorderSide(color: ColoresMarca.borde)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Text(
-              estado.abierta ? 'HISTORIA ABIERTA' : 'HISTORIA NUEVA',
-              style: const TextStyle(
-                fontSize: 11.5,
-                letterSpacing: 0.8,
-                fontWeight: FontWeight.w600,
-                color: ColoresMarca.textoSuave,
-              ),
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  estado.abierta ? 'HISTORIA ABIERTA' : 'HISTORIA NUEVA',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    letterSpacing: 0.9,
+                    fontWeight: FontWeight.w800,
+                    color: ColoresMarca.textoSuave,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (estado.abierta)
+                  const Text(
+                    'Secciones 1 a 10 selladas. Los controles van en '
+                    'Evoluciones.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: ColoresMarca.tintaSuave,
+                    ),
+                  )
+                else ...[
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '$completas de ${conAvance.length}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: ColoresMarca.tinta,
+                          ),
+                        ),
+                        const TextSpan(text: ' secciones completas'),
+                      ],
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      color: ColoresMarca.tintaSuave,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: RadiosMarca.pildora,
+                    child: LinearProgressIndicator(
+                      value: completas / conAvance.length,
+                      minHeight: 7,
+                      color: ColoresMarca.marca,
+                      backgroundColor: ColoresMarca.borde,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               children: [
                 for (final s in SeccionHistoria.values)
                   _ElementoIndice(
@@ -63,6 +116,13 @@ class IndiceLateral extends ConsumerWidget {
                     ),
                     alPulsar: () => alElegir(s),
                   ),
+                if (!estado.abierta) ...[
+                  const SizedBox(height: 14),
+                  _ListaParaFinalizar(
+                    pendientes: pendientesParaFinalizar(h),
+                    alElegir: alElegir,
+                  ),
+                ],
               ],
             ),
           ),
@@ -170,13 +230,21 @@ class _ElementoIndice extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
-        color: activa ? ColoresMarca.tinte : Colors.transparent,
+        color: activa ? Colors.white : Colors.transparent,
         borderRadius: RadiosMarca.control,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: alPulsar,
-          borderRadius: RadiosMarca.control,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: activa ? ColoresMarca.marca : Colors.transparent,
+                  width: 3,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(9, 9, 10, 9),
             child: Row(
               children: [
                 _NumeroIndice(
@@ -192,8 +260,10 @@ class _ElementoIndice extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: activa ? FontWeight.w600 : FontWeight.w500,
-                      color: activa ? ColoresMarca.primario : null,
+                      fontWeight: activa ? FontWeight.w800 : FontWeight.w500,
+                      color: activa
+                          ? ColoresMarca.tinta
+                          : ColoresMarca.tintaSuave,
                     ),
                   ),
                 ),
@@ -205,13 +275,13 @@ class _ElementoIndice extends StatelessWidget {
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: ColoresMarca.primario,
+                      color: ColoresMarca.tinte,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       '${estado.contador}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: ColoresMarca.tinteTexto,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -261,8 +331,8 @@ class _NumeroIndice extends StatelessWidget {
             ),
             _EstadoElemento.activa => (
               ColoresMarca.tinte,
-              ColoresMarca.primario,
-              ColoresMarca.primario,
+              ColoresMarca.marca,
+              ColoresMarca.tinteTexto,
             ),
             _EstadoElemento.vacia => (
               Colors.white,
@@ -333,6 +403,87 @@ class _IconoEstado extends StatelessWidget {
     return Tooltip(
       message: ayuda,
       child: Icon(icono, size: tam, color: color),
+    );
+  }
+}
+
+/// Recuadro bajo el índice: lo que falta para finalizar (ámbar, cada dato
+/// lleva a su sección) o «Lista para finalizar» (verde).
+class _ListaParaFinalizar extends StatelessWidget {
+  const _ListaParaFinalizar({required this.pendientes, required this.alElegir});
+
+  final List<Pendiente> pendientes;
+  final ValueChanged<SeccionHistoria> alElegir;
+
+  @override
+  Widget build(BuildContext context) {
+    final lista = pendientes.isEmpty;
+    const maximo = 5;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: lista ? ColoresMarca.estadoOkFondo : ColoresMarca.avisoFondo,
+        borderRadius: RadiosMarca.control,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                lista ? Icons.check_circle : Icons.info_outline,
+                size: 18,
+                color: lista ? ColoresMarca.estadoOk : ColoresMarca.aviso,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  lista ? 'Lista para finalizar' : 'Para finalizar falta',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: lista
+                        ? ColoresMarca.estadoOk
+                        : ColoresMarca.avisoTexto,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (lista)
+            const Text(
+              'Todo lo obligatorio está completo.',
+              style: TextStyle(fontSize: 13, color: ColoresMarca.tintaSuave),
+            )
+          else ...[
+            for (final p in pendientes.take(maximo))
+              InkWell(
+                onTap: () => alElegir(p.seccion),
+                borderRadius: RadiosMarca.control,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    '${p.seccion.numero} · ${p.campo}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: ColoresMarca.avisoTexto,
+                    ),
+                  ),
+                ),
+              ),
+            if (pendientes.length > maximo)
+              Text(
+                'y ${pendientes.length - maximo} más',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: ColoresMarca.avisoTexto,
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
