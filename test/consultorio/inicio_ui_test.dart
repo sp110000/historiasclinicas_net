@@ -171,16 +171,17 @@ void main() {
     },
   );
 
-  testWidgets('el riel empieza por Inicio, con «Buscar» y «Nueva consulta»', (
-    t,
-  ) async {
-    final (b, _) = await _conPaciente();
-    await _montar(t, b);
-    final riel = t.widget<NavigationRail>(find.byType(NavigationRail));
-    expect(riel.selectedIndex, 0);
-    expect(find.byTooltip('Buscar (Ctrl + K)'), findsOneWidget);
-    expect(find.byTooltip('Nueva consulta'), findsOneWidget);
-  });
+  testWidgets(
+    'el riel empieza por Inicio, con «Buscar» (sin «Nueva consulta»)',
+    (t) async {
+      final (b, _) = await _conPaciente();
+      await _montar(t, b);
+      final riel = t.widget<NavigationRail>(find.byType(NavigationRail));
+      expect(riel.selectedIndex, 0);
+      expect(find.byTooltip('Buscar (Ctrl + K)'), findsOneWidget);
+      expect(find.byTooltip('Nueva consulta'), findsNothing);
+    },
+  );
 
   testWidgets(
     'buscador: Ctrl + K, «pena» sin tilde encuentra a PEÑA y Enter abre la '
@@ -233,24 +234,6 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('Nada coincide con «zzzz»'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    '«Nueva consulta» deja la historia en blanco y pregunta si hay cambios',
-    (t) async {
-      final (b, _) = await _conPaciente();
-      final (router, c) = await _montar(t, b, ruta: '/');
-      c
-          .read(historiaProvider.notifier)
-          .actualizar((h) => h.copyWith(motivoConsulta: 'Dolor de garganta'));
-      await t.pumpAndSettle();
-      await _pulsar(t, find.byTooltip('Nueva consulta'));
-      expect(find.text('¿Limpiar el formulario?'), findsOneWidget);
-      await _pulsar(t, find.text('Limpiar'));
-      expect(c.read(historiaProvider).historia.motivoConsulta, isEmpty);
-      expect(router.routeInformationProvider.value.uri.toString(), '/');
-      await t.pump(const Duration(seconds: 1));
     },
   );
 }

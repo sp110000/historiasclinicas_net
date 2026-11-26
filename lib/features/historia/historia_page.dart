@@ -50,11 +50,7 @@ final _selladas = [
 ];
 
 class HistoriaPage extends ConsumerStatefulWidget {
-  const HistoriaPage({super.key, this.nueva = false});
-
-  /// «Nueva consulta» del consultorio (`/?nueva=1`): empieza en blanco; si
-  /// la historia en curso tiene cambios, pregunta antes.
-  final bool nueva;
+  const HistoriaPage({super.key});
 
   @override
   ConsumerState<HistoriaPage> createState() => _HistoriaPageState();
@@ -83,21 +79,7 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       alSoltar: (a) => _cargarArchivo(a, confirmarReemplazo: true),
       alArrastrar: (v) => setState(() => _arrastrando = v),
     );
-    if (widget.nueva) _alPedirNueva();
   }
-
-  @override
-  void didUpdateWidget(HistoriaPage anterior) {
-    super.didUpdateWidget(anterior);
-    if (widget.nueva && !anterior.nueva) _alPedirNueva();
-  }
-
-  void _alPedirNueva() =>
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        await _empezarDeCero(preguntar: true);
-        if (mounted) context.go('/');
-      });
 
   @override
   void dispose() {

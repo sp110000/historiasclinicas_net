@@ -32,11 +32,7 @@ GoRouter crearRouterConsultorio({
       builder: (context, state, child) =>
           ContenedorConsultorio(ubicacion: state.uri.path, child: child),
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) =>
-              HistoriaPage(nueva: state.uri.queryParameters['nueva'] == '1'),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const HistoriaPage()),
         GoRoute(
           path: '/inicio',
           builder: (context, state) => const InicioPage(),
