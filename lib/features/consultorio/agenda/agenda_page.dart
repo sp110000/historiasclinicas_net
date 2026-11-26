@@ -20,6 +20,7 @@ import 'dialogo_cita.dart';
 import 'estilo_cita.dart';
 import '../widgets/texto_normativo.dart';
 import '../../../core/widgets/ilustraciones.dart';
+import '../../../core/widgets/tarjeta_seccion.dart' show sombraTarjeta;
 
 enum _Vista { dia, semana }
 
@@ -314,8 +315,14 @@ class _VistaDia extends ConsumerWidget {
     ];
     final franjas = h.franjasDe(dia.weekday);
     final nombreFestivo = festivo(dia);
+    // La siguiente por atender (si el día es hoy) va resaltada.
+    final ahora = ref.read(servicioConsultorioProvider).reloj.ahora();
+    final siguiente = citas
+        .where((c) => !c.estado.cerrada && c.fin.isAfter(ahora))
+        .firstOrNull;
     final entradas = <(DateTime, Widget)>[
-      for (final c in citas) (c.inicio, TarjetaCita(cita: c)),
+      for (final c in citas)
+        (c.inicio, TarjetaCita(cita: c, destacada: c.id == siguiente?.id)),
       for (final b in bloqueos)
         (b.inicio.isBefore(dia) ? dia : b.inicio, _TarjetaBloqueo(bloqueo: b)),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -399,7 +406,15 @@ class _TarjetaBloqueo extends ConsumerWidget {
 
 /// Una cita con su estado y sus acciones.
 class TarjetaCita extends ConsumerWidget {
-  const TarjetaCita({super.key, required this.cita, this.conFecha = false});
+  const TarjetaCita({
+    super.key,
+    required this.cita,
+    this.conFecha = false,
+    this.destacada = false,
+  });
+
+  /// La siguiente cita por atender: franja naranja y fondo con tinte.
+  final bool destacada;
 
   final Cita cita;
 
@@ -453,16 +468,24 @@ class TarjetaCita extends ConsumerWidget {
     }
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: destacada ? ColoresMarca.tinte : Colors.white,
         borderRadius: RadiosMarca.tarjeta,
-        border: Border.all(color: ColoresMarca.borde),
+        border: Border.all(
+          color: destacada
+              ? ColoresMarca.marca.withValues(alpha: 0.35)
+              : ColoresMarca.separador,
+        ),
+        boxShadow: destacada ? null : sombraTarjeta,
       ),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 5, color: tipo.color),
+            Container(
+              width: 5,
+              color: destacada ? ColoresMarca.marca : Colors.transparent,
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 12, 10),
@@ -805,10 +828,10 @@ class _BloqueCita extends StatelessWidget {
     final t = estiloTipo(cita.tipo);
     final apagada = !cita.estado.ocupa;
     return Material(
-      color: t.color.withValues(alpha: apagada ? 0.04 : 0.09),
-      shape: RoundedRectangleBorder(
+      color: apagada ? ColoresMarca.bloqueado : ColoresMarca.neutroFondo,
+      shape: const RoundedRectangleBorder(
         borderRadius: RadiosMarca.control,
-        side: BorderSide(color: t.color.withValues(alpha: 0.5)),
+        side: BorderSide(color: ColoresMarca.borde),
       ),
       child: InkWell(
         onTap: alTocar,

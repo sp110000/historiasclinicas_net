@@ -18,6 +18,7 @@ import '../widgets/comunes.dart';
 import 'importacion.dart';
 import '../widgets/chip_seleccion.dart';
 import '../../../core/widgets/ilustraciones.dart';
+import '../buscador/buscador.dart' show inicialesFicha;
 
 /// Lista de pacientes con búsqueda y filtros.
 class PacientesPage extends ConsumerStatefulWidget {
@@ -393,7 +394,7 @@ class _FilaPaciente extends StatelessWidget {
         ].join(' · '),
       if (u != null) 'Última atención ${formatoFecha(u)}',
     ];
-    const radio = Radius.circular(12);
+    const radio = Radius.circular(20);
     final angosta = MediaQuery.sizeOf(context).width < 600;
     const pildora = EtiquetaEstado(
       icono: Icons.alarm,
@@ -403,7 +404,7 @@ class _FilaPaciente extends StatelessWidget {
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: ColoresMarca.borde),
+        side: const BorderSide(color: ColoresMarca.separador),
         borderRadius: BorderRadius.vertical(
           top: primera ? radio : Radius.zero,
           bottom: ultima ? radio : Radius.zero,
@@ -425,13 +426,40 @@ class _FilaPaciente extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
+                ExcludeSemantics(
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: vencido
+                          ? ColoresMarca.avisoFondo
+                          : ColoresMarca.neutroFondo,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      inicialesFicha(f),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: vencido
+                            ? ColoresMarca.avisoTexto
+                            : ColoresMarca.tinta,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         f.nombreCompleto,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       if (detalles.isNotEmpty)
                         Text(

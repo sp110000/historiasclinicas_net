@@ -82,12 +82,23 @@ class FilaVersionada extends StatelessWidget {
     final borrador = versiones.isNotEmpty && !versiones.last.aprobada
         ? versiones.last
         : null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    // Cada plantilla en su recuadro (rediseño): fondo cálido y el nombre
+    // destacado; el estado de las versiones lleva su color.
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: ColoresMarca.fondo,
+        borderRadius: RadiosMarca.control,
+        border: Border.all(color: ColoresMarca.separador),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            nombre,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 2),
           EstadoVersiones(versiones: versiones),
           const SizedBox(height: 6),

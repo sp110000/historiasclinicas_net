@@ -3,26 +3,30 @@ import 'package:flutter/material.dart';
 import '../../../app/tema.dart';
 import '../../../core/consultorio/agenda/cita.dart';
 
-/// Cada tipo de cita se distingue por color **y** por ícono (no solo por
-/// color). El color solo pinta la franja y el ícono; el texto va en tinta.
+/// Cada tipo de cita se distingue por su ícono y su nombre (rediseño:
+/// menos colores; el color queda para lo que significa algo). El naranja
+/// marca la siguiente cita por atender.
 ({IconData icono, Color color}) estiloTipo(TipoCita t) => switch (t) {
   TipoCita.primeraVez => (
     icono: Icons.person_add_alt_1_outlined,
-    color: const Color(0xFF2E6F95),
+    color: ColoresMarca.tintaSuave,
   ),
   TipoCita.control => (
     icono: Icons.event_repeat_outlined,
-    color: ColoresMarca.primario,
+    color: ColoresMarca.tintaSuave,
   ),
   TipoCita.programaPeso => (
     icono: Icons.monitor_weight_outlined,
-    color: ColoresMarca.estadoOk,
+    color: ColoresMarca.tintaSuave,
   ),
   TipoCita.valoracionEstetica => (
     icono: Icons.fact_check_outlined,
-    color: const Color(0xFF6B4E9B),
+    color: ColoresMarca.tintaSuave,
   ),
-  TipoCita.sesion => (icono: Icons.healing_outlined, color: ColoresMarca.aviso),
+  TipoCita.sesion => (
+    icono: Icons.healing_outlined,
+    color: ColoresMarca.tintaSuave,
+  ),
 };
 
 ({IconData icono, Color color}) estiloEstado(EstadoCita e) => switch (e) {
@@ -34,7 +38,7 @@ import '../../../core/consultorio/agenda/cita.dart';
     icono: Icons.check_circle_outline,
     color: ColoresMarca.estadoOk,
   ),
-  EstadoCita.atendida => (icono: Icons.task_alt, color: ColoresMarca.primario),
+  EstadoCita.atendida => (icono: Icons.task_alt, color: ColoresMarca.estadoOk),
   EstadoCita.noAsistio => (
     icono: Icons.person_off_outlined,
     color: ColoresMarca.error,

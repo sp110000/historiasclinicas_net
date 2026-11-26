@@ -330,6 +330,25 @@ class _TarjetaInsumoState extends ConsumerState<_TarjetaInsumo> {
             '${i.stockMinimo > 0 ? ' (mínimo ${formatoNumero(i.stockMinimo)})' : ''}',
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
+          // La barra se llena con el doble del mínimo: ámbar por debajo del
+          // mínimo, verde por encima.
+          if (i.activo && i.stockMinimo > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 4),
+              child: ExcludeSemantics(
+                child: ClipRRect(
+                  borderRadius: RadiosMarca.pildora,
+                  child: LinearProgressIndicator(
+                    value: (existencia / (i.stockMinimo * 2)).clamp(0.0, 1.0),
+                    minHeight: 8,
+                    color: bajo
+                        ? const Color(0xFFE0A82E)
+                        : ColoresMarca.estadoOk,
+                    backgroundColor: ColoresMarca.separador,
+                  ),
+                ),
+              ),
+            ),
           for (final l in lotes) _FilaLote(lote: l, unidad: i.unidad),
           const SizedBox(height: 8),
           Wrap(
