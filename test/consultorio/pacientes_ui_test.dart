@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/tema.dart';
 import 'package:historiasclinicas_net/core/archivos/archivos.dart';
+import 'package:historiasclinicas_net/core/consultorio/modelos/ficha_paciente.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/registro_historia.dart';
 import 'package:historiasclinicas_net/core/consultorio/servicio.dart';
 import 'package:historiasclinicas_net/core/integridad/cadena_hash.dart';
@@ -358,6 +359,64 @@ void main() {
     expect(c.read(versionIndiceProvider), greaterThan(0));
     await _terminar(t);
   });
+
+  testWidgets(
+    'eliminar paciente: con historia se oculta y se restaura; sin registros '
+    'se borra y «Deshacer» la repone',
+    (t) async {
+      final b = await _consultorioConPacientes();
+      final indice = b.servicio.indice;
+      final andres = indice.buscar(texto: 'andres').single.ficha;
+      await _montar(t, banco: b, ruta: '/pacientes/${andres.id}');
+
+      await _pulsar(t, find.text('Eliminar paciente'));
+      expect(
+        find.text('¿Eliminar a ${andres.nombreCompleto}?'),
+        findsOneWidget,
+      );
+      expect(find.text('Tiene 1 historia.'), findsOneWidget);
+      expect(
+        find.textContaining('La historia clínica se debe conservar'),
+        findsOneWidget,
+      );
+      await _pulsar(t, find.widgetWithText(FilledButton, 'Eliminar'));
+      expect(find.text('Pacientes · 2'), findsOneWidget);
+      expect(find.textContaining('Sus registros se conservan'), findsWidgets);
+      expect(find.text(andres.nombreCompleto), findsNothing);
+
+      // «Pacientes eliminados», al final de la lista: verlo y restaurarlo.
+      await _pulsar(t, find.text('Pacientes eliminados · 1'));
+      expect(find.text(andres.nombreCompleto), findsOneWidget);
+      await _pulsar(t, find.text('Restaurar'));
+      expect(find.text('No hay pacientes eliminados.'), findsOneWidget);
+      await _pulsar(t, find.text('Cerrar'));
+      expect(find.text('Pacientes · 3'), findsOneWidget);
+      expect(find.textContaining('Pacientes eliminados'), findsNothing);
+
+      // Una ficha sin registros se borra; «Deshacer» la repone.
+      final carla = await indice.crearFicha(
+        FichaPaciente(
+          id: '',
+          clave: '',
+          creado: b.reloj.ahora(),
+          actualizado: b.reloj.ahora(),
+          primerApellido: 'Ruiz',
+          nombres: 'Carla',
+        ),
+      );
+      await _montar(t, banco: b, ruta: '/pacientes/${carla.id}');
+      await _pulsar(t, find.text('Eliminar paciente'));
+      expect(find.textContaining('la ficha se borra'), findsOneWidget);
+      await _pulsar(t, find.widgetWithText(FilledButton, 'Eliminar'));
+      expect(indice.ficha(carla.id), isNull);
+      expect(find.text('Se eliminó la ficha de RUIZ, Carla.'), findsOneWidget);
+      await t.tap(find.text('Deshacer'));
+      await t.pumpAndSettle();
+      expect(indice.ficha(carla.id)?.visible, isTrue);
+      expect(find.text('Pacientes · 4'), findsOneWidget);
+      await _terminar(t);
+    },
+  );
 
   testWidgets('al cruzar el corte del riel la pantalla conserva su estado', (
     t,

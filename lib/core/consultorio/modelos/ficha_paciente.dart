@@ -45,6 +45,7 @@ class FichaPaciente {
     this.unidaEn,
     this.autorizacionDatosId,
     this.consentimientoImagenId,
+    this.eliminada,
   });
 
   static const coleccion = 'pacientes';
@@ -82,10 +83,17 @@ class FichaPaciente {
 
   /// Consentimiento de uso de imagen vigente (documento firmado).
   final String? consentimientoImagenId;
+
+  /// Cuándo se eliminó de la lista. Una ficha con historias u otros
+  /// registros no se borra: se oculta y sus registros se conservan.
+  final DateTime? eliminada;
   final DateTime creado;
   final DateTime actualizado;
 
   bool get activa => unidaEn == null;
+
+  /// Se ve en la lista, el buscador y el Inicio: ni unida ni eliminada.
+  bool get visible => activa && eliminada == null;
 
   String get apellidos =>
       [primerApellido, segundoApellido].where((s) => s.isNotEmpty).join(' ');
@@ -201,6 +209,7 @@ class FichaPaciente {
     Object? unidaEn = sin,
     Object? autorizacionDatosId = sin,
     Object? consentimientoImagenId = sin,
+    Object? eliminada = sin,
     DateTime? actualizado,
   }) => FichaPaciente(
     id: id,
@@ -231,6 +240,7 @@ class FichaPaciente {
       consentimientoImagenId,
       this.consentimientoImagenId,
     ),
+    eliminada: cambio(eliminada, this.eliminada),
   );
 
   Map<String, Object?> aMapa() => compacto({
@@ -258,6 +268,7 @@ class FichaPaciente {
     'unidaEn': unidaEn,
     'autorizacionDatosId': autorizacionDatosId,
     'consentimientoImagenId': consentimientoImagenId,
+    'eliminada': eliminada?.toUtc().toIso8601String(),
     'creado': creado.toUtc().toIso8601String(),
     'actualizado': actualizado.toUtc().toIso8601String(),
   });
@@ -293,6 +304,10 @@ class FichaPaciente {
         unidaEn: m.textoONulo('unidaEn'),
         autorizacionDatosId: m.textoONulo('autorizacionDatosId'),
         consentimientoImagenId: m.textoONulo('consentimientoImagenId'),
+        eliminada: switch (m.textoONulo('eliminada')) {
+          final e? => DateTime.parse(e).toLocal(),
+          null => null,
+        },
         creado: DateTime.parse(m['creado']! as String).toLocal(),
         actualizado: DateTime.parse(m['actualizado']! as String).toLocal(),
       );
