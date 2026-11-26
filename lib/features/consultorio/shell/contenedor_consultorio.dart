@@ -447,12 +447,16 @@ class _Riel extends StatelessWidget {
         unselectedIconTheme: const IconThemeData(
           color: ColoresMarca.textoSuave,
         ),
+        // Con la fuente explícita: sin ella, la «á» de «Imágenes» pedía una
+        // fuente de respaldo (Noto Sans Symbols) que el sitio no tiene.
         selectedLabelTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           color: ColoresMarca.primario,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
         unselectedLabelTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           color: ColoresMarca.textoSuave,
           fontSize: 12,
         ),

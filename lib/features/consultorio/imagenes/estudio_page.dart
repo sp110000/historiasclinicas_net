@@ -51,14 +51,23 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
     super.dispose();
   }
 
+  /// Guarda lo que hay en pantalla. No reemplaza [_e] con lo guardado: lo
+  /// que se escriba mientras tanto se perdería.
   Future<void> _guardar() async {
     final e = _e;
     if (e == null || !e.borrador) return;
     try {
-      _e = await ref.read(servicioConsultorioProvider).imagenes.guardar(e);
+      await ref.read(servicioConsultorioProvider).imagenes.guardar(e);
     } catch (_) {
       // Bloqueado o cerrado mientras tanto: no hay nada que guardar.
     }
+  }
+
+  /// Toma las imágenes de [e] (lo que devolvió el servicio) sin perder lo
+  /// escrito mientras se procesaban, y lo guarda.
+  void _conImagenes(EstudioImagen e) {
+    if (!mounted) return;
+    _cambiar((x) => x.copyWith(imagenes: e.imagenes));
   }
 
   /// Cambia el borrador en pantalla y lo guarda al dejar de escribir.
@@ -93,7 +102,7 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
           .read(servicioConsultorioProvider)
           .imagenes
           .agregarImagen(widget.id, p);
-      if (mounted) setState(() => _e = e);
+      _conImagenes(e);
     } catch (e) {
       if (mounted) mostrarMensaje(context, mensajeDeError(e));
     } finally {
@@ -108,7 +117,7 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
           .read(servicioConsultorioProvider)
           .imagenes
           .quitarImagen(widget.id, i.id);
-      if (mounted) setState(() => _e = e);
+      _conImagenes(e);
     } catch (e) {
       if (mounted) mostrarMensaje(context, mensajeDeError(e));
     }
