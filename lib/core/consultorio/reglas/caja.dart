@@ -44,8 +44,13 @@ EvaluacionCobro evaluarCobro({
   final bloqueos = <String>[];
   final avisos = <String>[];
   if (pacienteId.isEmpty) bloqueos.add('Elige el paciente.');
-  if (items.isEmpty) bloqueos.add('Agrega al menos un servicio.');
+  if (items.isEmpty) {
+    bloqueos.add('Agrega al menos un servicio o un procedimiento.');
+  }
   for (final i in items) {
+    if (i.descripcion.trim().isEmpty) {
+      bloqueos.add('Escribe el nombre de cada servicio y procedimiento.');
+    }
     if (i.cantidad < 1) {
       bloqueos.add('La cantidad va desde 1 (${i.descripcion}).');
     }
@@ -78,7 +83,13 @@ EvaluacionCobro evaluarCobro({
           : 'Es un abono: queda un saldo de ${formatoPesos(saldo)}.',
     );
   }
+  for (final i in items) {
+    if (i.valorUnitario == 0 && i.descripcion.trim().isNotEmpty) {
+      avisos.add('«${i.descripcion.trim()}» va sin precio.');
+    }
+  }
   final tratamientoEstetico = items.any((i) {
+    if (i.esProcedimiento) return true;
     final s = servicios[i.servicioId];
     return s != null && s.linea == LineaAtencion.estetica && !s.abonable;
   });
@@ -213,7 +224,10 @@ InformeMes informeDelMes({
     creditos += c.credito;
     for (final i in c.items) {
       final s = servicios[i.servicioId];
-      final linea = s?.linea.etiqueta ?? 'Sin línea';
+      // Los procedimientos son de la línea de estética.
+      final linea =
+          s?.linea.etiqueta ??
+          (i.esProcedimiento ? LineaAtencion.estetica.etiqueta : 'Sin línea');
       sumar(porServicio, i.servicioId, s?.nombre ?? i.descripcion, linea, i);
       sumar(porLinea, linea, linea, linea, i);
     }

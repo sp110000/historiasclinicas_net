@@ -125,6 +125,10 @@ Finder _enDialogo(Finder f) =>
 Finder _campo(String etiqueta) =>
     find.ancestor(of: find.text(etiqueta), matching: find.byType(TextField));
 
+/// El texto del campo [etiqueta].
+String _valorDe(WidgetTester t, String etiqueta) =>
+    t.widget<TextField>(_campo(etiqueta)).controller!.text;
+
 ButtonStyleButton _boton(WidgetTester t, String texto) =>
     t.widget<ButtonStyleButton>(
       find.ancestor(
@@ -184,9 +188,11 @@ void main() {
     expect(_enDialogo(find.text('Elige el paciente.')), findsOneWidget);
     await _elegirPaciente(t);
     // El primer servicio del catálogo y el pago en efectivo por el total.
-    expect(_enDialogo(find.text('Consulta de primera vez')), findsOneWidget);
+    // El servicio, con su nombre y su precio editables.
+    expect(_enDialogo(find.text('Consulta de primera vez')), findsNWidgets(2));
     expect(_enDialogo(find.text(r'$ 80.000')), findsWidgets);
-    expect(find.text('80.000'), findsOneWidget);
+    expect(_valorDe(t, 'Precio *'), '80.000');
+    expect(_valorDe(t, 'Valor *'), '80.000');
     await t.enterText(_campo('Valor *'), '50000');
     await t.pumpAndSettle();
     expect(find.text('50.000'), findsOneWidget);
@@ -292,6 +298,76 @@ void main() {
     expect(inv.existencia(j1.id), 2);
   });
 
+  testWidgets('servicio con nombre y precio editados, procedimiento con '
+      'sus insumos: se cobran y los insumos se descuentan', (t) async {
+    final (b, id) = await _conPaciente();
+    final inv = b.servicio.inventario;
+    final lido = await inv.guardarInsumo(
+      inv.nuevoInsumo().copyWith(
+        nombre: 'Lidocaína sin epinefrina',
+        categoria: CategoriaInsumo.medicamento,
+        unidad: 'ampolla',
+        registroInvima: 'INVIMA PRUEBA-0003',
+      ),
+    );
+    final lote = await inv.registrarEntrada(
+      insumoId: lido.id,
+      numero: 'L-1',
+      vence: DateTime(2027, 3, 31),
+      cantidad: 5,
+    );
+    await _montar(t, b);
+    await _pulsar(t, find.text('Cobrar'));
+    await _elegirPaciente(t);
+    expect(_enDialogo(find.text('SERVICIOS')), findsOneWidget);
+    expect(_enDialogo(find.text('PROCEDIMIENTOS')), findsOneWidget);
+    expect(_enDialogo(find.text('INSUMOS USADOS')), findsOneWidget);
+
+    // El servicio: otro nombre y otro precio.
+    await t.enterText(
+      _campo('Como sale en el recibo *').first,
+      'Consulta con ecografía',
+    );
+    await t.enterText(_campo('Precio *').first, '95000');
+    await t.pumpAndSettle();
+
+    // El procedimiento: la tarifa de su sesión, por zonas, y sus insumos.
+    await _pulsar(t, find.text('Agregar un procedimiento'));
+    expect(_enDialogo(find.text('Hidrolipoclasia')), findsWidgets);
+    final precios = find.ancestor(
+      of: find.text('Precio *'),
+      matching: find.byType(TextField),
+    );
+    expect(t.widget<TextField>(precios.first).controller!.text, '95.000');
+    expect(t.widget<TextField>(precios.last).controller!.text, '240.000');
+    await t.enterText(_campo('Zonas o sesiones'), '2');
+    await t.pumpAndSettle();
+    expect(find.textContaining(r'2 × $ 240.000 = $ 480.000'), findsOneWidget);
+    await _pulsar(t, find.text('Agregar su insumo: Lidocaína sin epinefrina'));
+    expect(find.text('En el lote L-1 quedan 5 ampollas.'), findsOneWidget);
+    expect(
+      find.text('Agregar su insumo: Lidocaína sin epinefrina'),
+      findsNothing,
+    );
+    expect(_enDialogo(find.text(r'$ 575.000')), findsWidgets);
+
+    await _pulsar(t, find.text('Registrar y descargar el recibo'));
+    expect(
+      find.textContaining('Se descontó 1 insumo del inventario.'),
+      findsOneWidget,
+    );
+    final cobro = b.servicio.caja.cobrosDe(id).single;
+    expect(
+      [for (final i in cobro.items) i.descripcion],
+      ['Consulta con ecografía', 'Hidrolipoclasia'],
+    );
+    expect(cobro.items.first.valorUnitario, 95000);
+    expect(cobro.items.last.plantillaId, 'hidrolipoclasia');
+    expect(cobro.items.last.cantidad, 2);
+    expect(cobro.total, 575000);
+    expect(inv.existencia(lote.id), 4);
+  });
+
   testWidgets('descuento con motivo y crédito de la valoración en el '
       'paquete; el paquete se usa desde la ficha', (t) async {
     final (b, id) = await _conPaciente();
@@ -301,7 +377,7 @@ void main() {
     await _montar(t, b, ruta: '/pacientes/$id');
     await _pulsar(t, find.text('Cobrar'));
     // Cambiar el servicio al paquete: el crédito se aplica solo.
-    await t.tap(_enDialogo(find.text('Consulta de primera vez')));
+    await t.tap(_enDialogo(find.text('Consulta de primera vez')).first);
     await t.pumpAndSettle();
     await t.tap(find.text('Paquete de 4 sesiones').last);
     await t.pumpAndSettle();
@@ -357,8 +433,9 @@ void main() {
     );
     await _montar(t, b, ruta: '/agenda');
     await _pulsar(t, find.text('Cobrar'));
-    expect(_enDialogo(find.text('Control')), findsOneWidget);
-    expect(find.text('45.000'), findsOneWidget);
+    expect(_enDialogo(find.text('Control')), findsNWidgets(2));
+    expect(_valorDe(t, 'Precio *'), '45.000');
+    expect(_valorDe(t, 'Valor *'), '45.000');
     await _pulsar(t, find.text('Registrar y descargar el recibo'));
     expect(_pdfs, ['Recibo_RC-000001.pdf']);
     expect(find.text('Cobrada'), findsOneWidget);

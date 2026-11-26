@@ -254,6 +254,21 @@ class CajaConsultorio {
   }
 
   /// El valor del crédito que se aplicaría a [items].
+  /// El precio que se sugiere al cobrar el procedimiento [plantillaId]: la
+  /// tarifa de su sesión en el catálogo (sin paquetes ni valoraciones), o 0.
+  int tarifaProcedimiento(String plantillaId) =>
+      servicios
+          .where(
+            (s) =>
+                s.activo &&
+                s.plantillaId == plantillaId &&
+                !s.esPaquete &&
+                !s.abonable,
+          )
+          .firstOrNull
+          ?.tarifa ??
+      0;
+
   int valorCredito(Credito? credito, List<ItemCobro> items) {
     if (credito == null) return 0;
     final neto = items.fold(0, (s, i) => s + i.neto);

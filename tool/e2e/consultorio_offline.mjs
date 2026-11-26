@@ -1851,6 +1851,12 @@ await context.close();
   await hacerClic(p.getByRole('button', { name: 'Agregar un insumo', exact: true }));
   await texto(p, 'L7788 · vence 15/12/2026').waitFor();
   await texto(p, 'En el lote L7788 quedan 4 ampollas.').waitFor();
+  // También el procedimiento, con la tarifa de su sesión (editable).
+  await hacerClic(p.getByRole('button', { name: 'Agregar un procedimiento', exact: true }));
+  await texto(p, 'Zonas o sesiones').waitFor();
+  await texto(p, 'Hidrolipoclasia').waitFor();
+  await aLaVista(conTexto('PROCEDIMIENTOS'));
+  await captura(p, 'i7_cobro_con_procedimiento.png');
   await aLaVista(conTexto('INSUMOS USADOS'));
   await captura(p, 'i7_cobro_con_insumo.png');
   await p.getByRole('button', { name: 'Registrar sin pago', exact: true }).click();
