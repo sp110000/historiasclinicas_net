@@ -64,16 +64,17 @@ Salieron al compilarlo y compararlo en pantalla:
 
 ## Logo
 
-El logo es una cruz con un trazo de electrocardiograma y un documento. Se recortó de la imagen original con fondo transparente, y el original de 496 px está en `docs/marca/logo.png`. De ahí salen todos los íconos de `web/`:
+El logo (desde el 26/11/2026) es un documento con una cruz naranja, un trazo de electrocardiograma, una órbita naranja y azul marino y unos cuadros que se dispersan. Es el que entregaste, **sin alterar el dibujo**: el original de 1254 px está en `docs/marca/logo.png`. De él salen, solo cambiando el tamaño y recortando el margen blanco de alrededor:
 
 | Uso | Archivo | Fondo |
 |---|---|---|
-| Pestaña | `favicon.ico` (16, 32 y 48), `icons/logo-naranja-16/32/48/96/192.png` | Transparente |
-| App instalada | `icons/logo-naranja-192.png`, `icons/logo-naranja-512.png` | Transparente |
-| Android (máscara redonda) | `icons/logo-naranja-maskable-192/512.png` | Blanco; logo dentro de la zona segura |
-| iPhone y iPad | `icons/logo-naranja-apple-180.png` | Blanco (iOS no admite transparencia) |
+| Dentro de la app (riel, menú, historia, desbloqueo) | `assets/marca/logo.png` (512 px) | Transparente (el blanco del fondo pasó a transparencia; sobre blanco se ve idéntico) |
+| Pestaña | `favicon.ico` (16, 32 y 48), `icons/logo-hc-16/32/48/96/192.png` | Blanco, como el original |
+| App instalada | `icons/logo-hc-192.png`, `icons/logo-hc-512.png` | Blanco |
+| Android (máscara redonda) | `icons/logo-hc-maskable-192/512.png` | Blanco; logo dentro de la zona segura |
+| iPhone y iPad | `icons/logo-hc-apple-180.png` | Blanco |
 
-Los nombres cambiaron junto con el logo. Los móviles guardan el ícono por su dirección, aparte de los datos del sitio, y con el nombre anterior seguían mostrando el logo viejo. `test/tool/iconos_test.dart` comprueba que cada ícono declarado existe, que tiene su tamaño y que ninguno usa los nombres anteriores. El color de la barra del sistema (`theme-color`) pasó al petróleo 2b.
+Los nombres cambian con cada logo (antes `logo-naranja-*`). Los móviles guardan el ícono por su dirección, aparte de los datos del sitio, y con el nombre anterior seguían mostrando el logo viejo. `test/tool/iconos_test.dart` comprueba que cada ícono declarado existe, que tiene su tamaño y que ninguno usa los nombres anteriores. El color de la barra del sistema (`theme-color`) es el naranja de marca (#FF6A13).
 
 ## Capturas
 

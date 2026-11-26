@@ -15,18 +15,23 @@ flujos, para que las pruebas y los e2e sigan siendo la referencia.
    naranja.
 2. **Nada solo por color.** Cada estado lleva además texto o ícono
    («Completa», «Incompleta», candado, ⚠).
-3. **Contraste AA.** El naranja de marca (#F54927, 3,6:1) se usa en el logo,
-   barras de avance y acentos; los botones, enlaces y foco usan un naranja
-   más hondo (#C93C1F, 5,1:1 sobre blanco y 4,6:1 sobre el tinte).
+3. **Contraste AA.** El naranja de marca «Mandarina» (#FF6A13, 2,9:1) se usa
+   en el logo, barras de avance y acentos, nunca en texto ni en el foco; los
+   botones, enlaces y el foco usan un naranja tostado (#B8470A, 5,3:1 sobre
+   blanco y 4,8:1 sobre el tinte).
 4. **Formas suaves.** Tarjetas de 20 px de radio con sombra cálida, campos
    de 12 px y botones en píldora.
 
 ## Paleta (`lib/app/tema.dart`, `ColoresMarca`)
 
+Desde el 26/11/2026, **Mandarina** (elegida entre Mandarina, Calabaza y
+Terracota): el naranja pasó del tono 10° (#F54927, que se leía rojo tomate y
+quedaba cerca del carmesí de las alergias) al 22°. Lo demás no cambió.
+
 | Uso | Token | Color | Contraste sobre blanco |
 |---|---|---|---|
-| Marca, acentos | `marca` | #F54927 | 3,6:1 (no para texto pequeño) |
-| Botones, enlaces, foco | `primario` | #C93C1F | 5,1:1 |
+| Marca, acentos | `marca` | #FF6A13 | 2,9:1 (ni texto ni foco) |
+| Botones, enlaces, foco | `primario` | #B8470A | 5,3:1 |
 | Texto principal | `tinta` | #2B211D | 15,7:1 |
 | Etiquetas | `tintaSuave` | #574A44 | 8,5:1 |
 | Texto secundario | `textoSuave` | #6A5C55 | 6,4:1 |
@@ -35,7 +40,7 @@ flujos, para que las pruebas y los e2e sigan siendo la referencia.
 | Atención | `aviso` / `avisoFondo` / `avisoTexto` | #8A5A0B / #FFF6DD / #5C3C06 | 5,9:1 |
 | Peligro | `error` / `errorFondo` | #9B1C3A / #FCE7EC | 8:1 |
 | Fondo de la app | `fondo` | #FAF6F3 | — |
-| Selección | `tinte` / `tinteTexto` | #FEF1ED / #9F2F19 | 6,6:1 sobre el tinte |
+| Selección | `tinte` / `tinteTexto` | #FFF1E6 / #9A3B07 | 6,3:1 sobre el tinte |
 
 La fuente sigue siendo Inter, incluida en el sitio (sin peticiones a
 terceros).
@@ -99,6 +104,14 @@ terceros).
     con el doble del mínimo): ámbar por debajo, verde por encima.
   - **Ajustes**: arriba, «Tu consultorio» (nombre, especialidad y
     consultorio) con su ilustración y el acceso a «Datos del médico».
+
+- **Mandarina y logo nuevo (26/11/2026).** La paleta de arriba y el logo que
+  entregaste, sin alterar el dibujo, en toda la app: pestaña, íconos del
+  teléfono y de la app instalada (`icons/logo-hc-*`, nombres nuevos para
+  que los móviles no muestren el anterior), `favicon.ico` y dentro de la app
+  (`assets/marca/logo.png`, con el fondo transparente). Las manchas de las
+  ilustraciones y la tarjeta de lo recaudado pasan al mismo tono. Detalle en
+  [DISENO.md](DISENO.md#logo).
 
 ## Queda igual, a propósito
 

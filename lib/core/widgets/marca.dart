@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../app/tema.dart';
 
-/// El logo de historiasclinicas.net (la cruz con el pulso y la hoja), en
-/// naranja. Va junto al nombre, así que no lo lee el lector de pantalla.
+/// El logo de historiasclinicas.net (el documento con la cruz, el pulso y la
+/// órbita), tal cual, con el fondo transparente. Va junto al nombre, así que
+/// no lo lee el lector de pantalla.
 class LogoMarca extends StatelessWidget {
   const LogoMarca({super.key, this.lado = 32});
 

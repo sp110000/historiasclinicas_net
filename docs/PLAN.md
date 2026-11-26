@@ -214,7 +214,7 @@ Se toman de "Datos del médico": nombre, especialidad y registro. Hay interrupto
 ## (c) Bocetos textuales
 
 ### Paleta y estilo
-> **Noviembre de 2026:** la interfaz pasó a la dirección «Naranja cálido» (naranja `#F54927`, neutros cálidos, verde/ámbar/carmesí solo para estados). Detalle y contrastes en [REDISENO.md](REDISENO.md). Lo de abajo describe la dirección anterior y sigue valiendo para la impresión.
+> **Noviembre de 2026:** la interfaz pasó a la dirección «Naranja cálido» (naranja «Mandarina» `#FF6A13` desde el 26/11/2026, antes `#F54927`; neutros cálidos, verde/ámbar/carmesí solo para estados). Detalle y contrastes en [REDISENO.md](REDISENO.md). Lo de abajo describe la dirección anterior y sigue valiendo para la impresión.
 
 Dirección visual 2b «Clínico sobrio», aplicada después de la Fase 4 (detalle en [DISENO.md](DISENO.md)). Los valores viven en `lib/app/tema.dart` (`ColoresMarca`, `RadiosMarca`, `EstilosMarca`).
 - **Primario:** azul petróleo `#1E5A7A` (7,5:1 sobre blanco); el ℞ también lo usa. **Estado correcto:** verde `#2E7D5B`, solo para «Completa», integridad y guardado. **Aviso:** ámbar `#8A5A0B`. **Error:** `#B3362F`. Todos los textos cumplen WCAG AA (4,5:1).

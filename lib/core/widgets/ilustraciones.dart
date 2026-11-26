@@ -107,9 +107,9 @@ class EstadoVacio extends StatelessWidget {
 }
 
 // Colores de las ilustraciones.
-const _mancha = Color(0xFFFCE6DE);
+const _mancha = Color(0xFFFFE8D6);
 const _manchaVerde = Color(0xFFE3F1E7);
-const _medio = Color(0xFFFBB9AB);
+const _medio = Color(0xFFFFC299);
 const _linea = Color(0xFFF3ECE7);
 const _oro = Color(0xFFF4C76B);
 const _oroOscuro = Color(0xFFC9962F);

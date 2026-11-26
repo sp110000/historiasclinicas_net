@@ -848,7 +848,7 @@ class _Recaudado extends StatelessWidget {
                   titulo,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFFFC9B8),
+                    color: Color(0xFFFFCBA4),
                   ),
                 ),
                 const SizedBox(height: 4),
