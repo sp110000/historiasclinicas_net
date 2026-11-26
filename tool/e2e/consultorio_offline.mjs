@@ -1896,9 +1896,13 @@ await context.close();
   // PDF con su número, las medidas y la imagen.
   await pulsarExacto('Imágenes');
   await texto(p, 'Todavía no hay estudios').waitFor();
-  await hacerClic(p.getByRole('button', { name: 'Nuevo estudio' }).first());
+  // El botón del centro (el de la barra queda arriba, fuera de la zona de
+  // clic de aLaVista).
+  await p.getByRole('button', { name: 'Nuevo estudio' }).last().click();
   await escribir(p, 'Paciente', 'pena');
-  await hacerClic(p.locator('flt-semantics[flt-tappable]').filter({ hasText: 'PEÑA MUÑOZ' }).last());
+  await p.waitForTimeout(500);
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(400);
   await elegirOpcion('Tipo de estudio', 'Ecografía de tiroides y cuello');
   await pulsar(p, 'Crear informe');
   await texto(p, 'Para cerrar falta el equipo').waitFor();
