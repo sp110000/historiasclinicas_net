@@ -201,6 +201,56 @@ class DocumentosConsultorio {
     return d != null && d.vigente && d.permisos.clinico ? d : null;
   }
 
+  /// Todos los documentos de [tipo], del más reciente al más viejo.
+  List<DocumentoConsultorio> documentosDeTipo(TipoPlantilla tipo) =>
+      _documentos.values.where((d) => d.tipo == tipo).toList()
+        ..sort((a, b) => b.fechaHora.compareTo(a.fechaHora));
+
+  /// PDF de muestra de [tipo] para leer antes de firmar: el texto aprobado
+  /// (o, si no hay, el borrador) con [valoresExtra] y los datos del
+  /// paciente en blanco. Lleva «MUESTRA», sin número ni firmas, y no se
+  /// guarda.
+  Future<Uint8List> muestraPdf(
+    TipoPlantilla tipo, {
+    Map<String, String> valoresExtra = const {},
+    List<(String, String)> filas = const [],
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) {
+    final p = plantilla(tipo);
+    final version = p.vigente ?? p.ultima;
+    final ahora = reloj.ahora();
+    final copia = instantaneaMedico(
+      medico,
+      pais: pais,
+      firma: false,
+      sello: false,
+    );
+    return generarPdfDocumento(
+      ContenidoDocumentoPdf(
+        titulo: version.titulo,
+        cuerpo: rellenarPlantilla(version.cuerpo, {
+          ...valores(medico, fecha: ahora),
+          'fecha': '',
+          ...valoresExtra,
+        }),
+        fechaHora: ahora,
+        version: version.version,
+        paciente: '______________________________',
+        filas: [
+          ('MUESTRA', 'Para leer antes. Se firma en la ficha del paciente.'),
+          if (!p.usable)
+            ('BORRADOR', 'Texto sin aprobar: revísalo con tu abogado.'),
+          ...filas,
+        ],
+        medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+        recursos: copia.recursos,
+      ),
+      fuentes: fuentes,
+    );
+  }
+
   Future<Uint8List?> pdfDe(String id) =>
       _repo.leerBinario(DocumentoConsultorio.tipoBinarioPdf, id);
 
@@ -293,7 +343,8 @@ class DocumentosConsultorio {
     if (version == null) {
       throw StateError(
         'La plantilla «${tipo.etiqueta}» está en borrador: revísala y '
-        'apruébala en Ajustes.',
+        'apruébala en '
+        '${tipo == TipoPlantilla.consentimientoInformado ? 'Procedimientos' : 'Ajustes'}.',
       );
     }
     final ahora = reloj.ahora();

@@ -8,6 +8,7 @@ import '../../utils/fechas.dart';
 import '../../utils/ids.dart';
 import '../../utils/numeros.dart';
 import '../documentos/documento.dart';
+import '../documentos/documento_pdf.dart';
 import '../documentos/documentos.dart';
 import '../documentos/plantillas.dart';
 import '../indice/indice_pacientes.dart';
@@ -24,6 +25,7 @@ import '../seguimiento/seguimiento.dart';
 import 'certificacion.dart';
 import 'plan_tratamiento.dart';
 import 'plantilla_procedimiento.dart';
+import 'protocolo_pdf.dart';
 import 'sesion.dart';
 import 'valoracion.dart';
 
@@ -176,6 +178,129 @@ class ProcedimientosConsultorio {
     _plantillas[id] = nueva;
     return nueva;
   }
+
+  // ─────────────────── Impresión y consentimientos ───────────────────
+
+  /// La versión [version] de [id] (la vigente, una anterior o el borrador).
+  VersionProcedimiento versionDe(String id, int version) {
+    final v = _plantilla(id).version(version);
+    if (v == null) throw StateError('No existe esa versión.');
+    return v;
+  }
+
+  /// El protocolo de la versión [version] de [id] en PDF, con su estado
+  /// (un borrador sale marcado) y la fecha de impresión.
+  Future<Uint8List> protocoloPdf(
+    String id, {
+    required int version,
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) {
+    final v = versionDe(id, version);
+    final d = v.definicion;
+    final copia = instantaneaMedico(medico, pais: pais);
+    return generarPdfDocumento(
+      ContenidoDocumentoPdf(
+        titulo: 'Protocolo de ${d.nombre}',
+        cuerpo: textoProtocolo(d),
+        fechaHora: reloj.ahora(),
+        version: v.version,
+        filas: [
+          (
+            'Versión',
+            v.aprobada
+                ? 'v${v.version}, aprobada el ${formatoFecha(v.aprobadaEn!)}'
+                : 'v${v.version} · BORRADOR – sin aprobar: no se usa con '
+                      'pacientes',
+          ),
+          (
+            'Familia de técnicas',
+            d.familia.trim().isEmpty ? '—' : d.familia.trim(),
+          ),
+          (
+            'Lleva',
+            [
+              d.usaAnestesico ? 'anestésico local' : 'sin anestésico',
+              d.usaSolucion ? 'solución por zona' : 'sin solución',
+            ].join(' · '),
+          ),
+        ],
+        medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+        recursos: copia.recursos,
+        conFirmaPaciente: false,
+      ),
+      fuentes: fuentes,
+    );
+  }
+
+  /// La hoja de la lista de verificación previa de la versión [version].
+  Future<Uint8List> listaVerificacionPdf(
+    String id, {
+    required int version,
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) {
+    final v = versionDe(id, version);
+    final copia = instantaneaMedico(
+      medico,
+      pais: pais,
+      logo: false,
+      firma: false,
+      sello: false,
+    );
+    return generarPdfListaVerificacion(
+      procedimiento: v.definicion.nombre,
+      version: v.version,
+      borrador: !v.aprobada,
+      items: v.definicion.listaVerificacion,
+      impresa: reloj.ahora(),
+      medico: medico.configurado ? Autor.desdeMapa(copia.autor) : null,
+      fuentes: fuentes,
+    );
+  }
+
+  /// Consentimiento informado de muestra de [id]: el texto con su
+  /// procedimiento, riesgos y alternativas, y lo del paciente (zonas,
+  /// fecha, nombre) en blanco. Para leerlo antes; se firma en la ficha.
+  Future<Uint8List> consentimientoMuestraPdf(
+    String id, {
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) {
+    final p = _plantilla(id);
+    final d = (p.vigente ?? p.ultima).definicion;
+    final c = _configuracion();
+    return _documentos.muestraPdf(
+      TipoPlantilla.consentimientoInformado,
+      valoresExtra: {
+        'procedimiento': d.nombre,
+        'zonas': '',
+        'sesiones': d.numeroSesiones == null ? '' : '${d.numeroSesiones}',
+        'producto': d.usaSolucion ? d.componentes.join(', ') : '',
+        'riesgos': d.riesgos,
+        'alternativas': sinPuntoFinal(d.alternativas),
+        'codigoReps': c.codigoReps,
+        'habilitacion': c.habilitacion,
+        'poliza': c.textoPoliza,
+        'certificacion': certificacionPara(d.familia),
+      },
+      filas: [
+        if (!p.usable)
+          ('Procedimiento', '${d.nombre} en borrador: sin aprobar todavía'),
+      ],
+      medico: medico,
+      pais: pais,
+      fuentes: fuentes,
+    );
+  }
+
+  /// Los consentimientos informados firmados de todos los pacientes, del
+  /// más reciente al más viejo.
+  List<DocumentoConsultorio> get consentimientosFirmados =>
+      _documentos.documentosDeTipo(TipoPlantilla.consentimientoInformado);
 
   /// La definición vigente de [id]. Lanza [StateError] si no está
   /// aprobada (una plantilla sin aprobar no se usa).
@@ -347,7 +472,7 @@ class ProcedimientosConsultorio {
       'sesiones': '${plan.sesiones}',
       'producto': plan.producto,
       'riesgos': d.riesgos,
-      'alternativas': d.alternativas,
+      'alternativas': sinPuntoFinal(d.alternativas),
       'codigoReps': c.codigoReps,
       'habilitacion': c.habilitacion,
       'poliza': c.textoPoliza,
@@ -708,6 +833,12 @@ String textoValoracion(
       'Recomendación: ${v.recomendacion.trim()}.',
   ].where((s) => s.isNotEmpty).join(' ');
 }
+
+/// [t] sin espacios a los lados ni punto final: en el consentimiento la
+/// plantilla pone el punto («{{alternativas}}. También puedo…»), y así no
+/// queda «..».
+String sinPuntoFinal(String t) =>
+    t.trim().replaceFirst(RegExp(r'[\s.;]+$'), '');
 
 /// [t] sin espacios a los lados y con un solo punto final (el médico suele
 /// escribirlo; así no queda «..» en el texto sellado).
