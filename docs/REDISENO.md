@@ -71,10 +71,11 @@ terceros).
     lo pendiente (controles vencidos, recordatorios de mañana, lotes
     vencidos o por vencer, insumos bajo el mínimo), y el día en números.
     En el modo presentación no muestra montos ni el motivo de la cita.
-  - **Menú**: en el riel, «Buscar» y «Nueva consulta» (la historia en
-    blanco; si la que está en curso tiene cambios, pregunta antes). En el
-    menú del teléfono, el logo, los dos botones y los grupos *Consulta*,
-    *Consultorio* y *Ajustes*. La «Historia» sigue en el menú.
+  - **Menú**: en el riel, «Buscar». En el menú del teléfono, el logo,
+    «Buscar» y los grupos *Consulta*, *Consultorio* y *Ajustes*. La
+    «Historia» sigue en el menú. (Hubo un botón «Nueva consulta»; se quitó
+    a pedido: la historia ya está en el menú y la consulta de un paciente
+    se empieza desde el Inicio, la agenda, la ficha o el buscador.)
   - **Buscador** (Ctrl + K o ⌘ + K, o el botón): pacientes por nombre o
     documento sin tildes, con «Consulta», «Cita» y «Cobrar», y las
     pantallas («Ir a Caja»). ↑ ↓ para moverse y Enter para abrir la ficha.

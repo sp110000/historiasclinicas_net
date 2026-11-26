@@ -168,10 +168,6 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
     }
   }
 
-  /// «Nueva consulta»: la historia en blanco (si la que está en curso tiene
-  /// cambios, la historia pregunta antes de limpiarla).
-  void _nuevaConsulta() => context.go('/?nueva=1');
-
   @override
   Widget build(BuildContext context) {
     final e = ref.watch(consultorioProvider);
@@ -212,12 +208,7 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
         color: ColoresMarca.fondo,
         child: Row(
           children: [
-            _Riel(
-              indice: _indice,
-              alElegir: ir,
-              alBuscar: _buscar,
-              alNuevaConsulta: _nuevaConsulta,
-            ),
+            _Riel(indice: _indice, alElegir: ir, alBuscar: _buscar),
             const VerticalDivider(width: 1, thickness: 1),
             Expanded(
               child: MediaQuery(
@@ -232,12 +223,7 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
       );
     } else {
       pantalla = Scaffold(
-        drawer: _MenuLateral(
-          indice: _indice,
-          alElegir: ir,
-          alBuscar: _buscar,
-          alNuevaConsulta: _nuevaConsulta,
-        ),
+        drawer: _MenuLateral(indice: _indice, alElegir: ir, alBuscar: _buscar),
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -428,13 +414,11 @@ class _Riel extends StatelessWidget {
     required this.indice,
     required this.alElegir,
     required this.alBuscar,
-    required this.alNuevaConsulta,
   });
 
   final int indice;
   final ValueChanged<int> alElegir;
   final VoidCallback alBuscar;
-  final VoidCallback alNuevaConsulta;
 
   @override
   Widget build(BuildContext context) {
@@ -467,18 +451,6 @@ class _Riel extends StatelessWidget {
               onPressed: alBuscar,
               icon: const Icon(Icons.search_rounded),
               tooltip: 'Buscar (Ctrl + K)',
-            ),
-            const SizedBox(height: 8),
-            Tooltip(
-              message: 'Nueva consulta',
-              child: IconButton.filled(
-                onPressed: alNuevaConsulta,
-                style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-                icon: const Icon(
-                  Icons.add_rounded,
-                  semanticLabel: 'Nueva consulta',
-                ),
-              ),
             ),
             const SizedBox(height: 10),
           ],
@@ -556,13 +528,11 @@ class _MenuLateral extends StatelessWidget {
     required this.indice,
     required this.alElegir,
     required this.alBuscar,
-    required this.alNuevaConsulta,
   });
 
   final int indice;
   final ValueChanged<int> alElegir;
   final VoidCallback alBuscar;
-  final VoidCallback alNuevaConsulta;
 
   @override
   Widget build(BuildContext context) {
@@ -578,17 +548,6 @@ class _MenuLateral extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.fromLTRB(24, 22, 16, 14),
           child: NombreMarca(tamano: 16),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              alNuevaConsulta();
-            },
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Nueva consulta'),
-          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
