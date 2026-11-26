@@ -877,4 +877,93 @@ void main() {
       expect(csv, contains(';Valoraciones;${nombre.nombre};Estética;1;;;'));
     });
   });
+
+  group('Procedimientos y servicios editables en el cobro', () {
+    const proc = ItemCobro(
+      servicioId: 'procedimiento:hidrolipoclasia',
+      plantillaId: 'hidrolipoclasia',
+      descripcion: 'Hidrolipoclasia abdomen',
+      valorUnitario: 240000,
+      cantidad: 2,
+    );
+
+    test('el procedimiento se guarda con su plantilla; uno viejo se lee '
+        'como servicio', () {
+      final m = ItemCobro.desdeMapa(proc.aMapa());
+      expect(m.plantillaId, 'hidrolipoclasia');
+      expect(m.esProcedimiento, isTrue);
+      expect(m.bruto, 480000);
+      final viejo = ItemCobro.desdeMapa(
+        _item('control').aMapa()..remove('plantillaId'),
+      );
+      expect(viejo.esProcedimiento, isFalse);
+      // Nombre y precio editados se conservan.
+      final editado = _item(
+        'control',
+      ).copyWith(descripcion: 'Control con ecografía', valorUnitario: 60000);
+      expect(editado.servicioId, 'control');
+      expect(
+        ItemCobro.desdeMapa(editado.aMapa()).descripcion,
+        'Control con ecografía',
+      );
+      expect(editado.neto, 60000);
+    });
+
+    test('reglas: sin nombre bloquea, sin precio avisa, y el procedimiento '
+        'cuenta como tratamiento para el crédito', () {
+      EvaluacionCobro evaluar(List<ItemCobro> items) => evaluarCobro(
+        pacienteId: 'f',
+        items: items,
+        credito: 0,
+        pagos: const [],
+        diaCerrado: false,
+        creditoSinAplicar: 70000,
+        servicios: _catalogo,
+      );
+      expect(
+        evaluar([_item('control').copyWith(descripcion: ' ')]).bloqueos,
+        contains('Escribe el nombre de cada servicio y procedimiento.'),
+      );
+      expect(
+        evaluar([_item('control', valor: 0)]).avisos,
+        contains('«Control» va sin precio.'),
+      );
+      expect(
+        evaluar([proc]).avisos,
+        contains(r'Hay un crédito de $ 70.000 de la valoración sin aplicar.'),
+      );
+    });
+
+    test('la caja sugiere la tarifa de la sesión del procedimiento', () async {
+      final b = BancoConsultorio(ahora: _ahora);
+      await b.servicio.crear(fraseDePrueba);
+      expect(b.servicio.caja.tarifaProcedimiento('hidrolipoclasia'), 240000);
+      expect(b.servicio.caja.tarifaProcedimiento('otro'), 0);
+    });
+
+    test(
+      'el informe del mes lleva el procedimiento en la línea de estética',
+      () {
+        final i = informeDelMes(
+          anio: 2026,
+          mes: 11,
+          cobros: [
+            Cobro(
+              id: 'c1',
+              pacienteId: 'f',
+              fecha: _ahora,
+              items: const [proc],
+            ),
+          ],
+          recibos: const [],
+          servicios: _catalogo,
+        );
+        final fila = i.porServicio.single;
+        expect(fila.concepto, 'Hidrolipoclasia abdomen');
+        expect(fila.linea, 'Estética');
+        expect(fila.cantidad, 2);
+        expect(fila.bruto, 480000);
+      },
+    );
+  });
 }

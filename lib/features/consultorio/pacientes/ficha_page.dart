@@ -13,6 +13,7 @@ import '../../../core/pais/perfil_pais.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/titulo_dialogo.dart';
 import '../../historia/estado/historia_controller.dart';
+import '../../historia/widgets/avisos.dart';
 import '../../historia/widgets/dialogos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
@@ -30,6 +31,7 @@ import '../estetica/seccion_estetica.dart';
 import '../peso/seccion_peso.dart';
 import '../seguimiento/seccion_seguimiento.dart';
 import 'dialogo_ficha.dart';
+import 'eliminar_paciente.dart';
 import 'unir_fichas.dart';
 
 /// Ficha longitudinal del paciente: datos, alergias y antecedentes (con su
@@ -130,9 +132,29 @@ class _FichaPageState extends ConsumerState<FichaPage> {
       body: ListView(
         padding: EdgeInsets.fromLTRB(margen, 16, margen, 48),
         children: [
+          if (f.eliminada case final cuando?) ...[
+            Aviso(
+              icono: Icons.restore_from_trash_outlined,
+              color: ColoresMarca.aviso,
+              titulo: 'Paciente eliminado el ${formatoFecha(cuando)}',
+              texto: const Text(
+                'No aparece en la lista, el buscador ni el Inicio. Sus '
+                'historias y demás registros se conservan.',
+              ),
+              acciones: [
+                FilledButton.icon(
+                  onPressed: () => restaurarPaciente(context, ref, ficha: f),
+                  icon: const Icon(Icons.restore),
+                  label: const Text('Restaurar'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
           _Encabezado(ficha: f, resumen: resumen, ahora: ahora),
           const SizedBox(height: 12),
-          _Acciones(ficha: f, tieneHistorias: historias.isNotEmpty),
+          if (f.eliminada == null)
+            _Acciones(ficha: f, tieneHistorias: historias.isNotEmpty),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
@@ -450,7 +472,20 @@ class _Acciones extends ConsumerWidget {
       ),
       (Icons.edit_outlined, 'Editar datos', () => _editar(context)),
       (Icons.merge_type, 'Unir con otra ficha', () => _unir(context, ref)),
+      (
+        Icons.delete_outline,
+        'Eliminar paciente',
+        () => eliminarPaciente(context, ref, ficha: ficha),
+      ),
     ];
+    // «Eliminar paciente», la última, en carmesí.
+    final ultima = acciones.length - 1;
+    final peligro = OutlinedButton.styleFrom(
+      foregroundColor: ColoresMarca.error,
+      side: BorderSide(
+        color: ColoresMarca.sobreBlanco(ColoresMarca.error, 0.4),
+      ),
+    );
     // Certificado, incapacidad, orden y remisión (5.4).
     final documentos = [
       for (final (tipo, icono, texto) in const [
@@ -490,6 +525,12 @@ class _Acciones extends ConsumerWidget {
               MenuItemButton(
                 leadingIcon: Icon(icono),
                 onPressed: accion,
+                style: texto == acciones[ultima].$2
+                    ? MenuItemButton.styleFrom(
+                        foregroundColor: ColoresMarca.error,
+                        iconColor: ColoresMarca.error,
+                      )
+                    : null,
                 child: Text(texto),
               ),
           ],
@@ -514,6 +555,7 @@ class _Acciones extends ConsumerWidget {
                 )
               : OutlinedButton.icon(
                   onPressed: accion,
+                  style: i == ultima ? peligro : null,
                   icon: Icon(icono),
                   label: Text(texto),
                 ),

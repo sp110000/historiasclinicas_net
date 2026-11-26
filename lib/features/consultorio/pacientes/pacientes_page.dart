@@ -14,6 +14,7 @@ import '../../historia/widgets/avisos.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import 'dialogo_ficha.dart';
+import 'eliminar_paciente.dart';
 import '../widgets/comunes.dart';
 import 'importacion.dart';
 import '../widgets/chip_seleccion.dart';
@@ -87,6 +88,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
       soloControlesVencidos: _soloVencidos,
     );
     final total = indice.fichasActivas.length;
+    final eliminados = indice.fichasEliminadas.length;
     final ancho = MediaQuery.sizeOf(context).width;
     final movil = ancho < 700;
     final margen = math.max(movil ? 12.0 : 24.0, (ancho - 1100) / 2);
@@ -212,7 +214,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                 )
               else
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(margen, 0, margen, 96),
+                  padding: EdgeInsets.fromLTRB(margen, 0, margen, 0),
                   sliver: SliverList.builder(
                     itemCount: resultados.length,
                     itemBuilder: (context, i) => _FilaPaciente(
@@ -224,6 +226,21 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                     ),
                   ),
                 ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(margen, 12, margen, 96),
+                sliver: SliverToBoxAdapter(
+                  child: eliminados == 0
+                      ? const SizedBox.shrink()
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => verPacientesEliminados(context),
+                            icon: const Icon(Icons.restore_from_trash_outlined),
+                            label: Text('Pacientes eliminados · $eliminados'),
+                          ),
+                        ),
+                ),
+              ),
             ],
           ),
           if (_arrastrando)

@@ -10,8 +10,14 @@ class ItemCobro {
     this.cantidad = 1,
     this.descuento = 0,
     this.motivoDescuento = '',
+    this.plantillaId,
   });
 
+  /// El id del servicio de un procedimiento que se cobra.
+  static String idProcedimiento(String plantillaId) =>
+      'procedimiento:$plantillaId';
+
+  /// Un servicio del catálogo o, con [plantillaId], un procedimiento.
   final String servicioId;
   final String descripcion;
   final int cantidad;
@@ -19,17 +25,25 @@ class ItemCobro {
   final int descuento;
   final String motivoDescuento;
 
+  /// El procedimiento que se cobra (de Procedimientos), o `null` si es un
+  /// servicio del catálogo.
+  final String? plantillaId;
+
+  bool get esProcedimiento => plantillaId != null;
+
   int get bruto => cantidad * valorUnitario;
   int get neto => bruto - descuento;
 
   ItemCobro copyWith({
+    String? descripcion,
     int? cantidad,
     int? valorUnitario,
     int? descuento,
     String? motivoDescuento,
   }) => ItemCobro(
     servicioId: servicioId,
-    descripcion: descripcion,
+    plantillaId: plantillaId,
+    descripcion: descripcion ?? this.descripcion,
     cantidad: cantidad ?? this.cantidad,
     valorUnitario: valorUnitario ?? this.valorUnitario,
     descuento: descuento ?? this.descuento,
@@ -43,10 +57,12 @@ class ItemCobro {
     'valorUnitario': valorUnitario,
     'descuento': descuento > 0 ? descuento : null,
     'motivoDescuento': motivoDescuento.trim(),
+    'plantillaId': plantillaId,
   });
 
   static ItemCobro desdeMapa(Map<String, Object?> m) => ItemCobro(
     servicioId: m.texto('servicioId'),
+    plantillaId: m.textoONulo('plantillaId'),
     descripcion: m.texto('descripcion'),
     cantidad: m.entero('cantidad') ?? 1,
     valorUnitario: m.entero('valorUnitario') ?? 0,

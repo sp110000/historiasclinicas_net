@@ -81,13 +81,27 @@ Pediste el consultorio en la misma página, sin otro dominio. Cambia la decisió
 
 Pediste que al cobrar se puedan agregar los insumos usados y que se descuenten del inventario.
 
-- **En el cobro**, la sección **«Insumos usados»** (aparece si el inventario tiene insumos): «Agregar un insumo» propone el lote que vence primero, con lo que queda. Se puede cambiar el insumo, el lote y la cantidad (admite decimales, en la unidad del insumo).
+- **En el cobro**, la sección **«Insumos usados»** (desde el 26/11/2026 se ve siempre): «Agregar un insumo» propone el lote que vence primero, con lo que queda. Se puede cambiar el insumo, el lote y la cantidad (admite decimales, en la unidad del insumo).
 - **Las mismas reglas del inventario:** un lote vencido o sin existencias suficientes no deja registrar el cobro. Las líneas del mismo lote se suman. Un insumo sin registro Invima avisa.
 - **Al registrar el cobro**, cada insumo sale de su lote, con el movimiento «Cobro: …» enlazado al cobro. El mensaje dice cuántos se descontaron, y la caja muestra la línea «Insumos: …» en la fila del recibo y en la del saldo.
 - **Los insumos no cambian el valor del cobro** ni salen en el recibo PDF: el precio está en el servicio.
 - **Al anular el cobro**, sus insumos vuelven al inventario (un ajuste «Cobro anulado: …»), y el diálogo lo avisa. Si sí se usaron, se registran en el cobro que lo reemplace.
 - **Para no descontar dos veces:** lo de una sesión de procedimiento ya se descuenta al sellarla. El cobro lo recuerda y no repite esos insumos.
 - **Bitácora:** «Descontó del inventario (cobro)» y «Devolvió al inventario (cobro anulado)», sin datos del paciente.
+
+---
+
+## Cobro con servicios, procedimientos e insumos editables (26/11/2026)
+
+Pediste que al cobrar se puedan agregar los insumos usados, el procedimiento y el servicio, que todo sea editable y que los insumos se descuenten del inventario.
+
+- **El cobro tiene tres secciones:** *Servicios* (del catálogo), *Procedimientos* (los de «Procedimientos») e *Insumos usados*. Se puede cobrar solo un procedimiento, solo un servicio o los dos.
+- **Todo es editable en cada línea:** el servicio o el procedimiento, **«Como sale en el recibo»** (el nombre), la cantidad (en un procedimiento, **«Zonas o sesiones»**), el **precio** y el descuento con su motivo. Con más de una, muestra la cuenta («2 × $ 240.000 = $ 480.000»). Un nombre vacío no deja registrar; un precio en cero avisa.
+- **El precio del procedimiento** se sugiere con la tarifa de su sesión en el catálogo (Ajustes → Caja: el servicio ligado al procedimiento que no es paquete ni valoración, p. ej. «Sesión de hidrolipoclasia por zona»). Si no tiene, queda en blanco para escribirlo.
+- **Sus insumos:** si el protocolo del procedimiento nombra componentes o anestésicos que están en el inventario, aparece «Agregar su insumo: …» (o «Agregar sus N insumos del inventario»), con el lote que vence primero. Se agregan a *Insumos usados*, donde se editan como los demás.
+- **Los insumos usados se descuentan del inventario** al registrar el cobro y vuelven si se anula (igual que antes). La sección se ve siempre; con el inventario vacío dice cómo agregarlos.
+- **El procedimiento cuenta como tratamiento estético:** el crédito de la valoración se le puede aplicar, y en el informe del mes va en la línea *Estética*, con el nombre con que se cobró. El recibo lo lista como cualquier servicio.
+- **Lo que ya está registrado no se edita:** se anula el cobro (con motivo; sus insumos vuelven) y se cobra de nuevo, para no perder la trazabilidad de los recibos.
 
 ---
 
@@ -570,7 +584,8 @@ Pediste un botón para imprimir, y tener los consentimientos informados en Proce
 - **Ficha** (`/pacientes/:id`):
   - datos, líneas, etiquetas, notas internas, alergias vigentes y antecedentes **con su fuente** («de la historia del 02/10/2026»; «actualizadas el …» solo si una evolución las actualizó);
   - **línea de tiempo** con historias (integridad, revisión, evoluciones con su huella y próximo control), documentos y recetas, con «Abrir en la historia», «Ver PDF» y «Descargar PDF»;
-  - acciones: historia nueva y evolución **prellenadas**, receta, **actualizar alergias** (agrega «Alergias actualizadas: …» a la evolución en curso, que se sella al descargarla), autorización de datos, editar datos y **unir fichas** (la otra queda marcada, no se borra; queda en la bitácora). En móvil, un menú «Acciones».
+  - acciones: historia nueva y evolución **prellenadas**, receta, **actualizar alergias** (agrega «Alergias actualizadas: …» a la evolución en curso, que se sella al descargarla), autorización de datos, editar datos, **unir fichas** (la otra queda marcada, no se borra; queda en la bitácora) y **eliminar paciente** (noviembre de 2026). En móvil, un menú «Acciones».
+  - **Eliminar paciente:** sin historias, documentos, recetas, citas, cobros, fotos, mediciones, valoraciones, sesiones ni programa, la ficha **se borra**. Con cualquiera de ellos **no se borra nada**: la historia clínica se debe conservar (Resolución 1995 de 1999 y Resolución 839 de 2017, 15 años desde la última atención, **VERIFICAR**), así que la ficha se **oculta** de la lista, el buscador y el Inicio, y todo se conserva. Con citas por venir pide cancelarlas antes. «Deshacer» en el aviso; **«Pacientes eliminados»** al final de la lista para verlos o **restaurarlos**; una historia o receta nueva del mismo paciente lo devuelve a la lista. Queda en la bitácora.
 - **Historia con la bandera:** franja «← Ficha» sobre la historia que vino de una ficha, y campo **«Próximo control» en la evolución** (pregunta 15a).
 - **Documentos** (`lib/core/consultorio/documentos/`):
   - **plantillas versionadas** de autorización de tratamiento de datos y de política de privacidad, con textos base según la Ley 1581 de 2012 y el Decreto 1377 de 2013 (**VERIFICAR con tu abogado**). No se usan hasta aprobarlas; editar una aprobada crea la versión siguiente en borrador;
@@ -1079,7 +1094,7 @@ Paciente ─┬─< Historia (índice + copia de trabajo) ──< Evolución (de
 | **Cita** | → paciente (o nombre y teléfono provisionales para una primera vez), tipo (primera vez, control, valoración estética, sesión de procedimiento o programa de peso), inicio, duración (la del tipo, editable), estado (agendada, confirmada, atendida, no asistió o cancelada) e historial {estado, fecha}, motivo, notas, recordatorio {enviado en}, → plantilla (si es sesión), → cobro, → atención (historia o evolución) | Una cita de sesión o valoración estética exige mayor de edad. La de sesión exige además valoración «apto» vigente |
 | **Horario** | Días y franjas, duración por tipo, bloqueos {inicio, fin, motivo}, festivos calculados | |
 | **Servicio** | Nombre, línea, tarifa, IVA (opcional, apagado), abonable, sesiones del paquete, → plantilla, activo | Las tarifas iniciales son las de tu tabla (pregunta 44), editables |
-| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio, descripción, cantidad, valor unitario, descuento y motivo}, insumos usados[] {→ insumo, → lote, cantidad}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta. Los insumos usados se descuentan al registrar el cobro y vuelven si se anula |
+| **Cobro** | Número RC-, fecha, → paciente, ítems[] {→ servicio o → procedimiento, descripción, cantidad, valor unitario, descuento y motivo}, insumos usados[] {→ insumo, → lote, cantidad}, total, pagos[] {medio, valor, referencia, fecha}, saldo, → paquete, → crédito aplicado, estado (vigente o anulado {motivo}), → PDF del recibo | El número se asigna al emitir, no se reutiliza y no se salta. Los insumos usados se descuentan al registrar el cobro y vuelven si se anula |
 | **Paquete** | → paciente, → servicio, sesiones compradas, usos[] {→ sesión, fecha}, → cobro, estado | No se puede usar más sesiones de las compradas |
 | **Crédito** | → paciente, valor, → cobro de origen, vence, aplicado en | |
 | **CierreDiario** | Fecha, totales por medio de pago, efectivo contado, diferencia, notas, cerrado en | Un día cerrado no se modifica: una anulación posterior cuenta en el día en que se hace |

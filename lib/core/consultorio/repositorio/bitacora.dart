@@ -33,6 +33,8 @@ enum AccionBitacora {
   verificarNota('Marcó una nota como verificada'),
   quitarVerificacion('Quitó la verificación de una nota'),
   unirFichas('Unió dos fichas de paciente'),
+  eliminarPaciente('Eliminó una ficha de paciente'),
+  restaurarPaciente('Restauró una ficha de paciente eliminada'),
   aprobarPlantilla('Aprobó una plantilla'),
   firmarDocumento('Firmó un documento'),
   emitirDocumento('Emitió un documento clínico'),

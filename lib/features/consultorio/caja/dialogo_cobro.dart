@@ -8,8 +8,10 @@ import '../../../core/consultorio/agenda/cita.dart';
 import '../../../core/consultorio/caja/caja.dart';
 import '../../../core/consultorio/caja/catalogo.dart';
 import '../../../core/consultorio/caja/movimientos.dart';
+import '../../../core/consultorio/inventario/insumo.dart' show Lote;
 import '../../../core/consultorio/inventario/inventario.dart';
 import '../../../core/consultorio/modelos/ficha_paciente.dart';
+import '../../../core/consultorio/procedimientos/plantilla_procedimiento.dart';
 import '../../../core/consultorio/reglas/caja.dart';
 import '../../../core/consultorio/reglas/inventario.dart' show cantidadTexto;
 import '../../../core/pais/pais_provider.dart';
@@ -474,6 +476,13 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
       if (s.activo) s,
   ];
 
+  /// Los procedimientos que se pueden cobrar (los de Procedimientos).
+  List<PlantillaProcedimiento> get _procedimientos => [
+    for (final p
+        in ref.read(servicioConsultorioProvider).procedimientos.plantillas)
+      if (p.nombre.trim().isNotEmpty) p,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -511,6 +520,40 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
     ),
   );
 
+  void _agregarProcedimiento(PlantillaProcedimiento p) =>
+      _items.add(_Item(_claveItem++, _itemProcedimiento(p)));
+
+  ItemCobro _itemProcedimiento(PlantillaProcedimiento p, {int cantidad = 1}) =>
+      ItemCobro(
+        servicioId: ItemCobro.idProcedimiento(p.id),
+        plantillaId: p.id,
+        descripcion: p.nombre,
+        valorUnitario: _caja.tarifaProcedimiento(p.id),
+        cantidad: cantidad,
+      );
+
+  /// Lotes sugeridos para los componentes y anestésicos del protocolo de
+  /// [plantillaId] que están en el inventario y todavía no van en el cobro.
+  List<Lote> _insumosSugeridos(String plantillaId) {
+    final p = ref
+        .read(servicioConsultorioProvider)
+        .procedimientos
+        .plantilla(plantillaId);
+    if (p == null) return const [];
+    final d = (p.vigente ?? p.ultima).definicion;
+    final ya = {for (final x in _insumos) x.linea.insumoId};
+    final r = <Lote>[];
+    for (final nombre in [
+      ...d.componentes,
+      for (final a in d.anestesicos) a.nombre,
+    ]) {
+      final i = _inv.insumoPorNombre(nombre);
+      final l = i == null ? null : _inv.sugerido(i.id);
+      if (l != null && ya.add(i!.id)) r.add(l);
+    }
+    return r;
+  }
+
   void _cambio(VoidCallback f) => setState(() {
     f();
     _error = null;
@@ -529,6 +572,7 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
   }
 
   bool get _tratamientoEstetico => _items.any((i) {
+    if (i.item.esProcedimiento) return true;
     final s = _caja.serviciosPorId[i.item.servicioId];
     return s != null && s.linea == LineaAtencion.estetica && !s.abonable;
   });
@@ -595,11 +639,22 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
 
   Widget _editorItem(_Item x) {
     final i = x.item;
-    final opciones = [
-      for (final s in _activos) Opcion(s.id, s.nombre),
-      if (!_activos.any((s) => s.id == i.servicioId))
-        Opcion(i.servicioId, i.descripcion),
-    ];
+    final procedimientos = _procedimientos;
+    final opciones = i.esProcedimiento
+        ? [
+            for (final p in procedimientos)
+              Opcion(ItemCobro.idProcedimiento(p.id), p.nombre),
+            if (!procedimientos.any((p) => p.id == i.plantillaId))
+              Opcion(i.servicioId, i.descripcion),
+          ]
+        : [
+            for (final s in _activos) Opcion(s.id, s.nombre),
+            if (!_activos.any((s) => s.id == i.servicioId))
+              Opcion(i.servicioId, i.descripcion),
+          ];
+    final sugeridos = i.esProcedimiento
+        ? _insumosSugeridos(i.plantillaId!)
+        : const <Lote>[];
     return Container(
       key: ValueKey('item-${x.clave}'),
       margin: const EdgeInsets.only(bottom: 8),
@@ -616,10 +671,17 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
             children: [
               Expanded(
                 child: CampoDesplegable(
-                  etiqueta: 'Servicio',
+                  etiqueta: i.esProcedimiento ? 'Procedimiento' : 'Servicio',
                   opciones: opciones,
                   valor: i.servicioId,
                   alCambiar: (v) => _cambio(() {
+                    if (i.esProcedimiento) {
+                      final p = procedimientos.firstWhere(
+                        (p) => ItemCobro.idProcedimiento(p.id) == v,
+                      );
+                      x.item = _itemProcedimiento(p, cantidad: i.cantidad);
+                      return;
+                    }
                     final s = _caja.serviciosPorId[v]!;
                     x.item = ItemCobro(
                       servicioId: s.id,
@@ -640,25 +702,41 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(right: 8),
+            child: CampoTexto(
+              key: ValueKey('nombre-${x.clave}-${i.servicioId}'),
+              etiqueta: 'Como sale en el recibo',
+              requerido: true,
+              valorInicial: i.descripcion,
+              alCambiar: (v) =>
+                  _cambio(() => x.item = x.item.copyWith(descripcion: v)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
             child: RejillaCampos(
               anchoMinimo: 120,
               maxColumnas: 3,
               children: [
                 CampoEntero(
                   key: ValueKey('cantidad-${x.clave}'),
-                  etiqueta: 'Cantidad',
+                  etiqueta: i.esProcedimiento ? 'Zonas o sesiones' : 'Cantidad',
                   valor: i.cantidad,
                   alCambiar: (v) =>
-                      _cambio(() => x.item = i.copyWith(cantidad: v ?? 0)),
+                      _cambio(() => x.item = x.item.copyWith(cantidad: v ?? 0)),
                 ),
-                InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Valor',
-                    helperText: i.cantidad > 1
-                        ? '${i.cantidad} × ${formatoPesos(i.valorUnitario)}'
-                        : null,
+                CampoPesos(
+                  key: ValueKey('precio-${x.clave}-${i.servicioId}'),
+                  etiqueta: 'Precio',
+                  requerido: true,
+                  valorInicial: i.valorUnitario > 0 ? i.valorUnitario : null,
+                  ayuda: i.cantidad > 1
+                      ? '${i.cantidad} × ${formatoPesos(i.valorUnitario)} = '
+                            '${formatoPesos(i.bruto)}'
+                      : null,
+                  alCambiar: (v) => _cambio(
+                    () => x.item = x.item.copyWith(valorUnitario: v ?? 0),
                   ),
-                  child: Text(formatoPesos(i.bruto)),
                 ),
                 CampoPesos(
                   key: ValueKey('descuento-${x.clave}-${i.servicioId}'),
@@ -686,6 +764,23 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
               ),
             ),
           ],
+          if (sugeridos.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _cambio(() {
+                  for (final l in sugeridos) {
+                    _insumos.add(_Insumo(_claveItem++, _inv.insumoCobro(l, 1)));
+                  }
+                }),
+                icon: const Icon(Icons.inventory_2_outlined),
+                label: Text(
+                  sugeridos.length == 1
+                      ? 'Agregar su insumo: ${_inv.insumo(sugeridos.single.insumoId)?.nombre}'
+                      : 'Agregar sus ${sugeridos.length} insumos del inventario',
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -780,31 +875,35 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
 
   /// Insumos usados: se descuentan del inventario al registrar el cobro.
   List<Widget> _seccionInsumos() {
-    if (_inv.vacio) return const [];
     final usables = _inv.usables;
     return [
       const SizedBox(height: 14),
       const Text('INSUMOS USADOS', style: EstilosMarca.rotulo),
       const SizedBox(height: 4),
-      const Text(
-        'Se descuentan del inventario al registrar el cobro y no cambian su '
-        'valor. Los de una sesión sellada ya se descontaron: no los repitas.',
-        style: TextStyle(color: ColoresMarca.textoSuave),
+      Text(
+        _inv.vacio
+            ? 'Todavía no hay insumos en el inventario. Agrégalos en '
+                  'Inventario para descontarlos al cobrar.'
+            : 'Se descuentan del inventario al registrar el cobro y no '
+                  'cambian su valor. Los de una sesión sellada ya se '
+                  'descontaron: no los repitas.',
+        style: const TextStyle(color: ColoresMarca.textoSuave),
       ),
       const SizedBox(height: 8),
       for (final x in _insumos) _editorInsumo(x),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: usables.isEmpty ? null : () => _cambio(_agregarInsumo),
-          icon: const Icon(Icons.add),
-          label: Text(
-            usables.isEmpty
-                ? 'Ningún insumo tiene existencias vigentes'
-                : 'Agregar un insumo',
+      if (!_inv.vacio)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: usables.isEmpty ? null : () => _cambio(_agregarInsumo),
+            icon: const Icon(Icons.add),
+            label: Text(
+              usables.isEmpty
+                  ? 'Ningún insumo tiene existencias vigentes'
+                  : 'Agregar un insumo',
+            ),
           ),
         ),
-      ),
     ];
   }
 
@@ -923,7 +1022,8 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
               const SizedBox(height: 14),
               const Text('SERVICIOS', style: EstilosMarca.rotulo),
               const SizedBox(height: 6),
-              for (final x in _items) _editorItem(x),
+              for (final x in _items)
+                if (!x.item.esProcedimiento) _editorItem(x),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
@@ -932,6 +1032,27 @@ class _DialogoCobroState extends ConsumerState<_DialogoCobro>
                       : () => _cambio(() => _agregar(_activos.first)),
                   icon: const Icon(Icons.add),
                   label: const Text('Agregar un servicio'),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('PROCEDIMIENTOS', style: EstilosMarca.rotulo),
+              const SizedBox(height: 6),
+              for (final x in _items)
+                if (x.item.esProcedimiento) _editorItem(x),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _procedimientos.isEmpty
+                      ? null
+                      : () => _cambio(
+                          () => _agregarProcedimiento(_procedimientos.first),
+                        ),
+                  icon: const Icon(Icons.add),
+                  label: Text(
+                    _procedimientos.isEmpty
+                        ? 'No hay procedimientos: agrégalos en Procedimientos'
+                        : 'Agregar un procedimiento',
+                  ),
                 ),
               ),
               if (disponible != null)

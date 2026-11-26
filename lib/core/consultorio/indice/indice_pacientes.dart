@@ -254,8 +254,15 @@ class IndicePacientes {
         documento: documentoNormalizado(f.numeroDocumento).toLowerCase(),
       );
 
+  /// Las fichas de la lista: ni unidas a otra ni eliminadas.
   Iterable<FichaPaciente> get fichasActivas =>
-      _fichas.values.where((f) => f.activa);
+      _fichas.values.where((f) => f.visible);
+
+  /// Las fichas eliminadas que se conservan (tenían historias u otros
+  /// registros), de la eliminada más reciente a la más vieja.
+  List<FichaPaciente> get fichasEliminadas =>
+      _fichas.values.where((f) => f.activa && f.eliminada != null).toList()
+        ..sort((a, b) => b.eliminada!.compareTo(a.eliminada!));
 
   FichaPaciente? ficha(String id) => _fichas[id];
 
@@ -450,13 +457,15 @@ class IndicePacientes {
       return resultado(tipo, existente.pacienteId, false);
     }
 
-    // Nueva o más reciente: ficha, datos, PDF y registro.
-    final (:ficha, nueva: pacienteNuevo) = _fichaPara(
+    // Nueva o más reciente: ficha, datos, PDF y registro. Una historia
+    // nueva de un paciente eliminado lo devuelve a la lista.
+    final (ficha: hallada, nueva: pacienteNuevo) = _fichaPara(
       h.paciente,
       historiaId: existente == null ? null : h.id,
       sinDocumento: 'SIN:${h.id}',
       ahora: ahora,
     );
+    final ficha = hallada.copyWith(eliminada: null);
     await _repo.guardarBinario(
       RegistroHistoria.tipoBinarioDatos,
       h.id,
@@ -633,7 +642,7 @@ class IndicePacientes {
     final fichaExistente = existente == null
         ? null
         : _activa(_fichas[existente.pacienteId]);
-    final (:ficha, :nueva) = fichaExistente != null
+    final (ficha: hallada, :nueva) = fichaExistente != null
         ? (ficha: fichaExistente, nueva: false)
         : _fichaPara(
             paciente,
@@ -641,6 +650,10 @@ class IndicePacientes {
             sinDocumento: 'SIN:$recetaId',
             ahora: ahora,
           );
+    // Una receta nueva de un paciente eliminado lo devuelve a la lista.
+    final restaurada = hallada.eliminada != null;
+    final ficha = restaurada ? hallada.copyWith(eliminada: null) : hallada;
+    final escribirFicha = nueva || restaurada;
     final registro = RegistroReceta(
       id: recetaId,
       pacienteId: ficha.id,
@@ -660,10 +673,11 @@ class IndicePacientes {
       bytesPdf,
     );
     await _repo.guardarVarios([
-      if (nueva) Escritura(FichaPaciente.coleccion, ficha.id, ficha.aMapa()),
+      if (escribirFicha)
+        Escritura(FichaPaciente.coleccion, ficha.id, ficha.aMapa()),
       Escritura(RegistroReceta.coleccion, recetaId, registro.aMapa()),
     ]);
-    if (nueva) _ponerFicha(ficha);
+    if (escribirFicha) _ponerFicha(ficha);
     _recetas[recetaId] = registro;
     return ficha.id;
   }
@@ -764,8 +778,13 @@ class IndicePacientes {
       borrador.tipoDocumento,
       borrador.numeroDocumento,
     );
-    if (clave != null && porClave(clave) != null) {
-      throw StateError('Ya hay una ficha con ese documento.');
+    final existente = clave == null ? null : porClave(clave);
+    if (existente != null) {
+      throw StateError(
+        existente.eliminada != null
+            ? _hayEliminada
+            : 'Ya hay una ficha con ese documento.',
+      );
     }
     final id = nuevoUuid();
     final ficha =
@@ -800,7 +819,10 @@ class IndicePacientes {
     final otra = clave == null ? null : porClave(clave);
     if (otra != null && otra.id != f.id) {
       throw StateError(
-        'Ya hay otra ficha con ese documento: únelas en lugar de duplicarlas.',
+        otra.eliminada != null
+            ? _hayEliminada
+            : 'Ya hay otra ficha con ese documento: únelas en lugar de '
+                  'duplicarlas.',
       );
     }
     final ficha = f.copyWith(
@@ -809,6 +831,37 @@ class IndicePacientes {
     );
     await _repo.guardar(FichaPaciente.coleccion, ficha.id, ficha.aMapa());
     _ponerFicha(ficha);
+  }
+
+  static const _hayEliminada =
+      'Hay una ficha eliminada con ese documento: restáurala en «Pacientes '
+      'eliminados», al final de la lista de pacientes.';
+
+  /// Oculta la ficha de la lista (o la devuelve, con `null`). Sus
+  /// historias y demás registros no cambian.
+  Future<FichaPaciente> marcarEliminada(String id, DateTime? cuando) async {
+    final f = _fichas[id];
+    if (f == null || !f.activa) throw StateError('No se encontró la ficha.');
+    final nueva = f.copyWith(eliminada: cuando, actualizado: reloj.ahora());
+    await _repo.guardar(FichaPaciente.coleccion, id, nueva.aMapa());
+    _ponerFicha(nueva);
+    return nueva;
+  }
+
+  /// Borra la ficha del todo. Solo para una ficha sin registros: quien
+  /// llama lo comprueba.
+  Future<void> borrarFicha(String id) async {
+    final f = _fichas[id];
+    if (f == null) return;
+    await _repo.guardarVarios([Escritura(FichaPaciente.coleccion, id, null)]);
+    _fichas.remove(id);
+    if (_porClave[f.clave] == id) _porClave.remove(f.clave);
+  }
+
+  /// Vuelve a guardar una ficha borrada (para deshacer el borrado).
+  Future<void> reponerFicha(FichaPaciente f) async {
+    await _repo.guardar(FichaPaciente.coleccion, f.id, f.aMapa());
+    _ponerFicha(f);
   }
 
   /// Une [origenId] a [destinoId]: las historias pasan a la ficha destino,
