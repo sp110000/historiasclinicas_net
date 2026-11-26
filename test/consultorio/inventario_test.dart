@@ -601,6 +601,53 @@ void main() {
       );
     });
 
+    test('eliminar: sin historia se borra; con lotes se guarda oculto y la '
+        'sesión sigue nombrando el lote', () async {
+      final inv = b.servicio.inventario;
+      final suelto = await inv.guardarInsumo(
+        inv.nuevoInsumo().copyWith(nombre: 'Gasas', unidad: 'paquete'),
+      );
+      expect(inv.tieneHistoria(suelto.id), isFalse);
+      expect(await inv.eliminarInsumo(suelto.id), isTrue);
+      expect(inv.insumo(suelto.id), isNull);
+      expect(inv.vacio, isTrue);
+
+      final i = await anestesico();
+      final l = await inv.registrarEntrada(
+        insumoId: i.id,
+        numero: 'L-A',
+        vence: DateTime(2027, 6, 30),
+        cantidad: 2,
+      );
+      expect(inv.tieneHistoria(i.id), isTrue);
+      expect(await inv.eliminarInsumo(i.id), isFalse);
+      // No se ve, no se sugiere ni alerta (estaba bajo el mínimo).
+      expect(inv.insumos, isEmpty);
+      expect(inv.vacio, isTrue);
+      expect(inv.usables, isEmpty);
+      expect(inv.alertas().bajoMinimo, isEmpty);
+      // Trazabilidad: el lote sigue diciendo de qué insumo era.
+      expect(inv.insumoDeLote(l.id)!.nombre, 'Anestésico de prueba');
+      expect(inv.insumo(i.id)!.eliminado, isTrue);
+      expect(inv.insumo(i.id)!.activo, isFalse);
+      // Se puede crear otro con el mismo nombre.
+      await anestesico();
+      expect(inv.insumos, hasLength(1));
+
+      await b.servicio.bloquear();
+      await b.servicio.desbloquear(fraseDePrueba);
+      expect(inv.insumo(i.id)!.eliminado, isTrue);
+      expect(inv.insumo(suelto.id), isNull);
+      expect(inv.insumos, hasLength(1));
+      final acciones = (await leerBitacora(
+        b.servicio.repositorio,
+      )).map((e) => e.accion).toList();
+      expect(
+        acciones.where((a) => a == AccionBitacora.eliminarInsumo),
+        hasLength(2),
+      );
+    });
+
     group('Sesión', () {
       late ProcedimientosConsultorio p;
       late FichaPaciente ficha;

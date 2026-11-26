@@ -7,6 +7,8 @@ import '../../../core/consultorio/seguridad/fortaleza.dart';
 import '../../../core/consultorio/seguridad/llavero.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../core/widgets/campos.dart';
+import '../../../core/widgets/ilustraciones.dart';
+import '../../../core/widgets/marca.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../respaldo/flujos_respaldo.dart';
@@ -45,32 +47,13 @@ class PantallaDesbloqueo extends ConsumerWidget {
       body: CuerpoConsultorio(
         anchoMaximo: 560,
         children: [
-          const Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: 'historiasclinicas',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: ColoresMarca.tinta,
-                  ),
-                ),
-                TextSpan(
-                  text: '.net',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: ColoresMarca.marca,
-                  ),
-                ),
-                TextSpan(
-                  text: ' · Consultorio',
-                  style: TextStyle(color: ColoresMarca.tinta),
-                ),
-              ],
+          const Center(child: NombreMarca(sufijo: ' · Consultorio')),
+          if (e.fase != FaseConsultorio.cargando && codigo == null) ...[
+            const SizedBox(height: 16),
+            const Center(
+              child: IlustracionMarca(Ilustracion.candado, alto: 104),
             ),
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18),
-          ),
+          ],
           const SizedBox(height: 20),
           contenido,
           if (e.fase != FaseConsultorio.cargando && codigo == null) ...[

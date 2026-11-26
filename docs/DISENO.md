@@ -68,10 +68,10 @@ El logo es una cruz con un trazo de electrocardiograma y un documento. Se recort
 
 | Uso | Archivo | Fondo |
 |---|---|---|
-| Pestaña | `favicon.ico` (16, 32 y 48), `icons/logo-16/32/48/96/192.png` | Transparente |
-| App instalada | `icons/logo-192.png`, `icons/logo-512.png` | Transparente |
-| Android (máscara redonda) | `icons/logo-maskable-192/512.png` | Blanco; logo dentro de la zona segura |
-| iPhone y iPad | `icons/logo-apple-180.png` | Blanco (iOS no admite transparencia) |
+| Pestaña | `favicon.ico` (16, 32 y 48), `icons/logo-naranja-16/32/48/96/192.png` | Transparente |
+| App instalada | `icons/logo-naranja-192.png`, `icons/logo-naranja-512.png` | Transparente |
+| Android (máscara redonda) | `icons/logo-naranja-maskable-192/512.png` | Blanco; logo dentro de la zona segura |
+| iPhone y iPad | `icons/logo-naranja-apple-180.png` | Blanco (iOS no admite transparencia) |
 
 Los nombres cambiaron junto con el logo. Los móviles guardan el ícono por su dirección, aparte de los datos del sitio, y con el nombre anterior seguían mostrando el logo viejo. `test/tool/iconos_test.dart` comprueba que cada ícono declarado existe, que tiene su tamaño y que ninguno usa los nombres anteriores. El color de la barra del sistema (`theme-color`) pasó al petróleo 2b.
 

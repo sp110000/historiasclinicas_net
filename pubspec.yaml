@@ -37,6 +37,7 @@ flutter:
     - assets/cie10/cie10_sispro.txt
     - assets/ihce/catalogos_guia.json
     - assets/ihce/fhir.schema.json
+    - assets/marca/logo.png
 
   fonts:
     - family: Inter

@@ -19,6 +19,7 @@ import 'acciones_cita.dart';
 import 'dialogo_cita.dart';
 import 'estilo_cita.dart';
 import '../widgets/texto_normativo.dart';
+import '../../../core/widgets/ilustraciones.dart';
 
 enum _Vista { dia, semana }
 
@@ -345,16 +346,12 @@ class _VistaDia extends ConsumerWidget {
               borderRadius: RadiosMarca.tarjeta,
               border: Border.all(color: ColoresMarca.borde),
             ),
-            child: const Column(
-              children: [
-                Icon(
-                  Icons.event_available_outlined,
-                  color: ColoresMarca.textoSuave,
-                  size: 32,
-                ),
-                SizedBox(height: 6),
-                Text('Sin citas este día.'),
-              ],
+            child: const Center(
+              child: EstadoVacio(
+                ilustracion: Ilustracion.agendaLibre,
+                titulo: 'Sin citas este día.',
+                alto: 96,
+              ),
             ),
           ),
         for (final (_, w) in entradas) ...[w, const SizedBox(height: 10)],

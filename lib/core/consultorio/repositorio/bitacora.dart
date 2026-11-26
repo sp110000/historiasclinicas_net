@@ -23,6 +23,7 @@ enum AccionBitacora {
   cerrarCaja('Cerró la caja del día'),
   exportarInforme('Exportó un informe de la caja'),
   guardarInsumo('Agregó o cambió un insumo'),
+  eliminarInsumo('Eliminó un insumo'),
   entradaInventario('Registró una entrada de inventario'),
   ajusteInventario('Ajustó un lote del inventario'),
   bajaInventario('Dio de baja un lote del inventario'),

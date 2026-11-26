@@ -12,6 +12,7 @@ import 'estetica/editor_procedimiento_page.dart';
 import 'estetica/procedimientos_page.dart';
 import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
+import 'inicio/inicio_page.dart';
 import 'inventario/inventario_page.dart';
 import 'pacientes/ficha_page.dart';
 import 'pacientes/pacientes_page.dart';
@@ -20,10 +21,10 @@ import 'shell/contenedor_consultorio.dart';
 /// Router con la bandera encendida: las rutas de siempre más las del
 /// consultorio, todas dentro del [ContenedorConsultorio]. Solo se llama
 /// desde `crearRouter()` bajo `if (consultorioHabilitado)`, así que con la
-/// bandera apagada no se compila en el sitio. Abre en la agenda de hoy
-/// (pregunta 51).
+/// bandera apagada no se compila en el sitio. Abre en el Inicio, con el
+/// siguiente paciente (rediseño R2; antes, la agenda de hoy).
 GoRouter crearRouterConsultorio({
-  String ubicacionInicial = '/agenda',
+  String ubicacionInicial = '/inicio',
 }) => GoRouter(
   initialLocation: ubicacionInicial,
   routes: [
@@ -31,7 +32,15 @@ GoRouter crearRouterConsultorio({
       builder: (context, state, child) =>
           ContenedorConsultorio(ubicacion: state.uri.path, child: child),
       routes: [
-        GoRoute(path: '/', builder: (context, state) => const HistoriaPage()),
+        GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              HistoriaPage(nueva: state.uri.queryParameters['nueva'] == '1'),
+        ),
+        GoRoute(
+          path: '/inicio',
+          builder: (context, state) => const InicioPage(),
+        ),
         GoRoute(
           path: '/receta',
           builder: (context, state) => const RecetaPage(),

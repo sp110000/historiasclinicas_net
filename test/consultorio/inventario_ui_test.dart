@@ -213,6 +213,36 @@ void main() {
     expect(_enlaces, [urlConsultaInvima]);
   });
 
+  testWidgets('«Eliminar» pide confirmación y quita el insumo de la lista', (
+    t,
+  ) async {
+    final (b, _) = await _conPaciente();
+    final i = await _anestesico(b, registro: 'INVIMA PRUEBA-0001');
+    await b.servicio.inventario.registrarEntrada(
+      insumoId: i.id,
+      numero: 'L-A',
+      vence: DateTime(2027, 6, 30),
+      cantidad: 2,
+    );
+    await _montar(t, b);
+    expect(find.text('Anestésico de prueba'), findsOneWidget);
+    await _pulsar(t, find.text('Eliminar'));
+    expect(find.text('¿Eliminar «Anestésico de prueba»?'), findsOneWidget);
+    expect(find.textContaining('se guarda oculto'), findsOneWidget);
+    expect(find.textContaining('2 ampollas en existencia'), findsOneWidget);
+    // Cancelar no cambia nada.
+    await _pulsar(t, find.text('Cancelar'));
+    expect(b.servicio.inventario.insumos, hasLength(1));
+    await _pulsar(t, find.text('Eliminar'));
+    await _pulsar(t, find.text('Eliminar').last);
+    expect(
+      find.text('Insumo «Anestésico de prueba» eliminado.'),
+      findsOneWidget,
+    );
+    expect(b.servicio.inventario.insumos, isEmpty);
+    expect(find.text('Inventario vacío'), findsOneWidget);
+  });
+
   testWidgets('la agenda avisa del inventario y lleva a él', (t) async {
     final (b, _) = await _conPaciente();
     final i = await _anestesico(b, registro: 'INVIMA PRUEBA-0001');

@@ -8,6 +8,8 @@ import '../../../core/utils/fechas.dart';
 import '../../../core/utils/numeros.dart';
 import '../../../core/utils/texto.dart';
 import '../../../core/widgets/campos.dart';
+import '../../../core/widgets/ilustraciones.dart';
+import '../../historia/widgets/dialogos.dart' show confirmar;
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
 import '../widgets/comunes.dart';
@@ -29,6 +31,41 @@ class _InventarioPageState extends ConsumerState<InventarioPage> {
     if (g == null || !mounted) return;
     ref.read(versionIndiceProvider.notifier).cambio();
     mostrarMensaje(context, 'Insumo «${g.nombre}» guardado.');
+  }
+
+  /// «Eliminar»: sin historia se borra; con lotes o movimientos se guarda
+  /// oculto para la trazabilidad (lo dice el aviso antes de confirmar).
+  Future<void> _eliminar(Insumo i) async {
+    final inv = ref.read(servicioConsultorioProvider).inventario;
+    final conHistoria = inv.tieneHistoria(i.id);
+    final existencia = inv
+        .lotesDe(i.id)
+        .fold<double>(0, (s, l) => s + inv.existencia(l.id));
+    final ok = await confirmar(
+      context,
+      titulo: '¿Eliminar «${i.nombre}»?',
+      texto: [
+        if (conHistoria)
+          'Tiene lotes o movimientos (entradas, sesiones o cobros). Para no '
+              'perder la trazabilidad se guarda oculto: deja de verse en el '
+              'inventario, no se sugiere en las sesiones ni en los cobros y '
+              'no alerta. Las historias, los recibos y los informes que lo '
+              'nombran no cambian.'
+        else
+          'No tiene lotes ni movimientos: se borra del inventario.',
+        if (existencia > 0)
+          'Todavía tiene ${cantidadTexto(existencia, i.unidad)} en '
+              'existencia.',
+      ].join('\n\n'),
+      aceptar: 'Eliminar',
+      icono: Icons.delete_outline,
+      peligro: true,
+    );
+    if (!ok || !mounted) return;
+    await inv.eliminarInsumo(i.id);
+    if (!mounted) return;
+    ref.read(versionIndiceProvider.notifier).cambio();
+    mostrarMensaje(context, 'Insumo «${i.nombre}» eliminado.');
   }
 
   Future<void> _entrada([String? insumoId]) async {
@@ -137,9 +174,17 @@ class _InventarioPageState extends ConsumerState<InventarioPage> {
             const TarjetaConsultorio(
               icono: Icons.inventory_2_outlined,
               titulo: 'Inventario vacío',
-              child: Text(
-                'Agrega tus insumos con «Insumo» (medicamentos, dispositivos '
-                'médicos e insumos) y sus lotes con «Entrada».',
+              child: Column(
+                children: [
+                  IlustracionMarca(Ilustracion.inventario, alto: 96),
+                  SizedBox(height: 10),
+                  Text(
+                    'Agrega tus insumos con «Insumo» (medicamentos, '
+                    'dispositivos médicos e insumos) y sus lotes con '
+                    '«Entrada».',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             )
           else ...[
@@ -158,6 +203,7 @@ class _InventarioPageState extends ConsumerState<InventarioPage> {
               _TarjetaInsumo(
                 insumo: i,
                 alEditar: () => _insumo(i),
+                alEliminar: () => _eliminar(i),
                 alEntrada: () => _entrada(i.id),
               ),
               const SizedBox(height: 12),
@@ -173,11 +219,13 @@ class _TarjetaInsumo extends ConsumerStatefulWidget {
   const _TarjetaInsumo({
     required this.insumo,
     required this.alEditar,
+    required this.alEliminar,
     required this.alEntrada,
   });
 
   final Insumo insumo;
   final VoidCallback alEditar;
+  final VoidCallback alEliminar;
   final VoidCallback alEntrada;
 
   @override
@@ -304,6 +352,14 @@ class _TarjetaInsumoState extends ConsumerState<_TarjetaInsumo> {
                     ref.read(abrirEnlaceProvider)(urlConsultaInvima),
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('Consultar en Invima'),
+              ),
+              TextButton.icon(
+                onPressed: widget.alEliminar,
+                style: TextButton.styleFrom(
+                  foregroundColor: ColoresMarca.error,
+                ),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Eliminar'),
               ),
               if (movimientos.isNotEmpty)
                 TextButton.icon(
