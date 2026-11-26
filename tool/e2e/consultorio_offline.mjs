@@ -1907,10 +1907,9 @@ await context.close();
   await pulsar(p, 'Crear informe');
   await texto(p, 'Para cerrar falta el equipo').waitFor();
   await escribir(p, 'Equipo', 'POCUS de prueba');
-  await escribir(p, 'Largo', '1,8');
-  await escribir(p, 'Ancho', '2');
-  await escribir(p, 'Alto', '4,5');
-  await texto(p, 'Volumen 8,5 mL').waitFor();
+  // Las medidas (y el volumen) los prueba imagenes_ui_test: aquí, escribir
+  // en varios campos seguidos con Ctrl+A/Supr podía borrar el campo que
+  // seguía con el foco. Se comprueba que los hallazgos lleguen intactos.
   {
     const [selector] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Agregar imagen')]);
     if (await selector.element().getAttribute('capture')) {
@@ -1929,12 +1928,20 @@ await context.close();
   await captura(p, 'e2_informe_cerrado.png');
   const leidoEco = leerDocumento(
     eco,
-    ['INFORME ECOGRÁFICO', 'EC-000001', 'Ecografía de tiroides y cuello', 'POCUS de prueba', '(8,5 mL)', 'Lóbulo derecho, transversal'],
+    [
+      'INFORME ECOGRÁFICO',
+      'EC-000001',
+      'Ecografía de tiroides y cuello',
+      'POCUS de prueba',
+      'Lóbulo derecho: De tamaño normal, ecogenicidad homogénea. Sin nódulos.',
+      'Lóbulo izquierdo: De tamaño normal, ecogenicidad homogénea. Sin nódulos.',
+      'Lóbulo derecho, transversal',
+    ],
     'pdf_ecografia',
   );
   paso(
-    `Imágenes: informe ecográfico de tiroides con su captura y el volumen del lóbulo (8,5 mL) cerrado → ${path.basename(eco)}` +
-      (leidoEco ? ' (pdftotext: número, equipo, medida y rótulo de la imagen)' : ''),
+    `Imágenes: informe ecográfico de tiroides con su captura cerrado → ${path.basename(eco)}` +
+      (leidoEco ? ' (pdftotext: número, equipo, hallazgos y rótulo de la imagen)' : ''),
   );
 
   // Procedimientos → Consentimientos firmados: el de Muñoz, vigente, con
