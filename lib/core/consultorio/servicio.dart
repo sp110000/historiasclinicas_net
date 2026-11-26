@@ -10,6 +10,7 @@ import 'almacen/almacen.dart';
 import 'almacen/navegador.dart';
 import 'documentos/documentos.dart';
 import 'documentos/lectura_adjuntos.dart';
+import 'imagenes/imagenes.dart';
 import 'peso/programas.dart';
 import 'procedimientos/procedimientos.dart';
 import 'seguimiento/seguimiento.dart';
@@ -132,6 +133,12 @@ class ServicioConsultorio {
       inventario: inventario,
       reloj: reloj,
     );
+    imagenes = ImagenesConsultorio(
+      repositorio,
+      indice,
+      serie: () => documentos.serie,
+      reloj: reloj,
+    );
   }
 
   final MotorAes motor;
@@ -163,6 +170,9 @@ class ServicioConsultorio {
 
   /// Catálogo, cobros, recibos, paquetes, créditos y cierres (5.6).
   late final CajaConsultorio caja;
+
+  /// Estudios de imágenes (informes ecográficos).
+  late final ImagenesConsultorio imagenes;
 
   /// Insumos, lotes y movimientos (5.7).
   late final InventarioConsultorio inventario;
@@ -210,6 +220,7 @@ class ServicioConsultorio {
       await caja.cargar();
       await inventario.cargar();
       await verificaciones.cargar();
+      await imagenes.cargar();
       await registrarEnBitacora(repositorio, accion, fecha: reloj.ahora());
     } catch (_) {
       _cerrarSesion();
@@ -296,6 +307,7 @@ class ServicioConsultorio {
     caja.olvidar();
     inventario.olvidar();
     verificaciones.olvidar();
+    imagenes.olvidar();
     boveda.bloquear();
     _candado.soltar();
     _configuracion = const ConfiguracionConsultorio();
@@ -525,6 +537,7 @@ class ServicioConsultorio {
     await caja.cargar();
     await inventario.cargar();
     await verificaciones.cargar();
+    await imagenes.cargar();
     await registrarEnBitacora(
       repositorio,
       AccionBitacora.combinarPaquete,

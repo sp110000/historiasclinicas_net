@@ -12,6 +12,8 @@ import 'estetica/editor_procedimiento_page.dart';
 import 'estetica/procedimientos_page.dart';
 import 'estetica/sesion_page.dart';
 import 'estetica/valoracion_page.dart';
+import 'imagenes/estudio_page.dart';
+import 'imagenes/imagenes_page.dart';
 import 'inicio/inicio_page.dart';
 import 'inventario/inventario_page.dart';
 import 'pacientes/ficha_page.dart';
@@ -103,6 +105,17 @@ GoRouter crearRouterConsultorio({
               builder: (context, state) => EditorProcedimientoPage(
                 plantillaId: state.pathParameters['id']!,
               ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/imagenes',
+          builder: (context, state) => const ImagenesPage(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) =>
+                  EstudioPage(id: state.pathParameters['id']!),
             ),
           ],
         ),

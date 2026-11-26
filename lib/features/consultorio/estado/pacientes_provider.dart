@@ -59,6 +59,13 @@ final elegirFotoProvider = Provider<Future<ArchivoAbierto?> Function()>(
   (ref) => archivos.elegirFoto,
 );
 
+/// Elige una imagen de la galería o del computador, sin abrir la cámara
+/// (las capturas del ecógrafo). Las pruebas lo sustituyen.
+final elegirImagenProvider = Provider<Future<ArchivoAbierto?> Function()>(
+  (ref) =>
+      () => archivos.elegirFoto(camara: false),
+);
+
 /// Elige un paquete del equipo secundario. Las pruebas lo sustituyen.
 final elegirPaqueteProvider = Provider<Future<ArchivoAbierto?> Function()>(
   (ref) => archivos.elegirPaquete,

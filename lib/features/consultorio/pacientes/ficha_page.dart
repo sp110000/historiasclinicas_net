@@ -30,6 +30,7 @@ import '../fotos/seccion_fotos.dart';
 import '../estetica/seccion_estetica.dart';
 import '../peso/seccion_peso.dart';
 import '../seguimiento/seccion_seguimiento.dart';
+import '../imagenes/imagenes_page.dart';
 import 'dialogo_ficha.dart';
 import 'eliminar_paciente.dart';
 import 'unir_fichas.dart';
@@ -113,6 +114,8 @@ class _FichaPageState extends ConsumerState<FichaPage> {
         (r.fecha, TarjetaReceta(receta: r)),
       for (final c in s.agenda.citasDe(f.id))
         (c.inicio, TarjetaCita(cita: c, conFecha: true)),
+      for (final e in s.imagenes.estudiosDe(f.id))
+        (e.fecha, FilaEstudio(estudio: e)),
     ]..sort((a, b) => b.$1.compareTo(a.$1));
     final resumen = indice.resumen(f);
     // Modo presentación: sin los montos de la caja ni las notas internas.
@@ -443,6 +446,11 @@ class _Acciones extends ConsumerWidget {
       ),
       (Icons.medication_outlined, 'Receta', () => _receta(context, ref)),
       (
+        Icons.monitor_heart_outlined,
+        'Ecografía',
+        () => nuevoEstudio(context, ref, ficha: ficha),
+      ),
+      (
         Icons.event_available_outlined,
         'Agendar cita',
         () async {
@@ -518,9 +526,9 @@ class _Acciones extends ConsumerWidget {
         child: MenuAnchor(
           menuChildren: [
             for (final (icono, texto, accion) in [
-              ...acciones.take(5),
+              ...acciones.take(6),
               ...documentos,
-              ...acciones.skip(5),
+              ...acciones.skip(6),
             ])
               MenuItemButton(
                 leadingIcon: Icon(icono),
@@ -559,7 +567,7 @@ class _Acciones extends ConsumerWidget {
                   icon: Icon(icono),
                   label: Text(texto),
                 ),
-          if (i == 4)
+          if (i == 5)
             MenuAnchor(
               menuChildren: [
                 for (final (icono, texto, accion) in documentos)

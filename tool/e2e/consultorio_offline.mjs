@@ -1891,6 +1891,48 @@ await context.close();
   await p.waitForTimeout(900);
   paso('Inventario en móvil (390 px) y 320 px');
 
+  // Imágenes: un informe ecográfico de tiroides para Peña con una captura
+  // del ecógrafo (de la galería, sin cámara); al cerrarlo se descarga el
+  // PDF con su número, las medidas y la imagen.
+  await pulsarExacto('Imágenes');
+  await texto(p, 'Todavía no hay estudios').waitFor();
+  await hacerClic(p.getByRole('button', { name: 'Nuevo estudio' }).first());
+  await escribir(p, 'Paciente', 'pena');
+  await hacerClic(p.locator('flt-semantics[flt-tappable]').filter({ hasText: 'PEÑA MUÑOZ' }).last());
+  await elegirOpcion('Tipo de estudio', 'Ecografía de tiroides y cuello');
+  await pulsar(p, 'Crear informe');
+  await texto(p, 'Para cerrar falta el equipo').waitFor();
+  await escribir(p, 'Equipo', 'POCUS de prueba');
+  await escribir(p, 'Largo', '1,8');
+  await escribir(p, 'Ancho', '2');
+  await escribir(p, 'Alto', '4,5');
+  await texto(p, 'Volumen 8,5 mL').waitFor();
+  {
+    const [selector] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Agregar imagen')]);
+    if (await selector.element().getAttribute('capture')) {
+      throw new Error('El selector de imágenes del ecógrafo abre la cámara');
+    }
+    await selector.setFiles(path.join(FIXTURES, 'foto_frontal_antes.jpg'));
+  }
+  await texto(p, '1 de 6 en el informe').waitFor({ timeout: 30000 });
+  await escribir(p, 'Rótulo', 'Lóbulo derecho, transversal');
+  await p.waitForTimeout(900);
+  await captura(p, 'e1_informe_borrador.png');
+  await pulsar(p, 'Cerrar informe');
+  await texto(p, '¿Cerrar el informe?').waitFor();
+  const eco = await descargar(p, () => p.getByRole('button', { name: 'Cerrar y descargar', exact: true }).click());
+  await texto(p, 'Informe EC-000001').waitFor();
+  await captura(p, 'e2_informe_cerrado.png');
+  const leidoEco = leerDocumento(
+    eco,
+    ['INFORME ECOGRÁFICO', 'EC-000001', 'Ecografía de tiroides y cuello', 'POCUS de prueba', '(8,5 mL)', 'Lóbulo derecho, transversal'],
+    'pdf_ecografia',
+  );
+  paso(
+    `Imágenes: informe ecográfico de tiroides con su captura y el volumen del lóbulo (8,5 mL) cerrado → ${path.basename(eco)}` +
+      (leidoEco ? ' (pdftotext: número, equipo, medida y rótulo de la imagen)' : ''),
+  );
+
   // Procedimientos → Consentimientos firmados: el de Muñoz, vigente, con
   // su PDF.
   await pulsarExacto('Procedimientos');

@@ -41,6 +41,7 @@ void main() {
         '/inventario',
         '/pacientes',
         '/procedimientos',
+        '/imagenes',
         '/ajustes',
       ]);
       // Abre en el Inicio, con el siguiente paciente (rediseño R2; antes,
@@ -100,6 +101,7 @@ void main() {
           'Agenda',
           'Pacientes',
           'Historia',
+          'Imágenes',
           'Procedimientos',
           'Caja',
           'Inventario',
