@@ -245,7 +245,7 @@ class _DocumentoClinicoPageState extends ConsumerState<DocumentoClinicoPage> {
       }),
     );
     final vistaPrevia = ColoredBox(
-      color: const Color(0xFFE6EBEF),
+      color: ColoresMarca.deshabilitado,
       child: VistaPreviaPdf(
         clave: _cambios,
         descripcion: widget.tipo.etiqueta.toLowerCase(),

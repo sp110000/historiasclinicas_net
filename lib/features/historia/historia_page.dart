@@ -756,15 +756,15 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
                   TextSpan(
                     text: 'historiasclinicas',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: ColoresMarca.primario,
+                      fontWeight: FontWeight.w800,
+                      color: ColoresMarca.tinta,
                     ),
                   ),
                   TextSpan(
                     text: '.net',
                     style: TextStyle(
-                      fontWeight: FontWeight.w400,
-                      color: ColoresMarca.tinta,
+                      fontWeight: FontWeight.w700,
+                      color: ColoresMarca.marca,
                     ),
                   ),
                 ],

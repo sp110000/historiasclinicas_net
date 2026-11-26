@@ -51,12 +51,19 @@ class PantallaDesbloqueo extends ConsumerWidget {
                 TextSpan(
                   text: 'historiasclinicas',
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: ColoresMarca.primario,
+                    fontWeight: FontWeight.w800,
+                    color: ColoresMarca.tinta,
                   ),
                 ),
                 TextSpan(
-                  text: '.net · Consultorio',
+                  text: '.net',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: ColoresMarca.marca,
+                  ),
+                ),
+                TextSpan(
+                  text: ' · Consultorio',
                   style: TextStyle(color: ColoresMarca.tinta),
                 ),
               ],

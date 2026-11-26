@@ -164,13 +164,15 @@ void main() {
         reason: '$c',
       );
     }
-    // Sin el fondo opaco, el verde sobre el gris no llegaba.
+    // Con la paleta anterior el verde sobre el gris no llegaba sin el fondo
+    // opaco; el verde de la paleta naranja llega también sobre el fondo
+    // cálido (los chips siguen opacos de todos modos).
     expect(
       _contraste(
         ColoresMarca.estadoOk,
         _sobre(ColoresMarca.estadoOk, 0.06, ColoresMarca.fondo),
       ),
-      lessThan(4.5),
+      greaterThanOrEqualTo(4.5),
     );
     // La franja del modo presentación y los textos sobre el fondo gris.
     expect(

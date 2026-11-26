@@ -584,7 +584,7 @@ class _Ajedrez extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
-    final gris = Paint()..color = const Color(0xFFF0F2F4);
+    final gris = Paint()..color = ColoresMarca.neutroFondo;
     const lado = 12.0;
     for (var y = 0.0; y < size.height; y += lado) {
       for (var x = 0.0; x < size.width; x += lado) {

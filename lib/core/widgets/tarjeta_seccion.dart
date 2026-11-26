@@ -6,13 +6,14 @@ import '../presentacion/datos_historia.dart';
 /// Estado que muestra el chip de la cabecera.
 enum InsigniaSeccion { ninguna, completa, incompleta, soloLectura, activa }
 
-/// Tarjeta de una sección del formulario (diseño 2b: rótulo «SECCIÓN n»
-/// sobre el título, sin ícono; [icono] lo usan el índice y los tests).
+/// Tarjeta de una sección del formulario: número en un círculo con el
+/// color de su estado y el título al lado ([icono] lo usan el índice y los
+/// tests).
 ///
 /// * Editable: cabecera con número, título y avance.
-/// * Bloqueada (historia abierta): fondo gris azulado, candado y, si está
+/// * Bloqueada (historia abierta): fondo cálido, candado y, si está
 ///   plegada, un resumen de una línea; se despliega al pulsar la cabecera.
-/// * Activa: borde primario (zona de evoluciones).
+/// * Activa: borde naranja (zona de evoluciones).
 class TarjetaSeccion extends StatelessWidget {
   const TarjetaSeccion({
     super.key,
@@ -49,21 +50,24 @@ class TarjetaSeccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.sizeOf(context).width;
-    final relleno = ancho < 600 ? 16.0 : 24.0;
+    final estrecho = ancho < 600;
+    final relleno = estrecho ? 16.0 : 28.0;
     final cabecera = Row(
       children: [
+        _NumeroSeccion(numero: numero, insignia: insignia, chico: estrecho),
+        SizedBox(width: estrecho ? 10 : 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ExcludeSemantics(
-                child: Text('SECCIÓN $numero', style: EstilosMarca.rotulo),
-              ),
-              const SizedBox(height: 2),
               Text(
                 titulo,
                 semanticsLabel: '$numero · $titulo',
-                style: EstilosMarca.titulo.copyWith(height: 1.25),
+                style: EstilosMarca.titulo.copyWith(
+                  fontSize: estrecho ? 17 : 20,
+                  letterSpacing: -0.3,
+                  height: 1.25,
+                ),
               ),
               if (plegada && (resumen ?? '').isNotEmpty)
                 Padding(
@@ -101,9 +105,10 @@ class TarjetaSeccion extends StatelessWidget {
               color: bloqueada ? ColoresMarca.bloqueado : Colors.white,
               borderRadius: RadiosMarca.tarjeta,
               border: Border.all(
-                color: activa ? ColoresMarca.primario : ColoresMarca.borde,
+                color: activa ? ColoresMarca.marca : ColoresMarca.borde,
                 width: activa ? 1.5 : 1,
               ),
+              boxShadow: bloqueada ? null : sombraTarjeta,
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,9 +121,9 @@ class TarjetaSeccion extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   relleno,
+                  relleno * 0.7,
                   relleno * 0.75,
-                  relleno * 0.75,
-                  relleno * 0.75,
+                  relleno * 0.7,
                 ),
                 child: cabecera,
               ),
@@ -127,11 +132,71 @@ class TarjetaSeccion extends StatelessWidget {
           if (!plegada) ...[
             const Divider(height: 1, color: ColoresMarca.separador),
             Padding(
-              padding: EdgeInsets.fromLTRB(relleno, 20, relleno, relleno),
+              padding: EdgeInsets.fromLTRB(relleno, 22, relleno, relleno),
               child: child,
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Sombra suave de las tarjetas blancas sobre el fondo cálido.
+const sombraTarjeta = [
+  BoxShadow(color: Color(0x0D3C1E0F), blurRadius: 2, offset: Offset(0, 1)),
+  BoxShadow(color: Color(0x0F3C1E0F), blurRadius: 28, offset: Offset(0, 10)),
+];
+
+/// Colores (fondo, texto) de cada estado: verde = completa, ámbar = falta
+/// algo, neutro = solo lectura o sin datos, tinte naranja = zona activa.
+(Color, Color) coloresInsignia(InsigniaSeccion tipo) => switch (tipo) {
+  InsigniaSeccion.completa => (
+    ColoresMarca.estadoOkFondo,
+    ColoresMarca.estadoOk,
+  ),
+  InsigniaSeccion.incompleta => (
+    ColoresMarca.avisoFondo,
+    ColoresMarca.avisoTexto,
+  ),
+  InsigniaSeccion.activa => (ColoresMarca.tinte, ColoresMarca.tinteTexto),
+  InsigniaSeccion.soloLectura || InsigniaSeccion.ninguna => (
+    ColoresMarca.neutroFondo,
+    ColoresMarca.tintaSuave,
+  ),
+};
+
+/// Número de la sección en un círculo con el color de su estado.
+class _NumeroSeccion extends StatelessWidget {
+  const _NumeroSeccion({
+    required this.numero,
+    required this.insignia,
+    required this.chico,
+  });
+
+  final int numero;
+  final InsigniaSeccion insignia;
+  final bool chico;
+
+  @override
+  Widget build(BuildContext context) {
+    final (fondo, texto) = coloresInsignia(insignia);
+    final lado = chico ? 30.0 : 36.0;
+    return ExcludeSemantics(
+      child: Container(
+        width: lado,
+        height: lado,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+        child: Text(
+          '$numero',
+          style: TextStyle(
+            fontSize: chico ? 13 : 15,
+            fontWeight: FontWeight.w800,
+            color: texto,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
       ),
     );
   }
@@ -144,29 +209,14 @@ class _Insignia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (IconData? icono, String texto, Color color) = switch (tipo) {
-      InsigniaSeccion.ninguna => (null, '', Colors.transparent),
-      InsigniaSeccion.completa => (
-        Icons.check_circle,
-        'Completa',
-        ColoresMarca.estadoOk,
-      ),
-      InsigniaSeccion.incompleta => (
-        Icons.pending_outlined,
-        'Incompleta',
-        ColoresMarca.aviso,
-      ),
-      InsigniaSeccion.soloLectura => (
-        Icons.lock_outline,
-        'Solo lectura',
-        ColoresMarca.textoSuave,
-      ),
-      InsigniaSeccion.activa => (
-        Icons.edit_outlined,
-        'Zona activa',
-        ColoresMarca.primario,
-      ),
+    final (IconData? icono, String texto) = switch (tipo) {
+      InsigniaSeccion.ninguna => (null, ''),
+      InsigniaSeccion.completa => (Icons.check_rounded, 'Completa'),
+      InsigniaSeccion.incompleta => (Icons.more_horiz_rounded, 'Incompleta'),
+      InsigniaSeccion.soloLectura => (Icons.lock_outline, 'Solo lectura'),
+      InsigniaSeccion.activa => (Icons.edit_outlined, 'Zona activa'),
     };
+    final (fondo, color) = coloresInsignia(tipo);
     if (icono == null) return const SizedBox.shrink();
     final estrecho = MediaQuery.sizeOf(context).width < 600;
     return Padding(
@@ -179,7 +229,7 @@ class _Insignia extends StatelessWidget {
             vertical: 4,
           ),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
+            color: fondo,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -191,8 +241,8 @@ class _Insignia extends StatelessWidget {
                 Text(
                   texto,
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
                 ),

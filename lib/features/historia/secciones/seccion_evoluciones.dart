@@ -329,7 +329,7 @@ class _EditorEvolucionState extends ConsumerState<_EditorEvolucion> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.fromLTRB(16, 12, 12, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F8FB),
+        color: ColoresMarca.tinte,
         borderRadius: BorderRadius.circular(12),
         border: const Border(
           left: BorderSide(color: ColoresMarca.primario, width: 3),
