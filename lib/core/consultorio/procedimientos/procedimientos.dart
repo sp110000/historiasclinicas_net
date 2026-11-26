@@ -281,7 +281,7 @@ class ProcedimientosConsultorio {
         'sesiones': d.numeroSesiones == null ? '' : '${d.numeroSesiones}',
         'producto': d.usaSolucion ? d.componentes.join(', ') : '',
         'riesgos': d.riesgos,
-        'alternativas': d.alternativas,
+        'alternativas': sinPuntoFinal(d.alternativas),
         'codigoReps': c.codigoReps,
         'habilitacion': c.habilitacion,
         'poliza': c.textoPoliza,
@@ -472,7 +472,7 @@ class ProcedimientosConsultorio {
       'sesiones': '${plan.sesiones}',
       'producto': plan.producto,
       'riesgos': d.riesgos,
-      'alternativas': d.alternativas,
+      'alternativas': sinPuntoFinal(d.alternativas),
       'codigoReps': c.codigoReps,
       'habilitacion': c.habilitacion,
       'poliza': c.textoPoliza,
@@ -833,6 +833,12 @@ String textoValoracion(
       'Recomendación: ${v.recomendacion.trim()}.',
   ].where((s) => s.isNotEmpty).join(' ');
 }
+
+/// [t] sin espacios a los lados ni punto final: en el consentimiento la
+/// plantilla pone el punto («{{alternativas}}. También puedo…»), y así no
+/// queda «..».
+String sinPuntoFinal(String t) =>
+    t.trim().replaceFirst(RegExp(r'[\s.;]+$'), '');
 
 /// [t] sin espacios a los lados y con un solo punto final (el médico suele
 /// escribirlo; así no queda «..» en el texto sellado).

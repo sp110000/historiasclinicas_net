@@ -216,6 +216,9 @@ void main() {
         );
         expect(t, contains('en 4 sesiones'));
         expect(t, contains('Riesgos de prueba.'));
+        // Sin «..»: la plantilla ya pone el punto tras las alternativas.
+        expect(t, contains('Alternativas de prueba. También puedo'));
+        expect(t, isNot(contains('..')));
         expect(t, contains('Yo, ______'));
         expect(t, isNot(contains('PEÑA')));
       }
@@ -234,6 +237,11 @@ void main() {
       expect(firmados.map((d) => d.numero), ['CI-000002', 'CI-000001']);
       expect(firmados.first.plan!.plantillaId, 'hidrolipoclasia');
       expect(firmados.first.plan!.sesiones, 4);
+      // El firmado tampoco queda con «..» tras las alternativas.
+      expect(
+        firmados.first.contenido,
+        contains('Alternativas de prueba. También puedo'),
+      );
     });
   });
 }
