@@ -1918,6 +1918,10 @@ await context.close();
     await selector.setFiles(path.join(FIXTURES, 'foto_frontal_antes.jpg'));
   }
   await texto(p, '1 de 6 en el informe').waitFor({ timeout: 30000 });
+  // Con la rueda, como en los demás formularios largos: el desplazamiento
+  // del DOM no mueve lo que dibuja Flutter, y el clic caía en otro campo
+  // (Ctrl+A/Supr lo borraba).
+  await aLaVista(campo(p, 'Rótulo'));
   await escribir(p, 'Rótulo', 'Lóbulo derecho, transversal');
   await p.waitForTimeout(900);
   await captura(p, 'e1_informe_borrador.png');
