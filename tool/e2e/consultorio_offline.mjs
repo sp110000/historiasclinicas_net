@@ -1853,7 +1853,8 @@ await context.close();
   await texto(p, 'En el lote L7788 quedan 4 ampollas.').waitFor();
   // También el procedimiento, con la tarifa de su sesión (editable).
   await hacerClic(p.getByRole('button', { name: 'Agregar un procedimiento', exact: true }));
-  await texto(p, 'Zonas o sesiones').waitFor();
+  // «Zonas o sesiones» es la etiqueta de un campo: se busca como campo.
+  await campo(p, 'Zonas o sesiones').waitFor();
   await texto(p, 'Hidrolipoclasia').waitFor();
   await aLaVista(conTexto('PROCEDIMIENTOS'));
   await captura(p, 'i7_cobro_con_procedimiento.png');
