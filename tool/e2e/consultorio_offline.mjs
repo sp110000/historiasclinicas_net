@@ -183,13 +183,14 @@ const page = await nuevaPagina(context);
 await texto(page, 'ya funciona sin conexión').waitFor({ timeout: 60000 });
 await texto(page, 'ya funciona sin conexión').desaparece({ timeout: 20000 });
 await context.setOffline(true);
-// Con la bandera abre en la agenda (pregunta 51); la primera vez, cerrada,
-// pide crear la frase. La historia sigue a un clic en el riel.
+// Con la bandera abre en el Inicio (rediseño R2; antes, la agenda); la
+// primera vez, cerrada, pide crear la frase. La historia sigue a un clic en
+// el riel.
 await texto(page, 'Crea tu frase de acceso').waitFor({ timeout: 30000 });
 await pulsar(page, 'Historia');
 await page.getByRole('button', { name: /receta/i }).first().waitFor({ timeout: 30000 });
 await captura(page, 'c0_historia_con_riel.png');
-paso('Con la bandera abre en la agenda; la historia de siempre sigue en el riel (sin conexión)');
+paso('Con la bandera abre en el Inicio (pide la frase); la historia de siempre sigue en el riel (sin conexión)');
 
 await pulsar(page, 'Ajustes');
 await texto(page, 'Crea tu frase de acceso').waitFor({ timeout: 30000 });
@@ -1409,6 +1410,26 @@ await context.close();
   await captura(p, 'g1_agenda_dia.png');
   paso('Agenda del día: dos citas (una buscada por nombre, con su procedimiento) y el aviso de la de mañana sin recordatorio');
 
+  // ─────────────── Inicio y buscador (rediseño R2) ───────────────
+  await p.evaluate(() => (location.hash = '#/inicio'));
+  await texto(p, 'Tu siguiente paciente · 10:00').waitFor({ timeout: 20000 });
+  await texto(p, 'Tu día en números').waitFor();
+  await p.waitForTimeout(600);
+  await captura(p, 'i1_inicio.png');
+  await p.keyboard.press('Control+k');
+  await escribir(p, 'Buscar', 'pena');
+  // «pena» sin tilde encuentra a PEÑA, con sus acciones.
+  const consulta = p.getByRole('button', { name: 'Consulta', exact: true });
+  await consulta.waitFor({ state: 'attached', timeout: 20000 });
+  await p.waitForTimeout(400);
+  await captura(p, 'i2_buscador.png');
+  await p.keyboard.press('Escape');
+  await consulta.waitFor({ state: 'detached', timeout: 10000 });
+  paso('Inicio: el siguiente paciente (10:00) con «Empezar consulta»; Ctrl + K encuentra «pena» sin tilde');
+  await p.evaluate(() => (location.hash = '#/agenda'));
+  await texto(p, 'lunes 30/11/2026').waitFor();
+  await p.waitForTimeout(600);
+
   // Estado, WhatsApp interceptado y .ics.
   await alInicio();
   await p.getByRole('button', { name: 'Estado', exact: true }).last().click();
@@ -1914,6 +1935,7 @@ await context.close();
   await p.getByRole('button', { name: 'Modo presentación', exact: true }).click();
   await texto(p, 'Modo presentación: sin notas por verificar').waitFor();
   const pantallas = [
+    ['/inicio', 'Tu día en números'],
     ['/agenda', 'lunes 30/11/2026'],
     ['/pacientes', 'Pacientes'],
     ['/caja', 'Totales del día'],
@@ -1934,6 +1956,10 @@ await context.close();
   await ir('/procedimientos', 'Consentimientos firmados');
   if (await cuantas('CI-000001') || !(await cuantas('Oculto en el modo presentación'))) {
     throw new Error('Modo presentación: Procedimientos muestra los consentimientos firmados');
+  }
+  await ir('/inicio', 'Tu día en números');
+  if (await cuantas('Caja de hoy') || await cuantas('Por cobrar') || await cuantas('Control de tiroides')) {
+    throw new Error('Modo presentación: el Inicio muestra montos de la caja o el motivo');
   }
   await ir('/agenda', 'lunes 30/11/2026');
   if (await cuantas('Saldo $') || await cuantas('Control de tiroides')) {

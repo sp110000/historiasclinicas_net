@@ -17,6 +17,7 @@ import 'dialogo_ficha.dart';
 import '../widgets/comunes.dart';
 import 'importacion.dart';
 import '../widgets/chip_seleccion.dart';
+import '../../../core/widgets/ilustraciones.dart';
 
 /// Lista de pacientes con búsqueda y filtros.
 class PacientesPage extends ConsumerStatefulWidget {
@@ -483,11 +484,7 @@ class _Vacio extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.people_outline,
-            size: 40,
-            color: ColoresMarca.textoSuave,
-          ),
+          const IlustracionMarca(Ilustracion.sinResultados, alto: 104),
           const SizedBox(height: 10),
           Text(
             hayPacientes

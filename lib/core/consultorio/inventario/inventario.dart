@@ -60,14 +60,15 @@ class InventarioConsultorio {
 
   // ─────────────────────────── Consultas ───────────────────────────
 
-  bool get vacio => _insumos.isEmpty;
+  bool get vacio => !_insumos.values.any((i) => !i.eliminado);
 
-  /// Todos los insumos, por nombre (los inactivos al final).
-  List<Insumo> get insumos => _insumos.values.toList()
-    ..sort((a, b) {
-      if (a.activo != b.activo) return a.activo ? -1 : 1;
-      return claveNombre(a.nombre).compareTo(claveNombre(b.nombre));
-    });
+  /// Los insumos que se ven (sin los eliminados), por nombre (los inactivos
+  /// al final).
+  List<Insumo> get insumos =>
+      _insumos.values.where((i) => !i.eliminado).toList()..sort((a, b) {
+        if (a.activo != b.activo) return a.activo ? -1 : 1;
+        return claveNombre(a.nombre).compareTo(claveNombre(b.nombre));
+      });
 
   Insumo? insumo(String id) => _insumos[id];
   Lote? lote(String id) => _lotes[id];
@@ -107,9 +108,14 @@ class InventarioConsultorio {
     final k = claveNombre(nombre);
     if (k.isEmpty) return null;
     return _insumos.values
-        .where((i) => i.activo && claveNombre(i.nombre) == k)
+        .where((i) => i.activo && !i.eliminado && claveNombre(i.nombre) == k)
         .firstOrNull;
   }
+
+  /// El insumo tiene lotes o movimientos (entradas, sesiones o cobros).
+  bool tieneHistoria(String insumoId) =>
+      _lotes.values.any((l) => l.insumoId == insumoId) ||
+      _movimientos.values.any((m) => m.insumoId == insumoId);
 
   AlertasInventario alertas() => alertasInventario(
     insumos: _insumos.values,
@@ -151,6 +157,30 @@ class InventarioConsultorio {
       fecha: reloj.ahora(),
     );
     return g;
+  }
+
+  /// Elimina el insumo. Sin lotes ni movimientos se borra del todo y
+  /// devuelve `true`; con historia se conserva oculto e inactivo (para la
+  /// trazabilidad de las sesiones y los cobros) y devuelve `false`. Desde
+  /// entonces no se ve en el inventario, ni se sugiere, ni alerta.
+  Future<bool> eliminarInsumo(String id) async {
+    final i = _insumos[id];
+    if (i == null) return false;
+    final borrar = !tieneHistoria(id);
+    if (borrar) {
+      await _repo.guardarVarios([Escritura(Insumo.coleccion, id, null)]);
+      _insumos.remove(id);
+    } else {
+      final oculto = i.copyWith(activo: false, eliminado: true);
+      await _repo.guardar(Insumo.coleccion, id, oculto.aMapa());
+      _insumos[id] = oculto;
+    }
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.eliminarInsumo,
+      fecha: reloj.ahora(),
+    );
+    return borrar;
   }
 
   Lote? _mismoNumero(String insumoId, String numero) => _lotes.values

@@ -42,7 +42,7 @@ terceros).
 
 ## Partes
 
-- **R1 · Tema y historia clínica (esta parte).** Paleta y formas en toda la
+- **R1 · Tema y historia clínica** (PR #9, publicada). Paleta y formas en toda la
   aplicación. En la historia: número de cada sección en un círculo con el
   color de su estado; índice con avance («8 de 9 secciones completas») y el
   recuadro «Para finalizar falta» / «Lista para finalizar», cuyos datos
@@ -50,15 +50,44 @@ terceros).
   carmesí; revisión por sistemas con «Niega» en verde y «Refiere» en ámbar;
   firma y sello con la muestra «Así aparecerá al final del PDF». Los colores
   de la barra del navegador y del fondo de arranque pasan a la paleta nueva.
-- **R2 · Menú, inicio y buscador** (consultorio): menú agrupado con «Nueva
-  consulta», inicio con el siguiente paciente y buscador con Ctrl + K.
+- **R2 · Logo, ilustraciones, menú, inicio y buscador (esta parte).**
+  - **Logo naranja**: el mismo logo (cruz, pulso y hoja) con la cruz en
+    #F54927 y el documento en #9F2F19. Íconos nuevos con otro nombre
+    (`icons/logo-naranja-*.png`, para que los móviles no usen los viejos) y
+    `favicon.ico`; dentro de la app, junto al nombre en la historia, el
+    menú y el desbloqueo (`assets/marca/logo.png`).
+  - **Ilustraciones** (`lib/core/widgets/ilustraciones.dart`): siete
+    dibujos vectoriales en un solo estilo (mancha cálida, trazo de tinta,
+    acentos naranjas), hechos en código, sin archivos ni conexión:
+    consulta, agenda libre, sin resultados, candado, listo, caja e
+    inventario. Van en el Inicio, el desbloqueo y los estados vacíos de la
+    agenda, pacientes, caja, inventario y el buscador. Las tarjetas del
+    consultorio llevan la sombra cálida y los recuadros de ícono, una
+    forma más suave.
+  - **Inicio** (`/inicio`, primero del riel y la pantalla con la que abre;
+    antes abría en la agenda): saludo, el **siguiente paciente** con sus
+    alergias en carmesí, el estado de la cita, «Empezar consulta» (lo
+    mismo que «Atender» en la agenda) y «Ver ficha»; las citas que siguen;
+    lo pendiente (controles vencidos, recordatorios de mañana, lotes
+    vencidos o por vencer, insumos bajo el mínimo), y el día en números.
+    En el modo presentación no muestra montos ni el motivo de la cita.
+  - **Menú**: en el riel, «Buscar» y «Nueva consulta» (la historia en
+    blanco; si la que está en curso tiene cambios, pregunta antes). En el
+    menú del teléfono, el logo, los dos botones y los grupos *Consulta*,
+    *Consultorio* y *Ajustes*. La «Historia» sigue en el menú.
+  - **Buscador** (Ctrl + K o ⌘ + K, o el botón): pacientes por nombre o
+    documento sin tildes, con «Consulta», «Cita» y «Cobrar», y las
+    pantallas («Ir a Caja»). ↑ ↓ para moverse y Enter para abrir la ficha.
+  - **Inventario: «Eliminar»** en cada insumo. Sin lotes ni movimientos se
+    borra; con historia (entradas, sesiones o cobros) se guarda oculto e
+    inactivo para no perder la trazabilidad: deja de verse, de sugerirse y
+    de alertar, pero las historias, los recibos y los informes que lo
+    nombran no cambian. Queda en la bitácora.
 - **R3 · Resto de pantallas del consultorio**: agenda sin colores por tipo,
   pacientes, procedimientos, caja, inventario y ajustes como en las maquetas.
 
 ## Queda igual, a propósito
 
-- **El logo** (la cruz con el pulso y la hoja) y los íconos de la PWA. Si se
-  quiere una versión naranja, se hace aparte.
 - **Los PDF** (historia, receta, documentos, recibos): conservan su diseño
   impreso; cambiarlos altera documentos que ya se entregan a pacientes.
 - **Los botones de la barra superior de la historia**: mismos lugares y
@@ -77,3 +106,14 @@ encendido, CSP en el HTML, sin conexión).
 | Firma y sello con la muestra del PDF | Historia abierta: secciones selladas |
 | ![Móvil](rediseno/r1_movil.png) | ![Agenda](rediseno/r1_agenda.png) |
 | Móvil | El tema llega solo al resto (agenda) |
+
+## Capturas de R2
+
+| | |
+|---|---|
+| ![Inicio](rediseno/r2_inicio.png) | ![Buscador](rediseno/r2_buscador.png) |
+| Inicio: el siguiente paciente, después, pendientes y el día en números | Buscador (Ctrl + K): «pena» encuentra a PEÑA, con sus acciones |
+| ![Desbloqueo](rediseno/r2_desbloqueo.png) | ![Inventario](rediseno/r2_inventario_eliminar.png) |
+| Logo naranja e ilustración en el desbloqueo | «Eliminar» en cada insumo |
+| ![Pacientes vacía](rediseno/r2_pacientes_vacia.png) | ![Logo](../web/icons/logo-naranja-192.png) |
+| Estado vacío con ilustración | El logo en naranja |

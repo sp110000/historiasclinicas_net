@@ -33,6 +33,7 @@ void main() {
       final shell = router.configuration.routes.single as ShellRoute;
       expect(shell.routes.cast<GoRoute>().map((r) => r.path).toList(), [
         '/',
+        '/inicio',
         '/receta',
         '/medico',
         '/agenda',
@@ -42,8 +43,9 @@ void main() {
         '/procedimientos',
         '/ajustes',
       ]);
-      // Abre en la agenda de hoy (pregunta 51).
-      expect(router.routeInformationProvider.value.uri.path, '/agenda');
+      // Abre en el Inicio, con el siguiente paciente (rediseño R2; antes,
+      // la agenda de hoy, pregunta 51).
+      expect(router.routeInformationProvider.value.uri.path, '/inicio');
       final pacientes = shell.routes.cast<GoRoute>().singleWhere(
         (r) => r.path == '/pacientes',
       );
@@ -80,19 +82,21 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byType(ContenedorConsultorio), findsOneWidget);
       expect(find.byType(NavigationRail), findsOneWidget);
-      // La agenda es la primera del riel y la que abre.
+      // El Inicio es el primero del riel y el que abre.
       expect(
         t.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
         0,
       );
-      // Agenda, Pacientes, Historia, Procedimientos, Caja, Inventario y
-      // Ajustes (pregunta 51; Procedimientos, desde el 25/11/2026).
+      // Inicio (rediseño R2), Agenda, Pacientes, Historia, Procedimientos,
+      // Caja, Inventario y Ajustes (pregunta 51; Procedimientos, desde el
+      // 25/11/2026).
       expect(
         t
             .widget<NavigationRail>(find.byType(NavigationRail))
             .destinations
             .map((d) => (d.label as Semantics).properties.label),
         [
+          'Inicio',
           'Agenda',
           'Pacientes',
           'Historia',

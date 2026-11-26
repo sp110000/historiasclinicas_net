@@ -5,6 +5,7 @@ import '../../../core/consultorio/seguridad/boveda.dart';
 import '../../../core/consultorio/seguridad/llavero.dart';
 import '../../../core/consultorio/servicio.dart';
 import '../../../core/widgets/recuadro_icono.dart';
+import '../../../core/widgets/tarjeta_seccion.dart' show sombraTarjeta;
 import '../../../core/widgets/titulo_dialogo.dart';
 
 /// Tarjeta de las pantallas del consultorio (como las de «Datos del
@@ -32,13 +33,14 @@ class TarjetaConsultorio extends StatelessWidget {
         color: Colors.white,
         borderRadius: RadiosMarca.tarjeta,
         border: Border.all(color: ColoresMarca.borde),
+        boxShadow: sombraTarjeta,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              RecuadroIcono(icono, color: ColoresMarca.primario, lado: 34),
+              RecuadroIcono(icono, color: ColoresMarca.primario, lado: 38),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

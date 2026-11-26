@@ -29,6 +29,7 @@ class Insumo {
     this.inyectable = false,
     this.stockMinimo = 0,
     this.activo = true,
+    this.eliminado = false,
   });
 
   static const coleccion = 'insumos';
@@ -52,6 +53,11 @@ class Insumo {
   final bool inyectable;
   final double stockMinimo;
   final bool activo;
+
+  /// Eliminado de la vista. Si tuvo lotes o movimientos se conserva oculto
+  /// para la trazabilidad (las sesiones y los cobros lo siguen nombrando);
+  /// si no, se borra del todo y no queda nada.
+  final bool eliminado;
   final DateTime creado;
 
   bool get sinRegistro => registroInvima.trim().isEmpty;
@@ -67,6 +73,7 @@ class Insumo {
     bool? inyectable,
     double? stockMinimo,
     bool? activo,
+    bool? eliminado,
   }) => Insumo(
     id: id,
     nombre: nombre ?? this.nombre,
@@ -79,6 +86,7 @@ class Insumo {
     inyectable: inyectable ?? this.inyectable,
     stockMinimo: stockMinimo ?? this.stockMinimo,
     activo: activo ?? this.activo,
+    eliminado: eliminado ?? this.eliminado,
     creado: creado,
   );
 
@@ -93,6 +101,7 @@ class Insumo {
     'inyectable': inyectable ? true : null,
     'stockMinimo': stockMinimo,
     'activo': activo ? null : false,
+    'eliminado': eliminado ? true : null,
     'creado': fechaHoraIso(creado),
   });
 
@@ -108,6 +117,7 @@ class Insumo {
     inyectable: m.booleano('inyectable'),
     stockMinimo: m.decimal('stockMinimo') ?? 0,
     activo: m.booleano('activo', porDefecto: true),
+    eliminado: m.booleano('eliminado'),
     creado: m.fecha('creado')!,
   );
 }

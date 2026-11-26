@@ -19,6 +19,7 @@ import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
 import 'campo_pesos.dart';
 import 'dialogo_cobro.dart';
+import '../../../core/widgets/ilustraciones.dart';
 
 const _meses = [
   'Enero',
@@ -305,9 +306,15 @@ class _CajaPageState extends ConsumerState<CajaPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (recibos.isEmpty)
-              const Text(
-                'Sin recibos este día.',
-                style: TextStyle(color: ColoresMarca.textoSuave),
+              const Column(
+                children: [
+                  IlustracionMarca(Ilustracion.caja, alto: 84),
+                  SizedBox(height: 6),
+                  Text(
+                    'Sin recibos este día.',
+                    style: TextStyle(color: ColoresMarca.textoSuave),
+                  ),
+                ],
               ),
             for (final r in recibos)
               FilaRecibo(recibo: r, paciente: paciente(r.pacienteId)),

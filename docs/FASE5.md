@@ -280,7 +280,7 @@ Pediste un botón para imprimir, y tener los consentimientos informados en Proce
 ### 5.5 Agenda ✅ (aprobada el 25/11/2026)
 
 **Qué incluye**
-- **La agenda es el inicio** con la bandera encendida y la primera del riel (pregunta 51). La historia sigue a un clic.
+- **La agenda es el inicio** con la bandera encendida y la primera del riel (pregunta 51). La historia sigue a un clic. *(Noviembre de 2026: desde el rediseño R2 abre en el Inicio, con el siguiente paciente, y la agenda va segunda; ver [REDISENO.md](REDISENO.md).)*
 - **Citas por tipo, con duración, estado e historial:**
   - tipos y duraciones: primera vez 30 min, control 20, programa de peso 30, valoración estética 40 y sesión 60 (editables);
   - estados: agendada, confirmada, atendida, no asistió y cancelada. Cancelar pide motivo, y cada cambio queda con su fecha.
@@ -1168,7 +1168,7 @@ Nunca se distingue algo solo por el color: siempre va con ícono o texto. Las l�
 ```
 - La búsqueda no distingue tildes ni mayúsculas y acepta el documento con o sin puntos. Las flechas y Enter abren la ficha.
 - **Historia** en el riel abre la pantalla de hoy, con su propia barra, a la derecha del riel. Si se abrió desde una ficha, la franja del paciente lleva «← Ficha».
-- **Inicio:** con la bandera encendida, la app abre en `/agenda` (pregunta 51); la historia sigue en `/`. Con la bandera apagada no hay riel ni rutas nuevas, y la app abre en la historia, como hoy.
+- **Inicio:** con la bandera encendida, la app abre en `/agenda` (pregunta 51; desde el rediseño R2, en `/inicio`); la historia sigue en `/`. Con la bandera apagada no hay riel ni rutas nuevas, y la app abre en la historia, como hoy.
 - **Tablet (700 a 1100 px):** el riel se vuelve un menú lateral. **Móvil (< 700 px):** menú lateral, lista de una columna y botón flotante «+ Paciente».
 
 **La historia dentro del contenedor (escritorio, bandera encendida):**

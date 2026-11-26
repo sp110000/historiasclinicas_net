@@ -151,7 +151,9 @@ async function esperarApp(page) {
   const riel = page.getByRole('button', { name: /^Historia(\s|$)|^Ir a la historia$/ }).first();
   await receta.or(riel).first().waitFor({ timeout: 30000 });
   if (!(await receta.isVisible())) {
-    await riel.click();
+    // Por su nodo de accesibilidad: en el celular, el aviso «ya funciona sin
+    // conexión» puede tapar «Ir a la historia».
+    await riel.dispatchEvent('click');
     await receta.waitFor({ timeout: 30000 });
   }
 }

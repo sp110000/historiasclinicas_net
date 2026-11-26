@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/tema.dart';
+import '../../../core/widgets/marca.dart';
+import '../buscador/buscador.dart';
 import '../../historia/widgets/avisos.dart';
 import '../desbloqueo/pantalla_desbloqueo.dart';
 import '../../medico/medico_provider.dart';
@@ -41,8 +43,14 @@ class DestinoConsultorio {
 }
 
 /// Destinos del consultorio (pregunta 51); Procedimientos va debajo de la
-/// historia y encima de la caja.
+/// historia y encima de la caja. El Inicio (rediseño R2) va primero.
 const destinosConsultorio = [
+  DestinoConsultorio(
+    ruta: '/inicio',
+    etiqueta: 'Inicio',
+    icono: Icons.home_outlined,
+    iconoActivo: Icons.home,
+  ),
   DestinoConsultorio(
     ruta: '/agenda',
     etiqueta: 'Agenda',
@@ -88,6 +96,17 @@ const destinosConsultorio = [
     iconoActivo: Icons.settings,
   ),
 ];
+
+/// Rótulos de grupo del menú lateral, antes del destino de ese índice.
+final _grupos = <int, String>{
+  for (final (i, d) in destinosConsultorio.indexed)
+    if (d.ruta == '/agenda')
+      i: 'CONSULTA'
+    else if (d.ruta == '/caja')
+      i: 'CONSULTORIO'
+    else if (d.ruta == '/ajustes')
+      i: 'AJUSTES',
+};
 
 /// Rutas que se muestran tal cual aunque el consultorio esté bloqueado.
 const _rutasLibres = {'/', '/receta', '/medico'};
@@ -137,6 +156,22 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
     return destinosConsultorio.indexWhere((d) => d.ruta == '/');
   }
 
+  var _buscadorAbierto = false;
+
+  Future<void> _buscar() async {
+    if (_buscadorAbierto) return;
+    _buscadorAbierto = true;
+    try {
+      await abrirBuscador(context, ref);
+    } finally {
+      _buscadorAbierto = false;
+    }
+  }
+
+  /// «Nueva consulta»: la historia en blanco (si la que está en curso tiene
+  /// cambios, la historia pregunta antes de limpiarla).
+  void _nuevaConsulta() => context.go('/?nueva=1');
+
   @override
   Widget build(BuildContext context) {
     final e = ref.watch(consultorioProvider);
@@ -177,7 +212,12 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
         color: ColoresMarca.fondo,
         child: Row(
           children: [
-            _Riel(indice: _indice, alElegir: ir),
+            _Riel(
+              indice: _indice,
+              alElegir: ir,
+              alBuscar: _buscar,
+              alNuevaConsulta: _nuevaConsulta,
+            ),
             const VerticalDivider(width: 1, thickness: 1),
             Expanded(
               child: MediaQuery(
@@ -192,12 +232,17 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
       );
     } else {
       pantalla = Scaffold(
-        drawer: _MenuLateral(indice: _indice, alElegir: ir),
+        drawer: _MenuLateral(
+          indice: _indice,
+          alElegir: ir,
+          alBuscar: _buscar,
+          alNuevaConsulta: _nuevaConsulta,
+        ),
         body: SafeArea(
           bottom: false,
           child: Column(
             children: [
-              const _BarraCompacta(),
+              _BarraCompacta(alBuscar: _buscar),
               Expanded(
                 child: MediaQuery.removePadding(
                   context: context,
@@ -210,7 +255,17 @@ class _ContenedorConsultorioState extends ConsumerState<ContenedorConsultorio> {
         ),
       );
     }
-    return _VigilanteInactividad(child: pantalla);
+    // Ctrl + K (⌘ + K en Mac) abre el buscador desde cualquier pantalla.
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _buscar,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _buscar,
+      },
+      child: Focus(
+        autofocus: true,
+        child: _VigilanteInactividad(child: pantalla),
+      ),
+    );
   }
 }
 
@@ -299,7 +354,7 @@ class _FranjaPresentacion extends ConsumerWidget {
 }
 
 /// El logotipo del médico arriba del riel, con el nombre del consultorio
-/// al pasar el puntero (pregunta 51).
+/// al pasar el puntero (pregunta 51); sin logotipo, el de la marca.
 class _Logotipo extends ConsumerWidget {
   const _Logotipo();
 
@@ -307,7 +362,15 @@ class _Logotipo extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final m = ref.watch(medicoProvider);
     final logo = m.logo;
-    if (logo == null) return const SizedBox(height: 8);
+    if (logo == null) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 12, bottom: 8),
+        child: Tooltip(
+          message: 'historiasclinicas.net',
+          child: LogoMarca(lado: 40),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 12, bottom: 8),
       child: Tooltip(
@@ -361,10 +424,17 @@ class _NombreConsultorio extends ConsumerWidget {
 }
 
 class _Riel extends StatelessWidget {
-  const _Riel({required this.indice, required this.alElegir});
+  const _Riel({
+    required this.indice,
+    required this.alElegir,
+    required this.alBuscar,
+    required this.alNuevaConsulta,
+  });
 
   final int indice;
   final ValueChanged<int> alElegir;
+  final VoidCallback alBuscar;
+  final VoidCallback alNuevaConsulta;
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +460,29 @@ class _Riel extends StatelessWidget {
           color: ColoresMarca.textoSuave,
           fontSize: 12,
         ),
-        leading: const _Logotipo(),
+        leading: Column(
+          children: [
+            const _Logotipo(),
+            IconButton.outlined(
+              onPressed: alBuscar,
+              icon: const Icon(Icons.search_rounded),
+              tooltip: 'Buscar (Ctrl + K)',
+            ),
+            const SizedBox(height: 8),
+            Tooltip(
+              message: 'Nueva consulta',
+              child: IconButton.filled(
+                onPressed: alNuevaConsulta,
+                style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+                icon: const Icon(
+                  Icons.add_rounded,
+                  semanticLabel: 'Nueva consulta',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
         trailing: const Expanded(
           child: Align(
             alignment: Alignment.bottomCenter,
@@ -426,7 +518,9 @@ class _Riel extends StatelessWidget {
 }
 
 class _BarraCompacta extends StatelessWidget {
-  const _BarraCompacta();
+  const _BarraCompacta({required this.alBuscar});
+
+  final VoidCallback alBuscar;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +538,11 @@ class _BarraCompacta extends StatelessWidget {
             tooltip: 'Menú del consultorio',
           ),
           const Expanded(child: _NombreConsultorio()),
+          IconButton(
+            onPressed: alBuscar,
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Buscar',
+          ),
           const _BotonPresentacion(),
           const _BotonCandado(),
         ],
@@ -453,10 +552,17 @@ class _BarraCompacta extends StatelessWidget {
 }
 
 class _MenuLateral extends StatelessWidget {
-  const _MenuLateral({required this.indice, required this.alElegir});
+  const _MenuLateral({
+    required this.indice,
+    required this.alElegir,
+    required this.alBuscar,
+    required this.alNuevaConsulta,
+  });
 
   final int indice;
   final ValueChanged<int> alElegir;
+  final VoidCallback alBuscar;
+  final VoidCallback alNuevaConsulta;
 
   @override
   Widget build(BuildContext context) {
@@ -470,15 +576,43 @@ class _MenuLateral extends StatelessWidget {
       },
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(28, 20, 16, 12),
-          child: Text('CONSULTORIO', style: EstilosMarca.rotulo),
+          padding: EdgeInsets.fromLTRB(24, 22, 16, 14),
+          child: NombreMarca(tamano: 16),
         ),
-        for (final d in destinosConsultorio)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              alNuevaConsulta();
+            },
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Nueva consulta'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              alBuscar();
+            },
+            icon: const Icon(Icons.search_rounded),
+            label: const Text('Buscar'),
+          ),
+        ),
+        for (final (i, d) in destinosConsultorio.indexed) ...[
+          if (_grupos[i] case final g?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 14, 16, 6),
+              child: Text(g, style: EstilosMarca.rotulo),
+            ),
           NavigationDrawerDestination(
             icon: Icon(d.icono),
             selectedIcon: Icon(d.iconoActivo, color: ColoresMarca.primario),
             label: Text(d.etiqueta),
           ),
+        ],
       ],
     );
   }

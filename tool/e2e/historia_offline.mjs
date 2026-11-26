@@ -115,7 +115,10 @@ async function cargar(page) {
   await receta.or(riel).first().waitFor({ timeout: 30000 });
   if (!(await receta.isVisible())) {
     conConsultorio = true;
-    await riel.click();
+    // Por su nodo de accesibilidad: en el celular, el aviso «ya funciona sin
+    // conexión» puede tapar «Ir a la historia» y un clic normal esperaría a
+    // que se fuera (y el aviso ya no estaría cuando se lo busca).
+    await riel.dispatchEvent('click');
     await receta.waitFor({ timeout: 30000 });
   }
   await page.waitForLoadState('networkidle');

@@ -15,6 +15,7 @@ import '../../core/pdf/historia_pdf.dart';
 import '../../core/pdf/lector_adjunto.dart';
 import '../../core/presentacion/datos_historia.dart';
 import '../../core/utils/nombres_archivo.dart';
+import '../../core/widgets/marca.dart';
 import '../../core/widgets/tarjeta_seccion.dart';
 import '../../core/widgets/titulo_dialogo.dart';
 import '../consultorio/integracion/enganche_historia.dart';
@@ -49,7 +50,11 @@ final _selladas = [
 ];
 
 class HistoriaPage extends ConsumerStatefulWidget {
-  const HistoriaPage({super.key});
+  const HistoriaPage({super.key, this.nueva = false});
+
+  /// «Nueva consulta» del consultorio (`/?nueva=1`): empieza en blanco; si
+  /// la historia en curso tiene cambios, pregunta antes.
+  final bool nueva;
 
   @override
   ConsumerState<HistoriaPage> createState() => _HistoriaPageState();
@@ -78,7 +83,21 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       alSoltar: (a) => _cargarArchivo(a, confirmarReemplazo: true),
       alArrastrar: (v) => setState(() => _arrastrando = v),
     );
+    if (widget.nueva) _alPedirNueva();
   }
+
+  @override
+  void didUpdateWidget(HistoriaPage anterior) {
+    super.didUpdateWidget(anterior);
+    if (widget.nueva && !anterior.nueva) _alPedirNueva();
+  }
+
+  void _alPedirNueva() =>
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await _empezarDeCero(preguntar: true);
+        if (mounted) context.go('/');
+      });
 
   @override
   void dispose() {
@@ -748,32 +767,8 @@ class _HistoriaPageState extends ConsumerState<HistoriaPage> {
       toolbarHeight: 64,
       title: Row(
         children: [
-          // Wordmark tipográfico, sin ícono.
-          const Flexible(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'historiasclinicas',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: ColoresMarca.tinta,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '.net',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: ColoresMarca.marca,
-                    ),
-                  ),
-                ],
-              ),
-              semanticsLabel: 'historiasclinicas.net',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 18, letterSpacing: -0.2),
-            ),
-          ),
+          // Logo y nombre.
+          Flexible(child: NombreMarca(conLogo: !movil)),
           if (ancho >= 1000) ...[
             const SizedBox(width: 12),
             _SelectorPais(
