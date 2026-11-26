@@ -247,6 +247,12 @@ class _CajaPageState extends ConsumerState<CajaPage> {
           ),
         ),
       const SizedBox(height: 12),
+      _Recaudado(
+        titulo: esHoy ? 'Recaudado hoy' : 'Recaudado el ${formatoFecha(_dia)}',
+        total: total,
+        recibos: recibos.where((r) => !r.anulado).length,
+      ),
+      const SizedBox(height: 16),
       TarjetaConsultorio(
         icono: Icons.point_of_sale_outlined,
         titulo: 'Totales del día',
@@ -806,6 +812,70 @@ class _DialogoCierreState extends ConsumerState<_DialogoCierre> {
           child: const Text('Cerrar la caja'),
         ),
       ],
+    );
+  }
+}
+
+/// Lo recaudado en el día, grande y en oscuro (rediseño), con su
+/// ilustración. El detalle por medio de pago sigue en «Totales del día».
+class _Recaudado extends StatelessWidget {
+  const _Recaudado({
+    required this.titulo,
+    required this.total,
+    required this.recibos,
+  });
+
+  final String titulo;
+  final int total;
+  final int recibos;
+
+  @override
+  Widget build(BuildContext context) {
+    final ancho = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+      decoration: const BoxDecoration(
+        color: ColoresMarca.tinta,
+        borderRadius: RadiosMarca.tarjeta,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFFFC9B8),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatoPesos(total),
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: Colors.white,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                Text(
+                  recibos == 1 ? '1 recibo' : '$recibos recibos',
+                  style: const TextStyle(color: Color(0xFFEBDDD6)),
+                ),
+              ],
+            ),
+          ),
+          if (ancho >= 600) const IlustracionMarca(Ilustracion.caja, alto: 86),
+        ],
+      ),
     );
   }
 }

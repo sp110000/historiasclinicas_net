@@ -50,7 +50,7 @@ terceros).
   carmesí; revisión por sistemas con «Niega» en verde y «Refiere» en ámbar;
   firma y sello con la muestra «Así aparecerá al final del PDF». Los colores
   de la barra del navegador y del fondo de arranque pasan a la paleta nueva.
-- **R2 · Logo, ilustraciones, menú, inicio y buscador (esta parte).**
+- **R2 · Logo, ilustraciones, menú, inicio y buscador** (PR #10, publicada).
   - **Logo naranja**: el mismo logo (cruz, pulso y hoja) con la cruz en
     #F54927 y el documento en #9F2F19. Íconos nuevos con otro nombre
     (`icons/logo-naranja-*.png`, para que los móviles no usen los viejos) y
@@ -83,8 +83,21 @@ terceros).
     inactivo para no perder la trazabilidad: deja de verse, de sugerirse y
     de alertar, pero las historias, los recibos y los informes que lo
     nombran no cambian. Queda en la bitácora.
-- **R3 · Resto de pantallas del consultorio**: agenda sin colores por tipo,
-  pacientes, procedimientos, caja, inventario y ajustes como en las maquetas.
+- **R3 · Resto del consultorio (esta parte).** Misma conducta y textos;
+  cambia cómo se ve.
+  - **Agenda**: sin colores por tipo de cita (cada tipo conserva su ícono
+    y su nombre); la siguiente cita por atender lleva franja naranja y
+    fondo con tinte; «Atendida» en verde. En la semana, bloques neutros.
+  - **Pacientes**: iniciales en un círculo (ámbar si el control está
+    vencido), el nombre más fuerte y filas con bordes suaves.
+  - **Procedimientos y plantillas**: cada una en su recuadro, con el
+    nombre destacado (también las plantillas de documentos en Ajustes).
+  - **Caja**: lo recaudado en grande, en una tarjeta oscura con su
+    ilustración, antes de «Totales del día».
+  - **Inventario**: una barra de existencias frente al mínimo (se llena
+    con el doble del mínimo): ámbar por debajo, verde por encima.
+  - **Ajustes**: arriba, «Tu consultorio» (nombre, especialidad y
+    consultorio) con su ilustración y el acceso a «Datos del médico».
 
 ## Queda igual, a propósito
 
@@ -117,3 +130,14 @@ encendido, CSP en el HTML, sin conexión).
 | Logo naranja e ilustración en el desbloqueo | «Eliminar» en cada insumo |
 | ![Pacientes vacía](rediseno/r2_pacientes_vacia.png) | ![Logo](../web/icons/logo-naranja-192.png) |
 | Estado vacío con ilustración | El logo en naranja |
+
+## Capturas de R3
+
+| | |
+|---|---|
+| ![Agenda](rediseno/r3_agenda.png) | ![Pacientes](rediseno/r3_pacientes.png) |
+| Agenda: la siguiente cita resaltada, sin colores por tipo | Pacientes con iniciales (ámbar si el control está vencido) |
+| ![Caja](rediseno/r3_caja.png) | ![Inventario](rediseno/r3_inventario.png) |
+| Caja: lo recaudado en grande | Inventario: barra de existencias frente al mínimo |
+| ![Procedimientos](rediseno/r3_procedimientos.png) | ![Ajustes](rediseno/r3_ajustes.png) |
+| Procedimientos, cada uno en su recuadro | Ajustes con «Tu consultorio» |

@@ -22,6 +22,9 @@ import '../widgets/comunes.dart';
 import 'equipo_secundario.dart';
 import 'verificaciones_ajustes.dart';
 import 'prestador.dart';
+import '../../medico/medico_provider.dart';
+import '../../../core/widgets/ilustraciones.dart';
+import 'package:go_router/go_router.dart';
 
 /// Ajustes del consultorio: seguridad, respaldo y bitácora.
 class AjustesConsultorioPage extends ConsumerWidget {
@@ -38,6 +41,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
       ),
       body: const CuerpoConsultorio(
         children: [
+          _TuConsultorio(),
+          SizedBox(height: 16),
           _Seguridad(),
           SizedBox(height: 16),
           _Respaldo(),
@@ -61,6 +66,75 @@ class AjustesConsultorioPage extends ConsumerWidget {
           TarjetaVerificaciones(),
           SizedBox(height: 16),
           _Bitacora(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Arriba de los ajustes: quién es el consultorio (lo que sale en los PDF),
+/// con su ilustración y el acceso a los datos del médico.
+class _TuConsultorio extends ConsumerWidget {
+  const _TuConsultorio();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final m = ref.watch(medicoProvider);
+    final nombre = m.nombre.trim();
+    final detalle = [
+      if (m.especialidad.trim().isNotEmpty) m.especialidad.trim(),
+      if (m.consultorio.trim().isNotEmpty) m.consultorio.trim(),
+    ].join(' · ');
+    final ancho = MediaQuery.sizeOf(context).width;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      decoration: const BoxDecoration(
+        color: ColoresMarca.tinte,
+        borderRadius: RadiosMarca.tarjeta,
+      ),
+      child: Row(
+        children: [
+          if (ancho >= 600) ...[
+            const IlustracionMarca(Ilustracion.consulta, alto: 96),
+            const SizedBox(width: 20),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'TU CONSULTORIO',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: ColoresMarca.tinteTexto,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  nombre.isEmpty ? 'Aún sin tus datos de médico' : nombre,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: ColoresMarca.tinta,
+                  ),
+                ),
+                Text(
+                  detalle.isEmpty
+                      ? 'Nombre, registro, firma, sello y logo para los PDF.'
+                      : detalle,
+                  style: const TextStyle(color: ColoresMarca.tintaSuave),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.tonalIcon(
+                  onPressed: () => context.go('/medico'),
+                  icon: const Icon(Icons.badge_outlined),
+                  label: const Text('Datos del médico'),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
