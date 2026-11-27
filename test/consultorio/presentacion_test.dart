@@ -242,8 +242,7 @@ void main() {
       await _montar(t, b, ruta(id), presentacion: true);
       expect(
         find.text(
-          'Modo presentación: sin notas por verificar, notas internas ni '
-          'montos de la caja.',
+          'Modo presentación: sin notas internas ni montos de la caja.',
         ),
         findsOneWidget,
         reason: nombre,
