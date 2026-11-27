@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Modo presentación (pregunta 50): cuando te ve un paciente o un auditor
-/// oculta los chips «Por verificar», las notas internas y los montos de la
-/// caja en las pantallas que ve el paciente. Se apaga solo al bloquear.
+/// oculta las notas internas y los montos de la caja en las pantallas que
+/// ve el paciente. Se apaga solo al bloquear. (Las marcas «Por verificar»
+/// ya no se muestran nunca, desde el 27/11/2026.)
 class ControladorPresentacion extends Notifier<bool> {
   @override
   bool build() => false;

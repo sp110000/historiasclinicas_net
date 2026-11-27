@@ -227,6 +227,40 @@ void main() {
     },
   );
 
+  test('transvaginal: sin el consentimiento no cierra; obstétricas con su '
+      'biometría', () async {
+    var e = await s.imagenes.crear(
+      s.indice.ficha(paciente)!,
+      plantillaEco('pelvica_transvaginal')!,
+    );
+    e = await s.imagenes.guardar(e.copyWith(equipo: 'POCUS de prueba'));
+    expect(e.requiereConsentimiento, isTrue);
+    expect(e.faltantes, ['el consentimiento informado de la paciente']);
+    e = await s.imagenes.guardar(
+      e.copyWith(consentimiento: true, acompanante: 'Auxiliar Ana'),
+    );
+    expect(e.faltantes, isEmpty);
+    final (cerrado, pdf) = await s.imagenes.cerrar(
+      e.id,
+      medico: medicoCompleto(),
+      pais: Pais.colombia,
+      fuentes: fuentes,
+    );
+    expect(cerrado.consentimiento, isTrue);
+    final texto = textoPdf(pdf) ?? '';
+    if (texto.isNotEmpty) {
+      expect(texto, contains('Informado y aceptado por la paciente'));
+      expect(texto, contains('Auxiliar Ana'));
+      expect(texto, isNot(contains('VERIFICAR')));
+    }
+    final obst = plantillaEco('obstetrica_segundo_tercer')!;
+    expect(
+      obst.medidas.map((m) => m.nombre),
+      contains('Longitud femoral (LF)'),
+    );
+    expect(plantillaEco('obstetrica_primer_trimestre'), isNotNull);
+  });
+
   test('un paciente con estudios no se borra al eliminarlo', () async {
     final f = await s.indice.crearFicha(
       s.indice.ficha(paciente)!.copyWith(numeroDocumento: '999'),

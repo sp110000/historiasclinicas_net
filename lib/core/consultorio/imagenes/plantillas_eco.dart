@@ -30,6 +30,7 @@ class PlantillaEco {
     required this.secciones,
     this.medidas = const [],
     this.impresion = '',
+    this.requiereConsentimiento = false,
   });
 
   final String id;
@@ -44,6 +45,10 @@ class PlantillaEco {
 
   /// Impresión diagnóstica cuando todo es normal.
   final String impresion;
+
+  /// Estudio invasivo (transvaginal): pide el consentimiento informado de
+  /// la paciente y anota el acompañante antes de cerrar.
+  final bool requiereConsentimiento;
 }
 
 const _convexo = 'Transabdominal, transductor convexo';
@@ -170,6 +175,7 @@ const plantillasEcoBase = <PlantillaEco>[
         'Ganglios cervicales',
         'Sin adenopatías de aspecto patológico.',
       ),
+      SeccionPlantilla('Clasificación TI-RADS', 'No aplica: sin nódulos.'),
     ],
     medidas: [
       MedidaPlantilla('Lóbulo derecho', 'mL', volumen: true),
@@ -192,6 +198,7 @@ const plantillasEcoBase = <PlantillaEco>[
       SeccionPlantilla('Ovario derecho', 'De tamaño y morfología normales.'),
       SeccionPlantilla('Ovario izquierdo', 'De tamaño y morfología normales.'),
       SeccionPlantilla('Fondo de saco de Douglas', 'Sin líquido libre.'),
+      SeccionPlantilla('Clasificación O-RADS', 'No aplica: anexos normales.'),
     ],
     medidas: [
       MedidaPlantilla('Útero', 'mL', volumen: true),
@@ -200,6 +207,96 @@ const plantillasEcoBase = <PlantillaEco>[
       MedidaPlantilla('Ovario izquierdo', 'mL', volumen: true),
     ],
     impresion: 'Útero y ovarios sin alteraciones ecográficas.',
+  ),
+  PlantillaEco(
+    id: 'pelvica_transvaginal',
+    nombre: 'Ecografía pélvica transvaginal',
+    tecnica: 'Transvaginal, transductor endocavitario',
+    requiereConsentimiento: true,
+    secciones: [
+      SeccionPlantilla('Datos del ciclo', 'FUM: . Día del ciclo: .'),
+      SeccionPlantilla(
+        'Útero',
+        'En anteversoflexión, de tamaño y contornos normales, miometrio '
+            'homogéneo.',
+      ),
+      SeccionPlantilla('Endometrio', 'Lineal, de espesor acorde al ciclo.'),
+      SeccionPlantilla(
+        'Ovario derecho',
+        'De tamaño y morfología normales, con folículos.',
+      ),
+      SeccionPlantilla(
+        'Ovario izquierdo',
+        'De tamaño y morfología normales, con folículos.',
+      ),
+      SeccionPlantilla('Fondo de saco de Douglas', 'Sin líquido libre.'),
+      SeccionPlantilla('Clasificación O-RADS', 'No aplica: anexos normales.'),
+    ],
+    medidas: [
+      MedidaPlantilla('Útero', 'mL', volumen: true),
+      MedidaPlantilla('Endometrio (espesor)', 'mm'),
+      MedidaPlantilla('Ovario derecho', 'mL', volumen: true),
+      MedidaPlantilla('Ovario izquierdo', 'mL', volumen: true),
+      MedidaPlantilla('Folículo dominante', 'mm'),
+    ],
+    impresion: 'Útero y ovarios sin alteraciones ecográficas.',
+  ),
+  PlantillaEco(
+    id: 'obstetrica_primer_trimestre',
+    nombre: 'Ecografía obstétrica de primer trimestre',
+    tecnica: 'Transabdominal o transvaginal',
+    secciones: [
+      SeccionPlantilla('Datos', 'FUM: . Edad gestacional por FUM: .'),
+      SeccionPlantilla(
+        'Saco gestacional',
+        'Único, intrauterino, de bordes regulares.',
+      ),
+      SeccionPlantilla('Vesícula vitelina', 'Presente, de aspecto normal.'),
+      SeccionPlantilla('Embrión', 'Único, con actividad cardiaca presente.'),
+      SeccionPlantilla(
+        'Anexos y Douglas',
+        'Anexos sin masas. Sin líquido libre.',
+      ),
+    ],
+    medidas: [
+      MedidaPlantilla('Saco gestacional (diámetro medio)', 'mm'),
+      MedidaPlantilla('Longitud cráneo-rabadilla (LCR)', 'mm'),
+      MedidaPlantilla('Frecuencia cardiaca fetal', 'lpm'),
+      MedidaPlantilla('Translucencia nucal', 'mm'),
+    ],
+    impresion:
+        'Embarazo intrauterino único, con embrión vivo. Edad gestacional por '
+        'biometría: semanas.',
+  ),
+  PlantillaEco(
+    id: 'obstetrica_segundo_tercer',
+    nombre: 'Ecografía obstétrica de segundo y tercer trimestre',
+    tecnica: 'Transabdominal, transductor convexo',
+    secciones: [
+      SeccionPlantilla('Datos', 'FUM: . Edad gestacional por FUM: .'),
+      SeccionPlantilla(
+        'Feto',
+        'Único, vivo, con movimientos fetales y actividad cardiaca presentes.',
+      ),
+      SeccionPlantilla('Presentación y situación', 'Cefálica, longitudinal.'),
+      SeccionPlantilla(
+        'Placenta',
+        'Posterior, grado I, sin signos de desprendimiento. No previa.',
+      ),
+      SeccionPlantilla('Líquido amniótico', 'Normal.'),
+    ],
+    medidas: [
+      MedidaPlantilla('Diámetro biparietal (DBP)', 'mm'),
+      MedidaPlantilla('Circunferencia cefálica (CC)', 'mm'),
+      MedidaPlantilla('Circunferencia abdominal (CA)', 'mm'),
+      MedidaPlantilla('Longitud femoral (LF)', 'mm'),
+      MedidaPlantilla('Peso fetal estimado', 'g'),
+      MedidaPlantilla('Frecuencia cardiaca fetal', 'lpm'),
+      MedidaPlantilla('Índice de líquido amniótico', 'cm'),
+    ],
+    impresion:
+        'Embarazo único, feto vivo, de semanas por biometría, con '
+        'crecimiento acorde.',
   ),
   PlantillaEco(
     id: 'vejiga_residuo',
@@ -291,6 +388,7 @@ const plantillasEcoBase = <PlantillaEco>[
         'Patrón fibroglandular, sin nódulos ni quistes.',
       ),
       SeccionPlantilla('Axilas', 'Sin adenopatías de aspecto patológico.'),
+      SeccionPlantilla('Clasificación BI-RADS', 'BI-RADS 1: negativo.'),
     ],
     medidas: [MedidaPlantilla('Lesión', 'mL', volumen: true)],
     impresion: 'Mamas sin alteraciones ecográficas.',

@@ -20,7 +20,6 @@ import '../peso/ajustes_peso.dart';
 import '../respaldo/flujos_respaldo.dart';
 import '../widgets/comunes.dart';
 import 'equipo_secundario.dart';
-import 'verificaciones_ajustes.dart';
 import 'prestador.dart';
 import '../../medico/medico_provider.dart';
 import '../../../core/widgets/ilustraciones.dart';
@@ -62,8 +61,6 @@ class AjustesConsultorioPage extends ConsumerWidget {
           TarjetaPrestador(),
           SizedBox(height: 16),
           TarjetaEquipoSecundario(),
-          SizedBox(height: 16),
-          TarjetaVerificaciones(),
           SizedBox(height: 16),
           _Bitacora(),
         ],

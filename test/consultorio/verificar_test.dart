@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/app/tema.dart';
 import 'package:historiasclinicas_net/core/consultorio/repositorio/bitacora.dart';
 import 'package:historiasclinicas_net/core/consultorio/verificar/verificar.dart';
-import 'package:historiasclinicas_net/features/consultorio/estado/consultorio_provider.dart';
-import 'package:historiasclinicas_net/features/consultorio/estado/presentacion_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/widgets/texto_normativo.dart';
 
 import 'ayudas_consultorio.dart';
@@ -160,28 +156,16 @@ void main() {
     );
   });
 
-  testWidgets('chip «Por verificar», registrar la verificación y modo '
-      'presentación (se apaga al bloquear)', (t) async {
-    final b = BancoConsultorio();
-    await b.servicio.crear(fraseDePrueba);
-    final c = ProviderContainer(
-      overrides: [servicioConsultorioProvider.overrideWithValue(b.servicio)],
-    );
-    addTearDown(c.dispose);
+  testWidgets('el texto normativo sale limpio, sin «VERIFICAR» ni chip '
+      '(desde el 27/11/2026)', (t) async {
     await t.pumpWidget(
-      UncontrolledProviderScope(
-        container: c,
-        child: MaterialApp(
-          theme: temaClaro(),
-          locale: const Locale('es'),
-          supportedLocales: const [Locale('es')],
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: const Scaffold(body: TextoNormativo(_firma)),
-        ),
+      MaterialApp(
+        theme: temaClaro(),
+        home: const Scaffold(body: TextoNormativo(_firma)),
       ),
     );
-    await t.pumpAndSettle();
     expect(find.textContaining('VERIFICAR', findRichText: true), findsNothing);
+    expect(find.text('Por verificar'), findsNothing);
     expect(
       find.textContaining(
         'no equivalen a una firma digital',
@@ -189,66 +173,5 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Por verificar'), findsOneWidget);
-    // Accesibilidad: el chip es su propio botón, con la nota en el nombre;
-    // el párrafo sigue siendo texto.
-    final semantica = t.ensureSemantics();
-    expect(
-      t.getSemantics(find.byType(ChipVerificar)),
-      matchesSemantics(
-        label: 'Por verificar: VERIFICAR su validez legal en tu país.',
-        isButton: true,
-        hasTapAction: true,
-      ),
-    );
-    expect(
-      t
-          .getSemantics(find.textContaining('no equivalen a una firma digital'))
-          .getSemanticsData()
-          .flagsCollection
-          .isButton,
-      isFalse,
-    );
-    semantica.dispose();
-
-    await t.tap(find.text('Por verificar'));
-    await t.pumpAndSettle();
-    expect(find.text('Nota por verificar'), findsOneWidget);
-    expect(find.text('VERIFICAR su validez legal en tu país.'), findsOneWidget);
-    await t.enterText(
-      find.ancestor(
-        of: find.text('Fuente *'),
-        matching: find.byType(TextField),
-      ),
-      'Res. 1995/1999',
-    );
-    await t.pumpAndSettle();
-    await t.tap(find.text('Marcar como verificada'));
-    await t.pumpAndSettle();
-    expect(
-      find.text('Verificado el 21/11/2026 · Res. 1995/1999'),
-      findsOneWidget,
-    );
-
-    // Modo presentación: ni el chip ni la marca.
-    c.read(modoPresentacionProvider.notifier).cambiar(true);
-    await t.pumpAndSettle();
-    expect(find.textContaining('Verificado'), findsNothing);
-    expect(find.byType(ChipVerificar), findsNothing);
-    expect(find.textContaining('VERIFICAR', findRichText: true), findsNothing);
-
-    // Al bloquear se apaga; con el consultorio bloqueado, el chip vuelve a
-    // «Por verificar» (el registro está cifrado).
-    await c.read(consultorioProvider.notifier).bloquear();
-    await t.pumpAndSettle();
-    expect(c.read(modoPresentacionProvider), isFalse);
-    expect(find.text('Por verificar'), findsOneWidget);
-    await t.tap(find.text('Por verificar'));
-    await t.pumpAndSettle();
-    expect(
-      find.text('Desbloquea el consultorio para registrar la verificación.'),
-      findsOneWidget,
-    );
-    await t.pump(const Duration(seconds: 5));
   });
 }

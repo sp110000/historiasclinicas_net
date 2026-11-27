@@ -232,6 +232,17 @@ Future<Uint8List> generarPdfEstudio(
         pw.SizedBox(height: 6),
         tabla([
           if (e.tecnica.trim().isNotEmpty) ('Técnica', e.tecnica.trim()),
+          if (e.requiereConsentimiento)
+            (
+              'Consentimiento',
+              [
+                e.consentimiento
+                    ? 'Informado y aceptado por la paciente'
+                    : 'Pendiente',
+                if (e.acompanante.trim().isNotEmpty)
+                  'acompañante: ${e.acompanante.trim()}',
+              ].join(' · '),
+            ),
           if (e.equipo.trim().isNotEmpty) ('Equipo', e.equipo.trim()),
           if (e.indicacion.trim().isNotEmpty)
             ('Indicación', e.indicacion.trim()),
