@@ -35,6 +35,8 @@ enum AccionBitacora {
   unirFichas('Unió dos fichas de paciente'),
   eliminarPaciente('Eliminó una ficha de paciente'),
   restaurarPaciente('Restauró una ficha de paciente eliminada'),
+  cerrarEstudio('Cerró un informe ecográfico'),
+  anularEstudio('Anuló un informe ecográfico'),
   aprobarPlantilla('Aprobó una plantilla'),
   firmarDocumento('Firmó un documento'),
   emitirDocumento('Emitió un documento clínico'),

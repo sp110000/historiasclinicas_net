@@ -1891,6 +1891,63 @@ await context.close();
   await p.waitForTimeout(900);
   paso('Inventario en móvil (390 px) y 320 px');
 
+  // Imágenes: un informe ecográfico de tiroides para Peña con una captura
+  // del ecógrafo (de la galería, sin cámara); al cerrarlo se descarga el
+  // PDF con su número, las medidas y la imagen.
+  await pulsarExacto('Imágenes');
+  await texto(p, 'Todavía no hay estudios').waitFor();
+  // El botón del centro (el de la barra queda arriba, fuera de la zona de
+  // clic de aLaVista).
+  await p.getByRole('button', { name: 'Nuevo estudio' }).last().click();
+  await escribir(p, 'Paciente', 'pena');
+  await p.waitForTimeout(500);
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(400);
+  await elegirOpcion('Tipo de estudio', 'Ecografía de tiroides y cuello');
+  await pulsar(p, 'Crear informe');
+  await texto(p, 'Para cerrar falta el equipo').waitFor();
+  await escribir(p, 'Equipo', 'POCUS de prueba');
+  // Las medidas (y el volumen) los prueba imagenes_ui_test: aquí, escribir
+  // en varios campos seguidos con Ctrl+A/Supr podía borrar el campo que
+  // seguía con el foco. Se comprueba que los hallazgos lleguen intactos.
+  {
+    const [selector] = await Promise.all([p.waitForEvent('filechooser'), pulsar(p, 'Agregar imagen')]);
+    if (await selector.element().getAttribute('capture')) {
+      throw new Error('El selector de imágenes del ecógrafo abre la cámara');
+    }
+    await selector.setFiles(path.join(FIXTURES, 'foto_frontal_antes.jpg'));
+  }
+  await texto(p, '1 de 6 en el informe').waitFor({ timeout: 30000 });
+  // Con la rueda, como en los demás formularios largos: el desplazamiento
+  // del DOM no mueve lo que dibuja Flutter, y el clic caía en otro campo
+  // (Ctrl+A/Supr lo borraba).
+  await aLaVista(campo(p, 'Rótulo'));
+  await escribir(p, 'Rótulo', 'Lóbulo derecho, transversal');
+  await p.waitForTimeout(900);
+  await captura(p, 'e1_informe_borrador.png');
+  await pulsar(p, 'Cerrar informe');
+  await texto(p, '¿Cerrar el informe?').waitFor();
+  const eco = await descargar(p, () => p.getByRole('button', { name: 'Cerrar y descargar', exact: true }).click());
+  await texto(p, 'Informe EC-000001').waitFor();
+  await captura(p, 'e2_informe_cerrado.png');
+  const leidoEco = leerDocumento(
+    eco,
+    [
+      'INFORME ECOGRÁFICO',
+      'EC-000001',
+      'Ecografía de tiroides y cuello',
+      'POCUS de prueba',
+      'Lóbulo derecho: De tamaño normal, ecogenicidad homogénea. Sin nódulos.',
+      'Lóbulo izquierdo: De tamaño normal, ecogenicidad homogénea. Sin nódulos.',
+      'Lóbulo derecho, transversal',
+    ],
+    'pdf_ecografia',
+  );
+  paso(
+    `Imágenes: informe ecográfico de tiroides con su captura cerrado → ${path.basename(eco)}` +
+      (leidoEco ? ' (pdftotext: número, equipo, hallazgos y rótulo de la imagen)' : ''),
+  );
+
   // Procedimientos → Consentimientos firmados: el de Muñoz, vigente, con
   // su PDF.
   await pulsarExacto('Procedimientos');

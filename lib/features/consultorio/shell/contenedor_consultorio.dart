@@ -42,8 +42,9 @@ class DestinoConsultorio {
   final String? etiquetaRiel;
 }
 
-/// Destinos del consultorio (pregunta 51); Procedimientos va debajo de la
-/// historia y encima de la caja. El Inicio (rediseño R2) va primero.
+/// Destinos del consultorio (pregunta 51); Imágenes (ecografías) y
+/// Procedimientos van debajo de la historia y encima de la caja. El Inicio
+/// (rediseño R2) va primero.
 const destinosConsultorio = [
   DestinoConsultorio(
     ruta: '/inicio',
@@ -69,6 +70,12 @@ const destinosConsultorio = [
     icono: Icons.description_outlined,
     iconoActivo: Icons.description,
     requiereDesbloqueo: false,
+  ),
+  DestinoConsultorio(
+    ruta: '/imagenes',
+    etiqueta: 'Imágenes',
+    icono: Icons.monitor_heart_outlined,
+    iconoActivo: Icons.monitor_heart,
   ),
   DestinoConsultorio(
     ruta: '/procedimientos',
@@ -428,6 +435,11 @@ class _Riel extends StatelessWidget {
         selectedIndex: indice,
         onDestinationSelected: alElegir,
         labelType: NavigationRailLabelType.all,
+        // Con pantallas bajas, los destinos se desplazan; el logo, el
+        // buscador y el candado quedan fijos.
+        scrollable: true,
+        leadingAtTop: true,
+        trailingAtBottom: true,
         backgroundColor: Colors.white,
         minWidth: _anchoRiel,
         indicatorColor: ColoresMarca.tinte,
@@ -435,12 +447,16 @@ class _Riel extends StatelessWidget {
         unselectedIconTheme: const IconThemeData(
           color: ColoresMarca.textoSuave,
         ),
+        // Con la fuente explícita: sin ella, la «á» de «Imágenes» pedía una
+        // fuente de respaldo (Noto Sans Symbols) que el sitio no tiene.
         selectedLabelTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           color: ColoresMarca.primario,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
         unselectedLabelTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           color: ColoresMarca.textoSuave,
           fontSize: 12,
         ),
@@ -455,16 +471,11 @@ class _Riel extends StatelessWidget {
             const SizedBox(height: 10),
           ],
         ),
-        trailing: const Expanded(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [_BotonPresentacion(), _BotonCandado()],
-              ),
-            ),
+        trailing: const Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [_BotonPresentacion(), _BotonCandado()],
           ),
         ),
         destinations: [

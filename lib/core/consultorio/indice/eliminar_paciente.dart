@@ -66,6 +66,11 @@ extension EliminarPaciente on ServicioConsultorio {
         ),
         (procedimientos.sesionesDe(pacienteId).length, 'sesión', 'sesiones'),
         (peso.programaDe(pacienteId) == null ? 0 : 1, 'programa de peso', ''),
+        (
+          imagenes.estudiosDe(pacienteId).length,
+          'estudio de imágenes',
+          'estudios de imágenes',
+        ),
         (unidas, 'ficha unida', 'fichas unidas'),
       ])
         if (n > 0) _cuenta(n, uno, varios),

@@ -91,6 +91,21 @@ Pediste que al cobrar se puedan agregar los insumos usados y que se descuenten d
 
 ---
 
+## Imágenes: informe ecográfico, parte 1 (26/11/2026)
+
+Pediste poder hacer ecografías en la consulta (todo tipo, hasta ginecológicas, con un POCUS) y un botón en el menú para las imágenes. El informe se entrega en PDF e impreso, con las imágenes dentro.
+
+- **«Imágenes» en el menú** (riel y menú del teléfono), debajo de Historia. Lista los **borradores** y los **informes**; «Nuevo estudio» pide el paciente y el tipo de estudio. Desde la ficha, la acción **«Ecografía»** crea el estudio de ese paciente, y la línea de tiempo muestra sus estudios. El riel se desplaza si la pantalla es baja.
+- **Plantillas base** (`lib/core/consultorio/imagenes/plantillas_eco.dart`): abdominal total, hígado y vías biliares, renal y vías urinarias, tiroides y cuello, **pélvica ginecológica transabdominal**, vejiga y residuo posmiccional, partes blandas, inguinal y pared, testicular, mamaria, musculoesquelética, FAST/eFAST, pulmonar, venosa por compresión (TVP) y «Otra ecografía». Cada una trae los **hallazgos normales** por órgano (una base que se edita en cada estudio), las medidas habituales y una impresión normal.
+- **El informe** (en borrador se guarda solo): tipo de estudio, técnica, **equipo** (texto libre; se sugiere el del último estudio), indicación, hallazgos por sección (se agregan o quitan), **medidas** (con tres diámetros en cm calcula el **volumen del elipsoide**, × 0,523, en mL), **imágenes**, impresión diagnóstica con **CIE-10** opcional y recomendaciones.
+- **Imágenes:** «Agregar imagen» abre la galería o el computador (no la cámara). Se guardan **cifradas, en JPEG y sin metadatos**, con su rótulo. Van al informe **hasta 6** (cuadrícula de 2 × 3), en el orden en que se suben; las demás quedan en el estudio.
+- **Vista previa** del PDF sin número. **«Cerrar informe»** pide el equipo, algún hallazgo y la impresión; le da su número **EC-000001** (consecutivo propio, con la serie del equipo secundario), genera el **PDF firmado y sellado** con `ecografia.json` y su huella, lo descarga y desde entonces no se edita. **«Imprimir»** y **«Descargar PDF»** en el informe cerrado. Un error se corrige **anulándolo con motivo** (el número no se reutiliza) y haciendo otro. Un borrador se puede borrar.
+- **Eliminar paciente** cuenta sus estudios: un paciente con ecografías no se borra, se oculta. Bitácora: «Cerró / Anuló un informe ecográfico».
+- **Quedan para las partes siguientes** (con tu visto bueno): la **transvaginal** con su consentimiento informado y el acompañante, las clasificaciones (TI-RADS, BI-RADS, O-RADS, **VERIFICAR**), plantillas editables desde Ajustes, la nota en la evolución del día, el seguimiento gráfico de medidas, el tipo de cita en la agenda y los servicios en la caja; la **obstétrica**, si la incluyes. Reimportar el PDF de un informe todavía no lo verifica.
+- **Normativo (VERIFICAR):** habilitación del servicio de imágenes diagnósticas (Resolución 3100 de 2019) y la formación que exige; conservación de las imágenes como parte de la historia clínica; código CUPS de cada estudio.
+
+---
+
 ## Cobro con servicios, procedimientos e insumos editables (26/11/2026)
 
 Pediste que al cobrar se puedan agregar los insumos usados, el procedimiento y el servicio, que todo sea editable y que los insumos se descuenten del inventario.

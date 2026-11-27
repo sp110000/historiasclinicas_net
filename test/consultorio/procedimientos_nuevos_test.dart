@@ -32,11 +32,16 @@ DefinicionProcedimiento _sinInfiltracion(DefinicionProcedimiento d) =>
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('en el menú, Procedimientos va debajo de Historia y encima de Caja', () {
+  test('en el menú: Historia, Imágenes, Procedimientos y Caja, en ese orden '
+      '(Imágenes desde el 26/11/2026)', () {
     final rutas = [for (final d in destinosConsultorio) d.etiqueta];
     final i = rutas.indexOf('Procedimientos');
-    expect(rutas[i - 1], 'Historia');
-    expect(rutas[i + 1], 'Caja');
+    expect(rutas.sublist(i - 2, i + 2), [
+      'Historia',
+      'Imágenes',
+      'Procedimientos',
+      'Caja',
+    ]);
   });
 
   group('Sin anestésico ni solución', () {
