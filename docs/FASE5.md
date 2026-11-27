@@ -106,6 +106,15 @@ Pediste poder hacer ecografías en la consulta (todo tipo, hasta ginecológicas,
 
 ---
 
+## Imágenes, parte 2, y sin marcas «Por verificar» (27/11/2026)
+
+- **Sin «Por verificar» en la app:** lo normativo lo revisa el médico. Los textos que llevaban la nota se muestran limpios (sin la palabra VERIFICAR ni el chip), con o sin el modo presentación; sale de Ajustes la tarjeta «Verificaciones». Las notas VERIFICAR siguen en estos documentos. Con la bandera apagada, el sitio es el de siempre.
+- **Plantillas nuevas:** pélvica **transvaginal** (pide marcar el consentimiento informado de la paciente y anota el acompañante; sin el consentimiento no cierra, y el PDF lo dice), **obstétrica de primer trimestre** (saco, vesícula, embrión con actividad cardiaca; saco gestacional, LCR, FCF y translucencia nucal) y **obstétrica de segundo y tercer trimestre** (feto, presentación, placenta y líquido; DBP, CC, CA, LF, peso fetal estimado, FCF e ILA). Las edades gestacionales y los percentiles los escribe el médico.
+- **Clasificaciones** como sección editable: **TI-RADS** (tiroides), **BI-RADS** (mama) y **O-RADS** (pélvicas).
+- **Pendiente** (parte 3): plantillas editables desde Ajustes, la nota en la evolución, gráficas de las medidas, el tipo de cita en la agenda y los servicios en la caja.
+
+---
+
 ## Cobro con servicios, procedimientos e insumos editables (26/11/2026)
 
 Pediste que al cobrar se puedan agregar los insumos usados, el procedimiento y el servicio, que todo sea editable y que los insumos se descuenten del inventario.

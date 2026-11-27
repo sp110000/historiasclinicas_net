@@ -328,8 +328,7 @@ class _FranjaPresentacion extends ConsumerWidget {
         children: [
           const Icon(Icons.co_present, size: 18, color: ColoresMarca.primario),
           const Text(
-            'Modo presentación: sin notas por verificar, notas internas ni '
-            'montos de la caja.',
+            'Modo presentación: sin notas internas ni montos de la caja.',
             style: TextStyle(
               color: ColoresMarca.primario,
               fontWeight: FontWeight.w600,

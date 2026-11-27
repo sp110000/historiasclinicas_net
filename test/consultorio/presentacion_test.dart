@@ -15,7 +15,6 @@ import 'package:historiasclinicas_net/core/storage/preferencias.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/consultorio_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/estado/presentacion_provider.dart';
 import 'package:historiasclinicas_net/features/consultorio/rutas_consultorio.dart';
-import 'package:historiasclinicas_net/features/consultorio/widgets/texto_normativo.dart';
 import 'package:historiasclinicas_net/features/medico/medico_provider.dart';
 import 'package:historiasclinicas_net/features/receta/estado/receta_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -133,7 +132,7 @@ void _sinNotas(String donde) {
     findsNothing,
     reason: donde,
   );
-  expect(find.byType(ChipVerificar), findsNothing, reason: donde);
+  expect(find.text('Por verificar'), findsNothing, reason: donde);
   expect(find.textContaining(_notaInterna), findsNothing, reason: donde);
   expect(find.textContaining(_motivo), findsNothing, reason: donde);
 }
@@ -208,8 +207,8 @@ void main() {
     ('protocolo', (_) => '/procedimientos/hidrolipoclasia'),
   ];
 
-  testWidgets('sin el modo presentación: chips «Por verificar» en lugar de '
-      'la marca', (t) async {
+  testWidgets('sin el modo presentación tampoco hay «VERIFICAR» ni «Por '
+      'verificar» (desde el 27/11/2026)', (t) async {
     final (b, id) = await _preparar();
     await _montar(t, b, '/agenda');
     // El festivo del día y la cita con su motivo y su saldo.
@@ -217,23 +216,13 @@ void main() {
       find.textContaining('Festivo: Inmaculada Concepción', findRichText: true),
       findsOneWidget,
     );
-    expect(find.byType(ChipVerificar), findsWidgets);
+    expect(find.text('Por verificar'), findsNothing);
     expect(find.textContaining(_motivo), findsOneWidget);
     expect(find.text(r'Saldo $ 25.000'), findsOneWidget);
     await _montar(t, b, '/ajustes');
-    expect(find.byType(ChipVerificar), findsWidgets);
-    // Los textos con chip ya no llevan la marca.
-    for (final e in find.byType(TextoNormativo).evaluate()) {
-      final w = e.widget as TextoNormativo;
-      if (!w.texto.contains('VERIFICAR')) continue;
-      expect(
-        find.descendant(
-          of: find.byWidget(w),
-          matching: find.textContaining('VERIFICAR', findRichText: true),
-        ),
-        findsNothing,
-      );
-    }
+    expect(find.text('Por verificar'), findsNothing);
+    expect(find.text('Verificaciones'), findsNothing);
+    expect(find.textContaining('VERIFICAR', findRichText: true), findsNothing);
     await _montar(t, b, '/pacientes/$id');
     expect(find.textContaining(_notaInterna), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Caja'), findsOneWidget);
@@ -253,8 +242,7 @@ void main() {
       await _montar(t, b, ruta(id), presentacion: true);
       expect(
         find.text(
-          'Modo presentación: sin notas por verificar, notas internas ni '
-          'montos de la caja.',
+          'Modo presentación: sin notas internas ni montos de la caja.',
         ),
         findsOneWidget,
         reason: nombre,

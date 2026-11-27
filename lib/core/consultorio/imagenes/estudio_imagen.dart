@@ -205,6 +205,9 @@ class EstudioImagen {
     this.cerrado,
     this.sha256,
     this.motivoAnulacion = '',
+    this.requiereConsentimiento = false,
+    this.consentimiento = false,
+    this.acompanante = '',
   });
 
   static const coleccion = 'estudiosImagen';
@@ -243,6 +246,12 @@ class EstudioImagen {
   /// Huella de lo sellado, al cerrarlo.
   final String? sha256;
   final String motivoAnulacion;
+
+  /// Transvaginal: la paciente dio su consentimiento informado, y quién la
+  /// acompañó.
+  final bool requiereConsentimiento;
+  final bool consentimiento;
+  final String acompanante;
   final DateTime creado;
   final DateTime actualizado;
 
@@ -282,11 +291,14 @@ class EstudioImagen {
     ],
     medidas: [for (final m in p.medidas) MedidaEstudio.desdePlantilla(m)],
     impresion: p.impresion,
+    requiereConsentimiento: p.requiereConsentimiento,
   );
 
   /// Lo que falta para cerrar el informe.
   List<String> get faltantes => [
     if (equipo.trim().isEmpty) 'el equipo',
+    if (requiereConsentimiento && !consentimiento)
+      'el consentimiento informado de la paciente',
     if (!secciones.any((s) => s.texto.trim().isNotEmpty)) 'los hallazgos',
     if (impresion.trim().isEmpty && diagnostico.vacio)
       'la impresión diagnóstica',
@@ -311,6 +323,8 @@ class EstudioImagen {
     Object? cerrado = sin,
     Object? sha256 = sin,
     String? motivoAnulacion,
+    bool? consentimiento,
+    String? acompanante,
     DateTime? actualizado,
   }) => EstudioImagen(
     id: id,
@@ -333,6 +347,9 @@ class EstudioImagen {
     cerrado: cambio(cerrado, this.cerrado),
     sha256: cambio(sha256, this.sha256),
     motivoAnulacion: motivoAnulacion ?? this.motivoAnulacion,
+    requiereConsentimiento: requiereConsentimiento,
+    consentimiento: consentimiento ?? this.consentimiento,
+    acompanante: acompanante ?? this.acompanante,
     actualizado: actualizado ?? this.actualizado,
   );
 
@@ -351,6 +368,9 @@ class EstudioImagen {
     'diagnostico': diagnostico.vacio ? null : diagnostico.aMapa(),
     'impresion': impresion.trim(),
     'recomendaciones': recomendaciones.trim(),
+    'requiereConsentimiento': requiereConsentimiento ? true : null,
+    'consentimiento': consentimiento ? true : null,
+    'acompanante': acompanante.trim(),
   });
 
   /// Lo sellado: el contenido con su número, para `ecografia.json`.
@@ -423,6 +443,9 @@ class EstudioImagen {
         },
         sha256: m.textoONulo('sha256'),
         motivoAnulacion: m.texto('motivoAnulacion'),
+        requiereConsentimiento: m.booleano('requiereConsentimiento'),
+        consentimiento: m.booleano('consentimiento'),
+        acompanante: m.texto('acompanante'),
         creado: DateTime.parse(m['creado']! as String).toLocal(),
         actualizado: DateTime.parse(m['actualizado']! as String).toLocal(),
       );

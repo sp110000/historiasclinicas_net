@@ -367,6 +367,27 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
               ),
             ],
           ),
+          if (e.requiereConsentimiento) ...[
+            const SizedBox(height: 4),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: e.consentimiento,
+              onChanged: (v) =>
+                  _cambiar((x) => x.copyWith(consentimiento: v ?? false)),
+              title: const Text(
+                'La paciente dio su consentimiento informado para el estudio '
+                'transvaginal',
+              ),
+            ),
+            CampoTexto(
+              etiqueta: 'Acompañante durante el estudio',
+              pista: 'Nombre y parentesco o cargo',
+              valorInicial: e.acompanante,
+              alCambiar: (v) =>
+                  _cambiar((x) => x.copyWith(acompanante: v), redibujar: false),
+            ),
+          ],
           const SizedBox(height: 12),
           CampoTexto(
             etiqueta: 'Indicación',

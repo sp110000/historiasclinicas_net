@@ -1979,25 +1979,20 @@ await context.close();
     await p.waitForTimeout(600);
   }
 
-  // Ajustes: la nota de la DIAN se marca como verificada, con fecha y fuente.
+  // Sin marcas «Por verificar» (27/11/2026): ni el chip ni la palabra
+  // VERIFICAR, tampoco fuera del modo presentación.
   await ir('/ajustes', 'Servicios y tarifas');
-  await texto(p, 'Ninguna nota verificada todavía').waitFor();
-  const chipDian = p.getByRole('button', { name: /^Por verificar: DIAN, VERIFICAR con tu contador/ });
-  await hacerClic(chipDian);
-  await texto(p, 'Nota por verificar').waitFor();
-  await escribir(p, 'Fuente', 'Concepto del contador (prueba)');
-  await p.getByRole('button', { name: 'Marcar como verificada', exact: true }).click();
-  await texto(p, 'Verificado el 30/11/2026 · Concepto del contador (prueba)').waitFor();
-  await texto(p, '1 nota verificada').waitFor();
-  await aLaVista(p.getByRole('button', { name: /^Verificado el 30\/11\/2026/ }));
-  await captura(p, 'j1_verificada.png');
-  if (!(await cuantas('Por verificar'))) throw new Error('No hay chips «Por verificar» en Ajustes');
-  paso('Ajustes: chips «Por verificar» con la nota completa; la de la DIAN, verificada el 30/11/2026 con su fuente');
+  for (const t of ['VERIFICAR', 'Por verificar', 'Verificaciones']) {
+    const n = await cuantas(t);
+    if (n) throw new Error(`Ajustes muestra «${t}» (${n})`);
+  }
+  await captura(p, 'j1_sin_marcas.png');
+  paso('Ajustes sin marcas «Por verificar» ni la palabra VERIFICAR');
 
   // Modo presentación: ningún «VERIFICAR» ni chip en las pantallas, ni
   // notas internas ni montos de la caja en las que ve el paciente.
   await p.getByRole('button', { name: 'Modo presentación', exact: true }).click();
-  await texto(p, 'Modo presentación: sin notas por verificar').waitFor();
+  await texto(p, 'Modo presentación: sin notas internas').waitFor();
   const pantallas = [
     ['/inicio', 'Tu día en números'],
     ['/agenda', 'lunes 30/11/2026'],
@@ -2045,8 +2040,8 @@ await context.close();
   await texto(p, 'Servicios y tarifas').waitFor({ timeout: 30000 });
   await p.waitForTimeout(600);
   if (await cuantas('Modo presentación: sin notas')) throw new Error('El modo presentación sigue tras bloquear');
-  if (!(await cuantas('Por verificar'))) throw new Error('Tras bloquear no volvieron los chips');
-  paso('Al bloquear, el modo presentación se apaga: al desbloquear vuelven los chips');
+  if (await cuantas('Por verificar')) throw new Error('Tras bloquear aparecieron marcas «Por verificar»');
+  paso('Al bloquear, el modo presentación se apaga');
   await abrirFicha('1032456789');
 
   // Nada de los pacientes en claro en IndexedDB ni en localStorage.

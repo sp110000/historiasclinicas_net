@@ -116,8 +116,8 @@ void main() {
   );
 
   testWidgets(
-    'pantallas de siempre: chip «Por verificar» y, en el modo presentación, '
-    'ningún «VERIFICAR» (historia, receta y datos del médico)',
+    'pantallas de siempre: ningún «VERIFICAR» ni «Por verificar», con o sin '
+    'el modo presentación (historia, receta y datos del médico)',
     (t) async {
       t.view
         ..physicalSize = const Size(1920, 2400)
@@ -149,10 +149,8 @@ void main() {
         await t.pumpAndSettle();
         container.read(modoPresentacionProvider.notifier).cambiar(false);
         await t.pumpAndSettle();
-        if (ruta == '/medico') {
-          expect(find.text('Por verificar'), findsWidgets, reason: ruta);
-          expect(verificar, findsNothing, reason: ruta);
-        }
+        expect(find.text('Por verificar'), findsNothing, reason: ruta);
+        expect(verificar, findsNothing, reason: ruta);
         container.read(modoPresentacionProvider.notifier).cambiar(true);
         await t.pumpAndSettle();
         expect(verificar, findsNothing, reason: ruta);
