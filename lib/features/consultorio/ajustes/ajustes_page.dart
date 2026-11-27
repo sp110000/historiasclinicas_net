@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../imagenes/plantillas_eco_ajustes.dart';
 import '../../../app/tema.dart';
 import '../../../core/consultorio/almacen/navegador.dart';
 import '../../../core/consultorio/repositorio/bitacora.dart';
@@ -53,6 +54,8 @@ class AjustesConsultorioPage extends ConsumerWidget {
           TarjetaPlantillas(),
           SizedBox(height: 16),
           TarjetaPlantillasClinicas(),
+          SizedBox(height: 16),
+          TarjetaPlantillasEco(),
           SizedBox(height: 16),
           TarjetaProgramaPeso(),
           SizedBox(height: 16),

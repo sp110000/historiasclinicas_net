@@ -6,7 +6,8 @@ enum TipoCita {
   control('Control', 20),
   programaPeso('Programa de peso', 30),
   valoracionEstetica('Valoración estética', 40),
-  sesion('Sesión de procedimiento', 60);
+  sesion('Sesión de procedimiento', 60),
+  ecografia('Ecografía', 20);
 
   const TipoCita(this.etiqueta, this.duracionPorDefecto);
 

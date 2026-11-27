@@ -12,6 +12,7 @@ import '../widgets/comunes.dart';
 import 'dialogo_medicion.dart';
 import 'grafica_seguimiento.dart';
 import 'informe.dart';
+import 'medidas_eco.dart';
 
 /// Qué se grafica.
 enum SerieSeguimiento {
@@ -138,6 +139,7 @@ class _SeccionSeguimientoState extends ConsumerState<SeccionSeguimiento> {
           const SizedBox(height: 12),
           _Tabla(mediciones: mediciones.reversed.toList()),
         ],
+        MedidasEcografia(pacienteId: widget.ficha.id),
       ],
     );
   }

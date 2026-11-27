@@ -35,6 +35,7 @@ String servicioDeCita(TipoCita t) => switch (t) {
   TipoCita.control || TipoCita.programaPeso => 'control',
   TipoCita.valoracionEstetica => 'valoracion_estetica',
   TipoCita.sesion => 'sesion_hidrolipoclasia',
+  TipoCita.ecografia => 'ecografia',
 };
 
 String nombreArchivoRecibo(Recibo r) => 'Recibo_${r.numero}.pdf';

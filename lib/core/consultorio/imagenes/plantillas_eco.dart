@@ -4,6 +4,8 @@
 /// se escribe y se revisa en cada estudio.
 library;
 
+import '../../models/mapa.dart';
+
 /// Una medida de la plantilla. Con [volumen], se piden tres diámetros en cm
 /// y se calcula el volumen del elipsoide (× 0,523) en mL.
 class MedidaPlantilla {
@@ -49,7 +51,120 @@ class PlantillaEco {
   /// Estudio invasivo (transvaginal): pide el consentimiento informado de
   /// la paciente y anota el acompañante antes de cerrar.
   final bool requiereConsentimiento;
+
+  /// Creada por el médico en Ajustes (no es una de las de base).
+  bool get propia => id.startsWith(prefijoPropia);
+
+  static const prefijoPropia = 'propia_';
+
+  PlantillaEco copyWith({
+    String? nombre,
+    String? tecnica,
+    List<SeccionPlantilla>? secciones,
+    List<MedidaPlantilla>? medidas,
+    String? impresion,
+    bool? requiereConsentimiento,
+  }) => PlantillaEco(
+    id: id,
+    nombre: nombre ?? this.nombre,
+    tecnica: tecnica ?? this.tecnica,
+    secciones: secciones ?? this.secciones,
+    medidas: medidas ?? this.medidas,
+    impresion: impresion ?? this.impresion,
+    requiereConsentimiento:
+        requiereConsentimiento ?? this.requiereConsentimiento,
+  );
+
+  /// La misma plantilla con otro id (para una copia propia).
+  PlantillaEco conId(String id, {String? nombre}) => PlantillaEco(
+    id: id,
+    nombre: nombre ?? this.nombre,
+    tecnica: tecnica,
+    secciones: secciones,
+    medidas: medidas,
+    impresion: impresion,
+    requiereConsentimiento: requiereConsentimiento,
+  );
+
+  Map<String, Object?> aMapa() => compacto({
+    'id': id,
+    'nombre': nombre.trim(),
+    'tecnica': tecnica.trim(),
+    'secciones': [
+      for (final s in secciones) {'titulo': s.titulo, 'texto': s.textoNormal},
+    ],
+    'medidas': [
+      for (final m in medidas)
+        compacto({
+          'nombre': m.nombre,
+          'unidad': m.unidad,
+          'volumen': m.volumen ? true : null,
+        }),
+    ],
+    'impresion': impresion.trim(),
+    'requiereConsentimiento': requiereConsentimiento ? true : null,
+  });
+
+  static PlantillaEco desdeMapa(Map<String, Object?> m) => PlantillaEco(
+    id: m.texto('id'),
+    nombre: m.texto('nombre'),
+    tecnica: m.texto('tecnica'),
+    secciones: [
+      for (final s in m.listaMapas('secciones'))
+        SeccionPlantilla(s.texto('titulo'), s.texto('texto')),
+    ],
+    medidas: [
+      for (final x in m.listaMapas('medidas'))
+        MedidaPlantilla(
+          x.texto('nombre'),
+          x.texto('unidad'),
+          volumen: x.booleano('volumen'),
+        ),
+    ],
+    impresion: m.texto('impresion'),
+    requiereConsentimiento: m.booleano('requiereConsentimiento'),
+  );
 }
+
+/// Las secciones como texto para editarlas: una por línea,
+/// «Título: texto normal».
+String seccionesATexto(List<SeccionPlantilla> secciones) => [
+  for (final s in secciones)
+    s.textoNormal.isEmpty ? s.titulo : '${s.titulo}: ${s.textoNormal}',
+].join('\n');
+
+List<SeccionPlantilla> seccionesDesdeTexto(String texto) => [
+  for (final l in texto.split('\n'))
+    if (l.trim().isNotEmpty)
+      switch (l.indexOf(':')) {
+        -1 => SeccionPlantilla(l.trim(), ''),
+        final i => SeccionPlantilla(
+          l.substring(0, i).trim(),
+          l.substring(i + 1).trim(),
+        ),
+      },
+];
+
+/// Las medidas como texto: una por línea, «Nombre | unidad», y
+/// «| volumen» al final para pedir tres diámetros y calcular el volumen.
+String medidasATexto(List<MedidaPlantilla> medidas) => [
+  for (final m in medidas)
+    [m.nombre, m.unidad, if (m.volumen) 'volumen'].join(' | '),
+].join('\n');
+
+List<MedidaPlantilla> medidasDesdeTexto(String texto) => [
+  for (final l in texto.split('\n'))
+    if (l.trim().isNotEmpty)
+      () {
+        final p = [for (final x in l.split('|')) x.trim()];
+        final volumen = p.length > 2 && p[2].toLowerCase().startsWith('vol');
+        return MedidaPlantilla(
+          p[0],
+          p.length > 1 ? p[1] : '',
+          volumen: volumen,
+        );
+      }(),
+];
 
 const _convexo = 'Transabdominal, transductor convexo';
 const _lineal = 'Transductor lineal de alta frecuencia';

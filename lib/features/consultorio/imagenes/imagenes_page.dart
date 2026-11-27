@@ -50,7 +50,11 @@ class _DialogoNuevo extends ConsumerStatefulWidget {
 class _DialogoNuevoState extends ConsumerState<_DialogoNuevo> {
   final _paciente = TextEditingController();
   late FichaPaciente? _ficha = widget.ficha;
-  var _plantilla = plantillasEcoBase.first.id;
+  late final _plantillas = ref
+      .read(servicioConsultorioProvider)
+      .imagenes
+      .plantillas;
+  late var _plantilla = _plantillas.first.id;
 
   @override
   void initState() {
@@ -113,9 +117,7 @@ class _DialogoNuevoState extends ConsumerState<_DialogoNuevo> {
               ),
             CampoDesplegable(
               etiqueta: 'Tipo de estudio',
-              opciones: [
-                for (final p in plantillasEcoBase) Opcion(p.id, p.nombre),
-              ],
+              opciones: [for (final p in _plantillas) Opcion(p.id, p.nombre)],
               valor: _plantilla,
               alCambiar: (v) => setState(() => _plantilla = v),
             ),
@@ -138,7 +140,7 @@ class _DialogoNuevoState extends ConsumerState<_DialogoNuevo> {
               ? null
               : () => Navigator.pop(context, (
                   _ficha!,
-                  plantillaEco(_plantilla)!,
+                  _plantillas.firstWhere((p) => p.id == _plantilla),
                 )),
           child: const Text('Crear informe'),
         ),

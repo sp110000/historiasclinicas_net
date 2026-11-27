@@ -176,12 +176,21 @@ void main() {
       expect(_vistos, ['Ecografia_PENA_borrador.pdf']);
       await _pulsar(t, find.text('Cerrar informe'));
       await _pulsar(t, find.text('Cerrar y descargar'));
+      // Se anota solo en la evolución, sin descargar también la historia.
       expect(_descargados, ['Ecografia_PENA_EC-000001.pdf']);
       expect(
-        find.text('Informe EC-000001 cerrado y descargado.'),
+        find.textContaining(
+          RegExp(
+            r'^Informe EC-000001 cerrado y descargado\. Quedó anotado en la '
+            r'evolución \(versión \d+ de la historia\)\.$',
+          ),
+        ),
         findsOneWidget,
       );
+      expect(find.text('Anotado en la evolución'), findsOneWidget);
+      expect(find.text('Anotar en la evolución'), findsNothing);
       final cerrado = b.servicio.imagenes.estudio(estudio.id)!;
+      expect(cerrado.huellaEvolucion, isNotNull);
       expect(cerrado.estado, EstadoEstudio.cerrado);
       expect(cerrado.equipo, 'POCUS de prueba');
       expect(cerrado.medidas.first.resultado, closeTo(8.47, 0.01));
@@ -197,6 +206,13 @@ void main() {
       router.go('/pacientes/$id');
       await t.pumpAndSettle();
       expect(find.text('Ecografía'), findsOneWidget);
+      // La evolución anotada queda arriba (es la historia más reciente).
+      expect(find.textContaining('(informe EC-000001)'), findsOneWidget);
+      await t.dragUntilVisible(
+        find.text('Ecografía de tiroides y cuello'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
       expect(find.text('Ecografía de tiroides y cuello'), findsOneWidget);
       await t.pump(const Duration(seconds: 2));
     },

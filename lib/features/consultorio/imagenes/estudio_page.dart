@@ -17,6 +17,7 @@ import '../../historia/widgets/dialogos.dart';
 import '../../medico/medico_provider.dart';
 import '../estado/consultorio_provider.dart';
 import '../estado/pacientes_provider.dart';
+import '../integracion/sellado.dart';
 import '../widgets/campo_diagnostico.dart';
 import '../widgets/comunes.dart';
 
@@ -165,11 +166,60 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
       ref.read(versionIndiceProvider.notifier).cambio();
       if (!mounted) return;
       setState(() => _e = e);
-      mostrarMensaje(context, 'Informe ${e.numero} cerrado y descargado.');
+      final nota = await _anotar(automatica: true);
+      if (!mounted) return;
+      mostrarMensaje(
+        context,
+        'Informe ${e.numero} cerrado y descargado.'
+        '${nota == null ? '' : ' $nota'}',
+      );
     } catch (e) {
       if (mounted) mostrarMensaje(context, mensajeDeError(e));
     } finally {
       if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  bool _puedeAnotar(EstudioImagen e) =>
+      e.estado == EstadoEstudio.cerrado &&
+      e.huellaEvolucion == null &&
+      ref
+              .read(servicioConsultorioProvider)
+              .indice
+              .ultimaHistoria(e.pacienteId) !=
+          null;
+
+  /// Anota el informe en la evolución de la historia. Al cerrar
+  /// ([automatica]) lo hace sin preguntar y sin descargar la historia (queda
+  /// guardada en el consultorio); devuelve el texto para el aviso, o `null`.
+  Future<String?> _anotar({bool automatica = false}) async {
+    final e = _e;
+    if (e == null || !_puedeAnotar(e)) return null;
+    final conflicto = conflictoConHistoriaEnCurso(ref, e.pacienteId);
+    if (conflicto != null) {
+      if (!automatica && mounted) mostrarMensaje(context, conflicto);
+      return automatica
+          ? 'Anótalo en la evolución cuando descargues la '
+                'historia en curso.'
+          : null;
+    }
+    try {
+      final s = ref.read(servicioConsultorioProvider);
+      final sellada = await s.imagenes.anotarEnEvolucion(
+        e.id,
+        medico: ref.read(medicoProvider),
+        pais: ref.read(paisProvider),
+      );
+      alSellarEnHistoria(ref, sellada, descargar: !automatica);
+      if (mounted) setState(() => _e = s.imagenes.estudio(e.id));
+      final texto =
+          'Quedó anotado en la evolución (versión ${sellada.revision} de la '
+          'historia).';
+      if (!automatica && mounted) mostrarMensaje(context, texto);
+      return texto;
+    } catch (x) {
+      if (!automatica && mounted) mostrarMensaje(context, mensajeDeError(x));
+      return automatica ? mensajeDeError(x) : null;
     }
   }
 
@@ -643,6 +693,18 @@ class _EstudioPageState extends ConsumerState<EstudioPage> {
           icon: const Icon(Icons.print_outlined),
           label: const Text('Imprimir'),
         ),
+        if (_puedeAnotar(e))
+          OutlinedButton.icon(
+            onPressed: _ocupado ? null : () => _anotar(),
+            icon: const Icon(Icons.note_add_outlined),
+            label: const Text('Anotar en la evolución'),
+          ),
+        if (e.huellaEvolucion != null)
+          const EtiquetaEstado(
+            icono: Icons.check_circle_outline,
+            texto: 'Anotado en la evolución',
+            color: ColoresMarca.estadoOk,
+          ),
         if (e.estado == EstadoEstudio.cerrado)
           TextButton.icon(
             onPressed: _anular,
