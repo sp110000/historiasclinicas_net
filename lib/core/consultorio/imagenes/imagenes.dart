@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 
 import '../../ihce/reloj.dart';
 import '../../integridad/json_canonico.dart';
+import '../../models/mapa.dart';
 import '../../models/medico.dart';
 import '../../pais/perfil_pais.dart';
 import '../../pdf/adjuntos_pdf.dart';
@@ -11,6 +12,7 @@ import '../../pdf/fuentes_pdf.dart';
 import '../../utils/ids.dart';
 import '../fotos/foto_procesada.dart';
 import '../indice/indice_pacientes.dart';
+import '../indice/sellar_evolucion.dart';
 import '../modelos/ficha_paciente.dart';
 import '../repositorio/bitacora.dart';
 import '../repositorio/repositorio.dart';
@@ -38,8 +40,25 @@ class ImagenesConsultorio {
 
   final _estudios = <String, EstudioImagen>{};
 
+  static const coleccionPlantillas = 'configuracion';
+  static const idPlantillas = 'plantillasEco';
+
+  /// Las plantillas editadas o creadas en Ajustes, por id.
+  final _plantillas = <String, PlantillaEco>{};
+
   Future<void> cargar() async {
     final r = await _repo.leerColeccionTolerante(EstudioImagen.coleccion);
+    final p = await _repo.leer(coleccionPlantillas, idPlantillas);
+    _plantillas.clear();
+    for (final m
+        in p?.listaMapas('plantillas') ?? const <Map<String, Object?>>[]) {
+      try {
+        final x = PlantillaEco.desdeMapa(m);
+        _plantillas[x.id] = x;
+      } on Object {
+        // Ilegible: queda la de base.
+      }
+    }
     _estudios.clear();
     for (final e in r.registros.entries) {
       try {
@@ -50,7 +69,60 @@ class ImagenesConsultorio {
     }
   }
 
-  void olvidar() => _estudios.clear();
+  void olvidar() {
+    _estudios.clear();
+    _plantillas.clear();
+  }
+
+  // ─────────────────────────── Plantillas ───────────────────────────
+
+  /// Las de base (con los cambios del médico) y después las propias.
+  List<PlantillaEco> get plantillas => [
+    for (final b in plantillasEcoBase) _plantillas[b.id] ?? b,
+    for (final p in _plantillas.values)
+      if (p.propia) p,
+  ];
+
+  PlantillaEco? plantilla(String id) => _plantillas[id] ?? plantillaEco(id);
+
+  /// Es de base y tiene cambios del médico.
+  bool editada(String id) =>
+      !id.startsWith(PlantillaEco.prefijoPropia) && _plantillas.containsKey(id);
+
+  /// Una plantilla propia nueva, copia de [base].
+  PlantillaEco nuevaPlantilla(PlantillaEco base) => base.conId(
+    '${PlantillaEco.prefijoPropia}${nuevoUuid()}',
+    nombre: '${base.nombre} (propia)',
+  );
+
+  Future<void> guardarPlantilla(PlantillaEco p) async {
+    if (p.nombre.trim().isEmpty) {
+      throw StateError('La plantilla necesita nombre.');
+    }
+    if (p.secciones.isEmpty) {
+      throw StateError('La plantilla necesita al menos una sección.');
+    }
+    await _guardarPlantillas({..._plantillas, p.id: p});
+  }
+
+  /// Vuelve a la de base, o quita la propia.
+  Future<void> restaurarPlantilla(String id) async =>
+      _guardarPlantillas({..._plantillas}..remove(id));
+
+  Future<void> _guardarPlantillas(Map<String, PlantillaEco> todas) async {
+    await _repo.guardar(coleccionPlantillas, idPlantillas, {
+      'plantillas': [for (final p in todas.values) p.aMapa()],
+    });
+    _plantillas
+      ..clear()
+      ..addAll(todas);
+    await registrarEnBitacora(
+      _repo,
+      AccionBitacora.cambiarAjustes,
+      fecha: reloj.ahora(),
+      resumen: 'Plantillas de ecografía',
+    );
+  }
 
   EstudioImagen? estudio(String id) => _estudios[id];
 
@@ -285,6 +357,35 @@ class ImagenesConsultorio {
       resumen: numero,
     );
     return (cerrado, pdf);
+  }
+
+  /// Anota el informe cerrado [id] como evolución sellada en la historia
+  /// más reciente del paciente. Lanza [StateError] si no está cerrado, si
+  /// ya se anotó o si el paciente no tiene historia.
+  Future<EvolucionSellada> anotarEnEvolucion(
+    String id, {
+    required Medico medico,
+    required Pais pais,
+    FuentesPdf? fuentes,
+  }) async {
+    final e = _estudios[id];
+    if (e == null || e.estado != EstadoEstudio.cerrado) {
+      throw StateError('Solo se anota un informe cerrado.');
+    }
+    if (e.huellaEvolucion != null) {
+      throw StateError('Este informe ya está anotado en la evolución.');
+    }
+    final sellada = await sellarEvolucionEnHistoria(
+      _indice,
+      pacienteId: e.pacienteId,
+      texto: e.textoEvolucion,
+      medico: medico,
+      pais: pais,
+      ahora: reloj.ahora(),
+      fuentes: fuentes,
+    );
+    await _guardar(e.copyWith(huellaEvolucion: sellada.huella));
+    return sellada;
   }
 
   Future<Uint8List?> pdfDe(String id) =>

@@ -208,6 +208,7 @@ class EstudioImagen {
     this.requiereConsentimiento = false,
     this.consentimiento = false,
     this.acompanante = '',
+    this.huellaEvolucion,
   });
 
   static const coleccion = 'estudiosImagen';
@@ -252,6 +253,9 @@ class EstudioImagen {
   final bool requiereConsentimiento;
   final bool consentimiento;
   final String acompanante;
+
+  /// Huella de la evolución que lo anotó en la historia, si ya se anotó.
+  final String? huellaEvolucion;
   final DateTime creado;
   final DateTime actualizado;
 
@@ -294,6 +298,19 @@ class EstudioImagen {
     requiereConsentimiento: p.requiereConsentimiento,
   );
 
+  /// La nota que se sella en la evolución de la historia al anotarlo.
+  String get textoEvolucion => [
+    '$titulo${numero == null ? '' : ' (informe $numero)'}.',
+    if (equipo.trim().isNotEmpty) 'Equipo: ${equipo.trim()}.',
+    if (medidasConValor.isNotEmpty)
+      'Medidas: ${[for (final m in medidasConValor) '${m.nombre} ${m.texto}'].join('; ')}.',
+    if (!diagnostico.vacio) 'Diagnóstico: ${diagnostico.texto}.',
+    if (impresion.trim().isNotEmpty)
+      'Impresión diagnóstica: ${impresion.trim()}',
+    if (recomendaciones.trim().isNotEmpty)
+      'Recomendaciones: ${recomendaciones.trim()}',
+  ].join('\n');
+
   /// Lo que falta para cerrar el informe.
   List<String> get faltantes => [
     if (equipo.trim().isEmpty) 'el equipo',
@@ -325,6 +342,7 @@ class EstudioImagen {
     String? motivoAnulacion,
     bool? consentimiento,
     String? acompanante,
+    Object? huellaEvolucion = sin,
     DateTime? actualizado,
   }) => EstudioImagen(
     id: id,
@@ -350,6 +368,7 @@ class EstudioImagen {
     requiereConsentimiento: requiereConsentimiento,
     consentimiento: consentimiento ?? this.consentimiento,
     acompanante: acompanante ?? this.acompanante,
+    huellaEvolucion: cambio(huellaEvolucion, this.huellaEvolucion),
     actualizado: actualizado ?? this.actualizado,
   );
 
@@ -402,6 +421,7 @@ class EstudioImagen {
     'cerrado': cerrado?.toUtc().toIso8601String(),
     'sha256': sha256,
     'motivoAnulacion': motivoAnulacion.trim(),
+    'huellaEvolucion': huellaEvolucion,
     'creado': creado.toUtc().toIso8601String(),
     'actualizado': actualizado.toUtc().toIso8601String(),
   });
@@ -446,6 +466,7 @@ class EstudioImagen {
         requiereConsentimiento: m.booleano('requiereConsentimiento'),
         consentimiento: m.booleano('consentimiento'),
         acompanante: m.texto('acompanante'),
+        huellaEvolucion: m.textoONulo('huellaEvolucion'),
         creado: DateTime.parse(m['creado']! as String).toLocal(),
         actualizado: DateTime.parse(m['actualizado']! as String).toLocal(),
       );

@@ -74,6 +74,9 @@ void main() {
         'valoracion_estetica': 70000,
         'sesion_hidrolipoclasia': 240000,
         'paquete_hidrolipoclasia_4': 880000,
+        'ecografia': 100000,
+        'ecografia_obstetrica': 120000,
+        'ecografia_transvaginal': 120000,
       });
       expect(_catalogo['valoracion_estetica']!.abonable, isTrue);
       expect(_catalogo['paquete_hidrolipoclasia_4']!.sesionesPaquete, 4);

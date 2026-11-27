@@ -1710,3 +1710,26 @@ Si en la implementación algo exigiera un paquete nuevo (por ejemplo, `image` pa
 - SCOFF, validación española (García-Campayo et al., *J Psychosom Res* 2005;59(2):51-55, doi:10.1016/j.jpsychores.2004.06.005)
 - BDDQ-AS, traducción al español adaptada para Colombia (según el resultado de búsqueda; no leí el artículo completo): <https://scielo.isciii.es/pdf/cpil/v49n1/0376-7892-cpil-49-01-0035.pdf>. Instrumentos de dismorfia validados en español: <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5492913/>
 - DIAN, servicios médicos excluidos de IVA y cirugía estética: <https://normograma.dian.gov.co/dian/compilacion/docs/oficio_dian_5421_2020.htm>
+
+## Imágenes, parte 3 (27/11/2026)
+
+- **Agenda:** tipo de cita «Ecografía» (20 min por defecto, editable); al
+  cobrarla se sugiere el servicio «Ecografía».
+- **Caja:** servicios «Ecografía», «Ecografía obstétrica» y «Ecografía
+  transvaginal» con tarifas de ejemplo, editables. Un catálogo guardado antes
+  los recibe una sola vez al cargar (marca `conEcografias`); si después se
+  quitan, no vuelven.
+- **Evolución:** al cerrar un informe, si el paciente tiene historia, se sella
+  como evolución nueva en la historia más reciente (título, número, equipo,
+  medidas, diagnóstico, impresión y recomendaciones). La versión nueva queda
+  guardada en el consultorio sin descargarse aparte. Si la historia tiene
+  cambios sin descargar en el editor, no se anota: queda el botón «Anotar en
+  la evolución» para hacerlo después. Se anota una sola vez
+  (`huellaEvolucion`).
+- **Seguimiento:** «Medidas de ecografía» grafica en el tiempo cada medida
+  de los informes cerrados (sin anulados ni borradores), por nombre y unidad.
+- **Ajustes → Plantillas de ecografía:** editar nombre, técnica, hallazgos
+  normales («Órgano: texto», una por línea), medidas («Nombre | unidad |
+  volumen»), impresión normal y si pide consentimiento; copiar como plantilla
+  propia; volver a la original o quitar la propia. Se guardan cifradas en
+  `configuracion/plantillasEco`. Los informes ya creados no cambian.

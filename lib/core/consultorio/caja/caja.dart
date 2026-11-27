@@ -63,8 +63,16 @@ class CajaConsultorio {
     olvidar();
     try {
       if (cat != null) {
-        _servicios = [
+        final guardados = [
           for (final s in cat.listaMapas('servicios')) Servicio.desdeMapa(s),
+        ];
+        final ids = {for (final s in guardados) s.id};
+        _servicios = [
+          ...guardados,
+          // Una sola vez: si después se quitan, no vuelven.
+          if (cat['conEcografias'] != true)
+            for (final s in serviciosEcografia)
+              if (!ids.contains(s.id)) s,
         ];
       }
     } on Object {
@@ -117,6 +125,7 @@ class CajaConsultorio {
     }
     await _repo.guardar(coleccionCatalogo, idCatalogo, {
       'servicios': [for (final s in servicios) s.aMapa()],
+      'conEcografias': true,
     });
     _servicios = List.unmodifiable(servicios);
     await registrarEnBitacora(

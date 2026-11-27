@@ -25,8 +25,12 @@ String? conflictoConHistoriaEnCurso(WidgetRef ref, String pacienteId) {
 
 /// Después de sellar: descarga el PDF de la versión nueva (el registro
 /// legal) y, si el editor tiene abierta esa historia, la pone al día.
-void alSellarEnHistoria(WidgetRef ref, EvolucionSellada s) {
-  ref.read(descargarPdfProvider)(s.pdf, s.nombreArchivo);
+void alSellarEnHistoria(
+  WidgetRef ref,
+  EvolucionSellada s, {
+  bool descargar = true,
+}) {
+  if (descargar) ref.read(descargarPdfProvider)(s.pdf, s.nombreArchivo);
   final enCurso = ref.read(historiaProvider);
   if (enCurso.abierta && enCurso.historia.id == s.historiaId) {
     ref

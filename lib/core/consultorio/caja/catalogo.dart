@@ -117,6 +117,30 @@ const serviciosIniciales = [
     sesionesPaquete: 4,
     plantillaId: 'hidrolipoclasia',
   ),
+  ...serviciosEcografia,
+];
+
+/// Los servicios de ecografía, con tarifas de ejemplo (editables). Un
+/// catálogo guardado antes de que existieran los recibe una vez al cargar.
+const serviciosEcografia = [
+  Servicio(
+    id: 'ecografia',
+    nombre: 'Ecografía',
+    linea: LineaAtencion.general,
+    tarifa: 100000,
+  ),
+  Servicio(
+    id: 'ecografia_obstetrica',
+    nombre: 'Ecografía obstétrica',
+    linea: LineaAtencion.general,
+    tarifa: 120000,
+  ),
+  Servicio(
+    id: 'ecografia_transvaginal',
+    nombre: 'Ecografía transvaginal',
+    linea: LineaAtencion.general,
+    tarifa: 120000,
+  ),
 ];
 
 /// Medios de pago (pregunta 46).

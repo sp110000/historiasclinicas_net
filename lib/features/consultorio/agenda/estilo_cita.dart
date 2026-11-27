@@ -27,6 +27,10 @@ import '../../../core/consultorio/agenda/cita.dart';
     icono: Icons.healing_outlined,
     color: ColoresMarca.tintaSuave,
   ),
+  TipoCita.ecografia => (
+    icono: Icons.monitor_heart_outlined,
+    color: ColoresMarca.tintaSuave,
+  ),
 };
 
 ({IconData icono, Color color}) estiloEstado(EstadoCita e) => switch (e) {

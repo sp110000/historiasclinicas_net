@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:historiasclinicas_net/core/consultorio/fotos/jpeg.dart';
 import 'package:historiasclinicas_net/core/consultorio/fotos/procesar_foto.dart';
 import 'package:historiasclinicas_net/core/consultorio/imagenes/estudio_imagen.dart';
+import 'package:historiasclinicas_net/core/consultorio/caja/catalogo.dart';
 import 'package:historiasclinicas_net/core/consultorio/imagenes/plantillas_eco.dart';
+import 'package:historiasclinicas_net/core/consultorio/imagenes/series_medidas.dart';
 import 'package:historiasclinicas_net/core/consultorio/indice/eliminar_paciente.dart';
 import 'package:historiasclinicas_net/core/consultorio/modelos/registro_historia.dart';
 import 'package:historiasclinicas_net/core/consultorio/repositorio/bitacora.dart';
@@ -259,6 +261,139 @@ void main() {
       contains('Longitud femoral (LF)'),
     );
     expect(plantillaEco('obstetrica_primer_trimestre'), isNotNull);
+  });
+
+  Future<EstudioImagen> cerrarTiroides(double lobulo) async {
+    final e = await tiroides();
+    final listo = await s.imagenes.guardar(
+      e.copyWith(
+        equipo: 'POCUS de prueba',
+        medidas: [
+          e.medidas.first.copyWith(valores: [1.8, 2.0, lobulo]),
+          ...e.medidas.skip(1),
+        ],
+      ),
+    );
+    final (cerrado, _) = await s.imagenes.cerrar(
+      listo.id,
+      medico: medicoCompleto(),
+      pais: Pais.colombia,
+      fuentes: fuentes,
+    );
+    return cerrado;
+  }
+
+  test('anotar en la evolución: una vez, con número e impresión', () async {
+    final cerrado = await cerrarTiroides(4.5);
+    final antes = s.indice.ultimaHistoria(paciente)!.revision;
+    expect(cerrado.textoEvolucion, contains('(informe EC-000001)'));
+    expect(cerrado.textoEvolucion, contains('Impresión diagnóstica:'));
+    final sellada = await s.imagenes.anotarEnEvolucion(
+      cerrado.id,
+      medico: medicoCompleto(),
+      pais: Pais.colombia,
+      fuentes: fuentes,
+    );
+    expect(sellada.revision, antes + 1);
+    expect(s.indice.ultimaHistoria(paciente)!.revision, antes + 1);
+    expect(s.imagenes.estudio(cerrado.id)!.huellaEvolucion, sellada.huella);
+    await expectLater(
+      () => s.imagenes.anotarEnEvolucion(
+        cerrado.id,
+        medico: medicoCompleto(),
+        pais: Pais.colombia,
+      ),
+      throwsStateError,
+    );
+    final borrador = await tiroides();
+    await expectLater(
+      () => s.imagenes.anotarEnEvolucion(
+        borrador.id,
+        medico: medicoCompleto(),
+        pais: Pais.colombia,
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('las medidas de los informes cerrados forman series', () async {
+    await cerrarTiroides(4.5);
+    await cerrarTiroides(5.0);
+    await tiroides(); // Un borrador no cuenta.
+    final series = seriesMedidasEco(s.imagenes.estudiosDe(paciente));
+    final lobulo = series.firstWhere((x) => x.nombre == 'Lóbulo derecho');
+    expect(lobulo.unidad, 'mL');
+    expect(lobulo.puntos, hasLength(2));
+    expect(lobulo.puntos.last.valor, greaterThan(lobulo.puntos.first.valor));
+  });
+
+  test(
+    'plantillas editables: cambiar, copiar, restaurar y persistir',
+    () async {
+      const texto = 'Hígado: Normal.\nBazo';
+      expect(seccionesDesdeTexto(texto).map((x) => x.titulo), [
+        'Hígado',
+        'Bazo',
+      ]);
+      expect(
+        seccionesATexto(seccionesDesdeTexto(texto)),
+        'Hígado: Normal.\nBazo',
+      );
+      final m = medidasDesdeTexto('Lóbulo | mL | volumen\nIstmo | mm');
+      expect(m.first.volumen, isTrue);
+      expect(medidasATexto(m), 'Lóbulo | mL | volumen\nIstmo | mm');
+
+      final base = s.imagenes.plantilla('tiroides_cuello')!;
+      await s.imagenes.guardarPlantilla(
+        base.copyWith(impresion: 'Tiroides sin hallazgos.'),
+      );
+      expect(s.imagenes.editada('tiroides_cuello'), isTrue);
+      final copia = s.imagenes.nuevaPlantilla(base);
+      expect(copia.propia, isTrue);
+      await s.imagenes.guardarPlantilla(copia.copyWith(nombre: 'Mi tiroides'));
+      await expectLater(
+        () => s.imagenes.guardarPlantilla(base.copyWith(nombre: ' ')),
+        throwsStateError,
+      );
+
+      await s.bloquear();
+      await s.desbloquear(fraseDePrueba);
+      expect(
+        s.imagenes.plantilla('tiroides_cuello')!.impresion,
+        'Tiroides sin hallazgos.',
+      );
+      expect(s.imagenes.plantillas.last.nombre, 'Mi tiroides');
+      final e = await s.imagenes.crear(
+        s.indice.ficha(paciente)!,
+        s.imagenes.plantilla('tiroides_cuello')!,
+      );
+      expect(e.impresion, 'Tiroides sin hallazgos.');
+
+      await s.imagenes.restaurarPlantilla('tiroides_cuello');
+      await s.imagenes.restaurarPlantilla(copia.id);
+      expect(s.imagenes.editada('tiroides_cuello'), isFalse);
+      expect(s.imagenes.plantillas, hasLength(plantillasEcoBase.length));
+    },
+  );
+
+  test('la caja trae los servicios de ecografía una sola vez', () async {
+    expect(
+      s.caja.servicios.map((x) => x.id),
+      containsAll(['ecografia', 'ecografia_obstetrica']),
+    );
+    // Un catálogo guardado antes de las ecografías las recibe al cargar.
+    await s.repositorio.guardar('configuracion', 'caja', {
+      'servicios': [serviciosIniciales.first.aMapa()],
+    });
+    await s.caja.cargar();
+    expect(s.caja.servicios.map((x) => x.id), [
+      'consulta_primera_vez',
+      for (final x in serviciosEcografia) x.id,
+    ]);
+    // Si después se quitan, no vuelven.
+    await s.caja.guardarCatalogo([serviciosIniciales.first]);
+    await s.caja.cargar();
+    expect(s.caja.servicios.map((x) => x.id), ['consulta_primera_vez']);
   });
 
   test('un paciente con estudios no se borra al eliminarlo', () async {
